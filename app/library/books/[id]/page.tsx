@@ -4,7 +4,8 @@ import { BookMarked, Bookmark, Heart, LibraryBig, Star, StickyNote } from "lucid
 import { requireProfile } from "@/lib/profile";
 import { getBookDetail } from "@/lib/repositories/library";
 import { demoBooks } from "@/lib/demo-data";
-import { DemoCover } from "@/components/demo-cover";\nimport { WishlistToggle } from "@/components/wishlist-toggle";
+import { DemoCover } from "@/components/demo-cover";
+import { WishlistToggle } from "@/components/wishlist-toggle";
 import { updateBookPersonal, updateBookProgress, updateBookState } from "./actions";
 
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
