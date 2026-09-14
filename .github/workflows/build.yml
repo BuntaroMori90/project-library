@@ -1,12 +1,13 @@
-name: Build
+name: Quality and build
 
 on:
   push:
     branches: [main]
+  pull_request:
   workflow_dispatch:
 
 jobs:
-  build:
+  quality-and-build:
     runs-on: ubuntu-latest
     env:
       DATABASE_URL: postgresql://build:build@127.0.0.1:5432/build
@@ -20,5 +21,7 @@ jobs:
           node-version: 22
       - name: Install dependencies
         run: npm install
+      - name: Lint and typecheck
+        run: npm run check
       - name: Build Next.js application
         run: npm run build
