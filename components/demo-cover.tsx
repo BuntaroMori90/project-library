@@ -1,4 +1,4 @@
-import Image from "next/image";
+/* eslint-disable @next/next/no-img-element */
 import Link from "next/link";
 import type { DemoItem } from "@/lib/demo-data";
 
@@ -9,13 +9,11 @@ export function DemoCover({ item, href }: { item: DemoItem; href?: string }) {
         className={`cover-art ${item.coverClass ?? "cover-ink"} ${item.coverUrl ? "cover-has-image" : ""}`}
       >
         {item.coverUrl ? (
-          <Image
+          <img
             className="cover-image"
             src={item.coverUrl}
-            alt=""
-            width={400}
-            height={600}
-            sizes="(max-width: 640px) 42vw, 180px"
+            alt={`Copertina di ${item.title}`}
+            loading="lazy"
           />
         ) : null}
         {!item.coverUrl ? (
