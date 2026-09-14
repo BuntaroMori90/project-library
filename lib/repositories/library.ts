@@ -22,6 +22,7 @@ export type LibraryEntryRow = {
   rating: string | number | null;
   notes: string | null;
 };
+
 export type EditionRow = {
   id: string;
   name: string;
@@ -52,7 +53,11 @@ export async function getBookDetail(profileId: string, workId: string) {
       [workId],
     ),
     query<{ name: string }>(
-      `select c.name from work_creators wc join creators c on c.id=wc.creator_id where wc.work_id=$1 order by wc.role,c.name`,
+      `select c.name
+         from work_creators wc
+         join creators c on c.id=wc.creator_id
+        where wc.work_id=$1
+        order by wc.role,c.name`,
       [workId],
     ),
     query<LibraryEntryRow>(
@@ -60,22 +65,32 @@ export async function getBookDetail(profileId: string, workId: string) {
       [profileId, workId],
     ),
     query<{
+      edition_id: string | null;
       current_page: number | null;
       total_pages: number | null;
       percentage: string | number | null;
     }>(
-      "select current_page,total_pages,percentage from progress where profile_id=$1 and work_id=$2 limit 1",
+      "select edition_id,current_page,total_pages,percentage from progress where profile_id=$1 and work_id=$2 limit 1",
       [profileId, workId],
     ),
     query<EditionRow>(
-      `select id,name,publisher,language,country,isbn10,isbn13,publication_year,format,cover_url,total_units,page_count,is_canonical from editions where work_id=$1 order by is_canonical desc, publication_year desc nulls last, name`,
+      `select id,name,publisher,language,country,isbn10,isbn13,publication_year,
+              format,cover_url,total_units,page_count,is_canonical
+         from editions
+        where work_id=$1
+        order by (language='Italiano') desc,is_canonical desc,
+                 publication_year desc nulls last,name`,
       [workId],
     ),
     query<{ edition_id: string }>(
-      `select o.edition_id from ownership o join editions e on e.id=o.edition_id where o.profile_id=$1 and e.work_id=$2`,
+      `select o.edition_id
+         from ownership o
+         join editions e on e.id=o.edition_id
+        where o.profile_id=$1 and e.work_id=$2`,
       [profileId, workId],
     ),
   ]);
+
   return {
     work: workResult.rows[0] ?? null,
     creators: creatorsResult.rows.map((row) => row.name),
@@ -118,11 +133,13 @@ export async function getMangaDetail(profileId: string, workId: string) {
       [workId],
     ),
   ]);
+
   const editions = editionsResult.rows;
   const canonicalEdition =
     editions.find((edition) => edition.is_canonical) ?? editions[0] ?? null;
   let volumes: Array<{ id: string; unit_number: number }> = [];
   let ownedIds = new Set<string>();
+
   if (canonicalEdition) {
     const [unitResult, ownedResult] = await Promise.all([
       query<{ id: string; unit_number: string | number }>(
@@ -140,6 +157,7 @@ export async function getMangaDetail(profileId: string, workId: string) {
     }));
     ownedIds = new Set(ownedResult.rows.map((row) => row.unit_id));
   }
+
   return {
     work: workResult.rows[0] ?? null,
     creators: creatorsResult.rows.map((row) => row.name),
@@ -197,6 +215,7 @@ export async function getAnimeDetail(profileId: string, workId: string) {
       [],
     ),
   ]);
+
   return {
     work: workResult.rows[0] ?? null,
     creators: creatorsResult.rows.map((row) => row.name),
@@ -232,21 +251,27 @@ export async function listLibraryWorks(
     percentage: string | number | null;
     owned_units: string | number;
   }>(
-    `select w.id,w.title,w.cover_url,w.total_volumes,w.total_seasons,w.total_episodes,
-       le.status,le.favorite,le.rating,le.updated_at,
-       coalesce(array_agg(distinct c.name) filter (where c.name is not null), '{}') as creators,
-       p.current_volume,p.current_chapter,p.current_season,p.current_episode,p.current_page,p.total_pages,p.percentage,
-       count(distinct ou.id) as owned_units
-     from library_entries le
-     join works w on w.id=le.work_id and w.media_type=$2
-     left join progress p on p.profile_id=le.profile_id and p.work_id=w.id
-     left join work_creators wc on wc.work_id=w.id
-     left join creators c on c.id=wc.creator_id
-     left join editions e on e.work_id=w.id
-     left join owned_units ou on ou.profile_id=le.profile_id and ou.edition_id=e.id
-     where le.profile_id=$1
-     group by w.id,le.status,le.favorite,le.rating,le.updated_at,p.current_volume,p.current_chapter,p.current_season,p.current_episode,p.current_page,p.total_pages,p.percentage
-     order by le.updated_at desc`,
+    `select w.id,w.title,
+            case when $2='BOOK' then coalesce(se.cover_url,w.cover_url) else w.cover_url end as cover_url,
+            w.total_volumes,w.total_seasons,w.total_episodes,
+            le.status,le.favorite,le.rating,le.updated_at,
+            coalesce(array_agg(distinct c.name) filter (where c.name is not null), '{}') as creators,
+            p.current_volume,p.current_chapter,p.current_season,p.current_episode,
+            p.current_page,p.total_pages,p.percentage,
+            count(distinct ou.id) as owned_units
+       from library_entries le
+       join works w on w.id=le.work_id and w.media_type=$2
+       left join progress p on p.profile_id=le.profile_id and p.work_id=w.id
+       left join editions se on se.id=p.edition_id
+       left join work_creators wc on wc.work_id=w.id
+       left join creators c on c.id=wc.creator_id
+       left join editions e on e.work_id=w.id
+       left join owned_units ou on ou.profile_id=le.profile_id and ou.edition_id=e.id
+      where le.profile_id=$1
+      group by w.id,se.cover_url,le.status,le.favorite,le.rating,le.updated_at,
+               p.current_volume,p.current_chapter,p.current_season,p.current_episode,
+               p.current_page,p.total_pages,p.percentage
+      order by le.updated_at desc`,
     [profileId, mediaType],
   );
 }
@@ -262,16 +287,16 @@ export async function listWishlistWorks(profileId: string) {
     created_at: Date;
     creators: string[];
   }>(
-    `select wl.id as wishlist_id, w.id as work_id, w.title, w.media_type,
-       w.cover_url, wl.priority, wl.created_at,
-       coalesce(array_agg(distinct c.name) filter (where c.name is not null), '{}') as creators
-     from wishlist wl
-     join works w on w.id=wl.work_id
-     left join work_creators wc on wc.work_id=w.id
-     left join creators c on c.id=wc.creator_id
-     where wl.profile_id=$1 and wl.edition_id is null and wl.unit_id is null
-     group by wl.id,w.id
-     order by wl.created_at desc`,
+    `select wl.id as wishlist_id,w.id as work_id,w.title,w.media_type,
+            w.cover_url,wl.priority,wl.created_at,
+            coalesce(array_agg(distinct c.name) filter (where c.name is not null), '{}') as creators
+       from wishlist wl
+       join works w on w.id=wl.work_id
+       left join work_creators wc on wc.work_id=w.id
+       left join creators c on c.id=wc.creator_id
+      where wl.profile_id=$1 and wl.edition_id is null and wl.unit_id is null
+      group by wl.id,w.id
+      order by wl.created_at desc`,
     [profileId],
   );
 }
