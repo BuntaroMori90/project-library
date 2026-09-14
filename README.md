@@ -10,7 +10,7 @@ Copy `.env.example` to `.env.local` and configure Neon/Auth variables. Never com
 
 ## Catalog providers
 
-- Books: Open Library
+- Books: Open Library with Italian-edition-aware search and ISBN support
 - Manga: MyAnimeList (`MAL_CLIENT_ID`), with Jikan development fallback only
 - Anime: TVmaze
 
