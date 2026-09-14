@@ -37,6 +37,20 @@ export type EditionRow = {
   total_units: number | null;
   page_count?: number | null;
   is_canonical: boolean;
+  source_provider?: string | null;
+  source_external_id?: string | null;
+};
+
+export type OwnershipEditionRow = {
+  edition_id: string;
+  custom_name: string | null;
+  custom_publisher: string | null;
+  custom_language: string | null;
+  custom_format: string | null;
+  custom_cover_url: string | null;
+  custom_page_count: number | null;
+  custom_isbn: string | null;
+  custom_publication_year: number | null;
 };
 
 export async function getBookDetail(profileId: string, workId: string) {
@@ -74,16 +88,26 @@ export async function getBookDetail(profileId: string, workId: string) {
       [profileId, workId],
     ),
     query<EditionRow>(
-      `select id,name,publisher,language,country,isbn10,isbn13,publication_year,
-              format,cover_url,total_units,page_count,is_canonical
-         from editions
-        where work_id=$1
-        order by (language='Italiano') desc,is_canonical desc,
-                 publication_year desc nulls last,name`,
-      [workId],
+      `select e.id,e.name,e.publisher,e.language,e.country,e.isbn10,e.isbn13,
+              e.publication_year,e.format,e.cover_url,e.total_units,e.page_count,
+              e.is_canonical,e.source_provider,e.source_external_id
+         from editions e
+        where e.work_id=$1
+          and (
+            coalesce(e.source_provider,'') <> 'USER'
+            or exists (
+              select 1 from ownership own
+               where own.edition_id=e.id and own.profile_id=$2
+            )
+          )
+        order by (e.language='Italiano') desc,e.is_canonical desc,
+                 e.publication_year desc nulls last,e.name`,
+      [workId, profileId],
     ),
-    query<{ edition_id: string }>(
-      `select o.edition_id
+    query<OwnershipEditionRow>(
+      `select o.edition_id,o.custom_name,o.custom_publisher,o.custom_language,
+              o.custom_format,o.custom_cover_url,o.custom_page_count,
+              o.custom_isbn,o.custom_publication_year
          from ownership o
          join editions e on e.id=o.edition_id
         where o.profile_id=$1 and e.work_id=$2`,
@@ -98,6 +122,9 @@ export async function getBookDetail(profileId: string, workId: string) {
     progress: progressResult.rows[0] ?? null,
     editions: editionsResult.rows,
     ownedEditionIds: new Set(ownershipResult.rows.map((row) => row.edition_id)),
+    ownershipByEdition: new Map(
+      ownershipResult.rows.map((row) => [row.edition_id, row] as const),
+    ),
   };
 }
 
@@ -252,7 +279,10 @@ export async function listLibraryWorks(
     owned_units: string | number;
   }>(
     `select w.id,w.title,
-            case when $2='BOOK' then coalesce(se.cover_url,w.cover_url) else w.cover_url end as cover_url,
+            case when $2='BOOK'
+              then coalesce(so.custom_cover_url,se.cover_url,w.cover_url)
+              else w.cover_url
+            end as cover_url,
             w.total_volumes,w.total_seasons,w.total_episodes,
             le.status,le.favorite,le.rating,le.updated_at,
             coalesce(array_agg(distinct c.name) filter (where c.name is not null), '{}') as creators,
@@ -263,12 +293,13 @@ export async function listLibraryWorks(
        join works w on w.id=le.work_id and w.media_type=$2
        left join progress p on p.profile_id=le.profile_id and p.work_id=w.id
        left join editions se on se.id=p.edition_id
+       left join ownership so on so.profile_id=le.profile_id and so.edition_id=p.edition_id
        left join work_creators wc on wc.work_id=w.id
        left join creators c on c.id=wc.creator_id
        left join editions e on e.work_id=w.id
        left join owned_units ou on ou.profile_id=le.profile_id and ou.edition_id=e.id
       where le.profile_id=$1
-      group by w.id,se.cover_url,le.status,le.favorite,le.rating,le.updated_at,
+      group by w.id,se.cover_url,so.custom_cover_url,le.status,le.favorite,le.rating,le.updated_at,
                p.current_volume,p.current_chapter,p.current_season,p.current_episode,
                p.current_page,p.total_pages,p.percentage
       order by le.updated_at desc`,
