@@ -3,7 +3,7 @@ import Link from "next/link";
 import { Bookmark, Trash2 } from "lucide-react";
 import { requireProfile } from "@/lib/profile";
 import { listWishlistWorks } from "@/lib/repositories/library";
-import { toggleWorkWishlist } from "../wishlist-actions";
+import { moveWishlistToLibrary, toggleWorkWishlist } from "../wishlist-actions";
 
 const labels = { BOOK: "Libro", MANGA: "Manga", ANIME: "Anime" } as const;
 const sections = { BOOK: "books", MANGA: "manga", ANIME: "anime" } as const;
@@ -84,6 +84,18 @@ export default async function WishlistPage({
                 </Link>
                 <p>{row.creators.join(" · ") || "Autore non disponibile"}</p>
               </div>
+              <form action={moveWishlistToLibrary} className="wishlist-move">
+                <input type="hidden" name="workId" value={row.work_id} />
+                <label>
+                  <span className="sr-only">Stato iniziale</span>
+                  <select name="status" defaultValue="PLANNED">
+                    <option value="PLANNED">Da iniziare</option>
+                    <option value="IN_PROGRESS">In corso</option>
+                    <option value="COMPLETED">Completato</option>
+                  </select>
+                </label>
+                <button type="submit">Sposta in Libreria</button>
+              </form>
               <form action={toggleWorkWishlist}>
                 <input type="hidden" name="workId" value={row.work_id} />
                 <input

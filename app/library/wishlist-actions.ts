@@ -3,6 +3,10 @@
 import { revalidatePath } from "next/cache";
 import { requireProfile } from "@/lib/profile";
 import { withTransaction } from "@/lib/db";
+import {
+  saveCatalogDestination,
+  type LibraryStatus,
+} from "@/lib/repositories/catalog-destination";
 
 const UUID =
   /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
@@ -33,4 +37,24 @@ export async function toggleWorkWishlist(formData: FormData) {
   revalidatePath("/library");
   revalidatePath("/library/wishlist");
   if (returnPath.startsWith("/library/")) revalidatePath(returnPath);
+}
+
+export async function moveWishlistToLibrary(formData: FormData) {
+  const workId = String(formData.get("workId") ?? "");
+  const requestedStatus = String(
+    formData.get("status") ?? "PLANNED",
+  ) as LibraryStatus;
+  const status: LibraryStatus = [
+    "PLANNED",
+    "IN_PROGRESS",
+    "COMPLETED",
+  ].includes(requestedStatus)
+    ? requestedStatus
+    : "PLANNED";
+  if (!UUID.test(workId)) return;
+
+  const { profile } = await requireProfile();
+  await saveCatalogDestination(profile.id, workId, "library", status);
+  revalidatePath("/library");
+  revalidatePath("/library/wishlist");
 }
