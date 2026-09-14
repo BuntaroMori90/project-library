@@ -47,7 +47,7 @@ export default async function LibraryHomePage() {
   const manga = mangaResult.rows.map((row) => ({ ...row, mediaType: "MANGA" as const }));
   const anime = animeResult.rows.map((row) => ({ ...row, mediaType: "ANIME" as const }));
   const all: LibraryRow[] = [...books, ...manga, ...anime];
-  const recent = [...all].sort((a, b) => new Date(b.updated_at).getTime() - new Date(a.updated_at).getTime()).slice(0, 5);
+  const recent = [...all].sort((a, b) => b.updated_at.getTime() - a.updated_at.getTime()).slice(0, 5);
   const favorites = all.filter((row) => row.favorite).slice(0, 5);
   const showcase = (favorites.length ? favorites : recent).slice(0, 4);
 
