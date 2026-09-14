@@ -42,9 +42,14 @@ export default async function BooksPage() {
             lateralmente senza allungare inutilmente la pagina.
           </p>
         </div>
-        <Link className="primary-btn add-library-button" href="/library/add?type=book">
-          <Plus size={17} /> Aggiungi libro
-        </Link>
+        <div className="library-header-actions">
+          <Link className="secondary-btn library-switch-link" href="/library/manga">
+            Manga →
+          </Link>
+          <Link className="primary-btn add-library-button" href="/library/add?type=book">
+            <Plus size={17} /> Aggiungi libro
+          </Link>
+        </div>
       </header>
       {items.length ? (
         <ShelfBrowser
