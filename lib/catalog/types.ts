@@ -44,6 +44,7 @@ export type BookCatalogResult = {
   genres: string[];
   editionCount?: number | null;
   editions?: BookEditionCatalogResult[];
+  matchedEdition?: BookEditionCatalogResult | null;
   sourceUrl?: string | null;
 };
 
