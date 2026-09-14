@@ -1,0 +1,24 @@
+name: Build
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    env:
+      DATABASE_URL: postgresql://build:build@127.0.0.1:5432/build
+      NEON_AUTH_BASE_URL: https://example.com/project_library/auth
+      NEON_AUTH_COOKIE_SECRET: build-only-cookie-secret-12345678901234567890
+      CATALOG_USER_AGENT: ProjectLibrary-CI/0.1
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Install dependencies
+        run: npm install
+      - name: Build Next.js application
+        run: npm run build
