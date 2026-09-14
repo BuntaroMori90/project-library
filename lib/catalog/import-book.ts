@@ -33,14 +33,15 @@ async function upsertAuthor(client: PoolClient, workId: string, name: string) {
     "select id from creators where lower(name) = lower($1) limit 1",
     [name],
   );
-  const creatorId =
-    existing.rows[0]?.id ??
-    (
-      await client.query<{ id: string }>(
+  const created = existing.rows[0]
+    ? null
+    : await client.query<{ id: string }>(
         "insert into creators (name) values ($1) returning id",
         [name],
-      )
-    ).rows[0].id;
+      );
+  const creatorId = existing.rows[0]?.id ?? created?.rows[0]?.id;
+  if (!creatorId) throw new Error("Impossibile salvare l'autore del libro.");
+
   await client.query(
     `insert into work_creators (work_id, creator_id, role)
      values ($1, $2, 'AUTHOR')
@@ -160,7 +161,9 @@ async function saveEdition(
       edition.providerId,
     ],
   );
-  return { id: result.rows[0].id, belongsToAnotherWork: false };
+  const editionId = result.rows[0]?.id;
+  if (!editionId) throw new Error("Impossibile salvare l'edizione del libro.");
+  return { id: editionId, belongsToAnotherWork: false };
 }
 
 export async function importBookToCatalog(book: BookCatalogResult) {
@@ -172,9 +175,9 @@ export async function importBookToCatalog(book: BookCatalogResult) {
       [book.providerId],
     );
 
-    let workId = external.rows[0]?.work_id;
+    let workId: string | null = external.rows[0]?.work_id ?? null;
     if (!workId) {
-      workId = (await findWorkByEditionIdentity(client, editions)) ?? undefined;
+      workId = await findWorkByEditionIdentity(client, editions);
     }
 
     if (!workId) {
@@ -193,7 +196,8 @@ export async function importBookToCatalog(book: BookCatalogResult) {
           book.genres,
         ],
       );
-      workId = created.rows[0].id;
+      workId = created.rows[0]?.id ?? null;
+      if (!workId) throw new Error("Impossibile creare l'opera nel catalogo.");
     } else {
       await client.query(
         `update works
@@ -219,27 +223,34 @@ export async function importBookToCatalog(book: BookCatalogResult) {
       );
     }
 
+    const resolvedWorkId = workId;
+
     await client.query(
       `insert into external_ids (work_id,provider,external_id)
        values ($1,'OPEN_LIBRARY',$2)
        on conflict (provider,external_id) do nothing`,
-      [workId, book.providerId],
+      [resolvedWorkId, book.providerId],
     );
 
     for (const creator of book.creators) {
-      await upsertAuthor(client, workId, creator.name);
+      await upsertAuthor(client, resolvedWorkId, creator.name);
     }
 
     let canonicalEditionId: string | null = null;
     if (editions.length) {
       await client.query(
         "update editions set is_canonical=false,updated_at=now() where work_id=$1 and is_canonical=true",
-        [workId],
+        [resolvedWorkId],
       );
     }
 
     for (let index = 0; index < editions.length; index += 1) {
-      const saved = await saveEdition(client, workId, editions[index], index === 0);
+      const saved = await saveEdition(
+        client,
+        resolvedWorkId,
+        editions[index],
+        index === 0,
+      );
       if (index === 0 && !saved.belongsToAnotherWork) {
         canonicalEditionId = saved.id;
       }
@@ -248,7 +259,7 @@ export async function importBookToCatalog(book: BookCatalogResult) {
     if (!canonicalEditionId) {
       const existingCanonical = await client.query<{ id: string }>(
         "select id from editions where work_id=$1 and is_canonical=true limit 1",
-        [workId],
+        [resolvedWorkId],
       );
       canonicalEditionId = existingCanonical.rows[0]?.id ?? null;
 
@@ -257,12 +268,12 @@ export async function importBookToCatalog(book: BookCatalogResult) {
           `insert into editions (work_id,name,cover_url,is_canonical)
            values ($1,'Edizione catalogo',$2,true)
            returning id`,
-          [workId, book.coverUrl],
+          [resolvedWorkId, book.coverUrl],
         );
-        canonicalEditionId = created.rows[0].id;
+        canonicalEditionId = created.rows[0]?.id ?? null;
       }
     }
 
-    return { workId, editionId: canonicalEditionId };
+    return { workId: resolvedWorkId, editionId: canonicalEditionId };
   });
 }
