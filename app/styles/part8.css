@@ -1,0 +1,81 @@
+/* Book library UX refinements */
+.book-delete-form {
+  margin-top: 14px;
+}
+.book-delete-button {
+  min-height: 44px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 0 16px;
+  border: 1px solid rgba(231, 103, 103, 0.28);
+  border-radius: 12px;
+  background: rgba(231, 103, 103, 0.07);
+  color: #e7a3a3;
+  font-weight: 800;
+  cursor: pointer;
+}
+.book-delete-button:hover,
+.book-delete-button:focus-visible {
+  background: rgba(231, 103, 103, 0.12);
+  border-color: rgba(231, 103, 103, 0.45);
+  outline: none;
+}
+
+/* One horizontal shelf per initial letter. */
+.shelf-browser.book .wood-section {
+  overflow: hidden;
+}
+.shelf-browser.book .shelf-grid {
+  display: flex;
+  grid-template-columns: none;
+  grid-auto-rows: unset;
+  align-items: stretch;
+  gap: 18px;
+  min-height: var(--row-size);
+  overflow-x: auto;
+  overflow-y: hidden;
+  overscroll-behavior-inline: contain;
+  scroll-snap-type: x proximity;
+  scroll-padding-inline: 24px;
+  scrollbar-width: thin;
+  scrollbar-color: rgba(216,170,109,.35) transparent;
+}
+.shelf-browser.book .shelf-grid::-webkit-scrollbar {
+  height: 6px;
+}
+.shelf-browser.book .shelf-grid::-webkit-scrollbar-track {
+  background: transparent;
+}
+.shelf-browser.book .shelf-grid::-webkit-scrollbar-thumb {
+  border-radius: 999px;
+  background: rgba(216,170,109,.32);
+}
+.shelf-browser.book .shelf-grid > .cover-link {
+  flex: 0 0 var(--card-width);
+  width: var(--card-width);
+  height: var(--row-size);
+  scroll-snap-align: start;
+}
+.shelf-browser.book .shelf-heading::after {
+  content: "Scorri →";
+  margin-left: 10px;
+  color: var(--muted-2);
+  font-size: 10px;
+  letter-spacing: .08em;
+  text-transform: uppercase;
+}
+
+@media (max-width: 760px) {
+  .book-delete-button {
+    width: 100%;
+  }
+  .shelf-browser.book .shelf-grid {
+    gap: 12px;
+    scroll-padding-inline: 13px;
+  }
+  .shelf-browser.book .shelf-heading::after {
+    font-size: 9px;
+  }
+}
