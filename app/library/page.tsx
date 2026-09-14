@@ -1,11 +1,90 @@
 import Link from "next/link";
 import { BookOpen, Clapperboard, LibraryBig } from "lucide-react";
-import { demoAnime, demoBooks, demoManga } from "@/lib/demo-data";
 import { DemoCover } from "@/components/demo-cover";
+import type { DemoItem } from "@/lib/demo-data";
+import { requireProfile } from "@/lib/profile";
+import { listLibraryWorks } from "@/lib/repositories/library";
 
-export default function LibraryHomePage() {
-  const recent = [demoManga[0], demoBooks[8], demoManga[2], demoAnime[4], demoBooks[13]].filter(Boolean);
-  const favorites = [demoManga[1], demoManga[8], demoBooks[0], demoAnime[3], demoManga[9]].filter(Boolean);
-  const total = demoBooks.length + demoManga.length + demoAnime.length;
-  return <main className="page home-page home-v4"><section className="home-collection-hero"><div className="home-collection-copy"><p className="eyebrow">La mia collezione</p><h1>Libri, manga e anime.<br />Tutto al suo posto.</h1><p className="home-collection-intro">Un archivio personale da sfogliare, ordinare e far crescere nel tempo.</p><div className="home-collection-ledger" aria-label="Riepilogo collezione"><div className="ledger-total"><strong>{total}</strong><span>opere</span></div><Link href="/library/books" className="ledger-item"><BookOpen size={16}/><span>Libri</span><strong>{demoBooks.length}</strong></Link><Link href="/library/manga" className="ledger-item"><LibraryBig size={16}/><span>Manga</span><strong>{demoManga.length}</strong></Link><Link href="/library/anime" className="ledger-item"><Clapperboard size={16}/><span>Anime</span><strong>{demoAnime.length}</strong></Link></div></div><div className="collection-stage" aria-hidden="true"><span className="stage-glow"/><div className="stage-cover stage-cover-1 cover-berserk"><span>Berserk</span><small>Kentaro Miura</small></div><div className="stage-cover stage-cover-2 cover-sand"><span>Dune</span><small>Frank Herbert</small></div><div className="stage-cover stage-cover-3 cover-vagabond"><span>Vagabond</span><small>Takehiko Inoue</small></div><div className="stage-cover stage-cover-4 poster-blue"><span>Pluto</span><small>Studio M2</small></div><div className="stage-shadow"/></div></section><section className="home-vitrine-section"><div className="home-vitrine-heading"><div><p className="eyebrow">Ultimi inserimenti</p><h2>Aggiunti di recente</h2></div><span>{recent.length} elementi</span></div><div className="home-display-shelf"><div className="home-cover-row home-cover-row-clean">{recent.map((item)=><DemoCover key={item.id} item={item} href={demoManga.includes(item as any)?`/library/manga/${item.id}`:undefined}/>)}</div></div></section><section className="home-vitrine-section favorites-section"><div className="home-vitrine-heading"><div><p className="eyebrow">Scelti da te</p><h2>Preferiti</h2></div><span>La parte più personale della libreria</span></div><div className="favorites-gallery">{favorites.map((item,index)=><div key={item.id} className={`favorite-piece favorite-piece-${index+1}`}><DemoCover item={item} href={demoManga.includes(item as any)?`/library/manga/${item.id}`:undefined}/></div>)}</div></section></main>;
+type MediaType = "BOOK" | "MANGA" | "ANIME";
+type LibraryRow = Awaited<ReturnType<typeof listLibraryWorks>>["rows"][number] & { mediaType: MediaType };
+
+const statusLabels: Record<MediaType, Record<string, string>> = {
+  BOOK: { PLANNED: "Da leggere", IN_PROGRESS: "In lettura", COMPLETED: "Letto", PAUSED: "In pausa", DROPPED: "Abbandonato" },
+  MANGA: { PLANNED: "Da iniziare", IN_PROGRESS: "In lettura", COMPLETED: "Completato", PAUSED: "In pausa", DROPPED: "Abbandonato" },
+  ANIME: { PLANNED: "Da vedere", IN_PROGRESS: "In visione", COMPLETED: "Completato", PAUSED: "In pausa", DROPPED: "Abbandonato" },
+};
+
+function itemHref(row: LibraryRow) {
+  const section = row.mediaType === "BOOK" ? "books" : row.mediaType === "ANIME" ? "anime" : "manga";
+  return `/library/${section}/${row.id}`;
+}
+
+function toItem(row: LibraryRow): DemoItem {
+  let progress: string | undefined;
+  if (row.mediaType === "BOOK" && row.current_page) progress = `${row.current_page}${row.total_pages ? ` / ${row.total_pages}` : ""} pagine`;
+  if (row.mediaType === "MANGA" && row.current_volume) progress = `Vol. ${row.current_volume}${row.current_chapter ? ` · Cap. ${row.current_chapter}` : ""}`;
+  if (row.mediaType === "ANIME" && row.current_season) progress = `S${row.current_season}${row.current_episode ? ` · Ep. ${row.current_episode}` : ""}`;
+  return {
+    id: row.id,
+    title: row.title,
+    creator: row.creators?.join(" · ") || "Autore non disponibile",
+    status: statusLabels[row.mediaType][row.status] ?? "Da iniziare",
+    progress,
+    meta: row.rating != null ? `${row.rating} / 10` : undefined,
+    coverUrl: row.cover_url ?? undefined,
+    coverClass: row.mediaType === "ANIME" ? "poster-blue" : "cover-ink",
+  };
+}
+
+export default async function LibraryHomePage() {
+  const { profile } = await requireProfile();
+  const [booksResult, mangaResult, animeResult] = await Promise.all([
+    listLibraryWorks(profile.id, "BOOK"),
+    listLibraryWorks(profile.id, "MANGA"),
+    listLibraryWorks(profile.id, "ANIME"),
+  ]);
+  const books = booksResult.rows.map((row) => ({ ...row, mediaType: "BOOK" as const }));
+  const manga = mangaResult.rows.map((row) => ({ ...row, mediaType: "MANGA" as const }));
+  const anime = animeResult.rows.map((row) => ({ ...row, mediaType: "ANIME" as const }));
+  const all: LibraryRow[] = [...books, ...manga, ...anime];
+  const recent = [...all].sort((a, b) => new Date(b.updated_at).getTime() - new Date(a.updated_at).getTime()).slice(0, 5);
+  const favorites = all.filter((row) => row.favorite).slice(0, 5);
+  const showcase = (favorites.length ? favorites : recent).slice(0, 4);
+
+  return <main className="page home-page home-v4">
+    <section className="home-collection-hero">
+      <div className="home-collection-copy">
+        <p className="eyebrow">La mia collezione</p>
+        <h1>Libri, manga e anime.<br />Tutto al suo posto.</h1>
+        <p className="home-collection-intro">Un archivio personale da sfogliare, ordinare e far crescere nel tempo.</p>
+        <div className="home-collection-ledger" aria-label="Riepilogo collezione">
+          <div className="ledger-total"><strong>{all.length}</strong><span>opere</span></div>
+          <Link href="/library/books" className="ledger-item"><BookOpen size={16}/><span>Libri</span><strong>{books.length}</strong></Link>
+          <Link href="/library/manga" className="ledger-item"><LibraryBig size={16}/><span>Manga</span><strong>{manga.length}</strong></Link>
+          <Link href="/library/anime" className="ledger-item"><Clapperboard size={16}/><span>Anime</span><strong>{anime.length}</strong></Link>
+        </div>
+      </div>
+      <div className="collection-stage" aria-label="Opere in evidenza">
+        <span className="stage-glow"/>
+        {showcase.map((row, index) => {
+          const item = toItem(row);
+          return <Link href={itemHref(row)} key={row.id} className={`stage-cover stage-cover-${index + 1} ${item.coverClass}`}>
+            {item.coverUrl ? <img className="cover-image" src={item.coverUrl} alt={item.title}/> : <><span>{item.title}</span><small>{item.creator}</small></>}
+          </Link>;
+        })}
+        {!showcase.length ? <Link href="/library/add" className="stage-cover stage-cover-1 cover-ink"><span>Inizia la collezione</span><small>Aggiungi la prima opera</small></Link> : null}
+        <div className="stage-shadow"/>
+      </div>
+    </section>
+
+    <section className="home-vitrine-section">
+      <div className="home-vitrine-heading"><div><p className="eyebrow">Ultimi inserimenti</p><h2>Aggiunti di recente</h2></div><span>{recent.length} elementi</span></div>
+      {recent.length ? <div className="home-display-shelf"><div className="home-cover-row home-cover-row-clean">{recent.map((row) => <DemoCover key={row.id} item={toItem(row)} href={itemHref(row)}/>)}</div></div> : <div className="catalog-notice"><div><strong>La libreria è ancora vuota.</strong><p>Aggiungi un libro, un manga o un anime per costruire la tua collezione.</p><Link className="primary-btn" href="/library/add">Aggiungi la prima opera</Link></div></div>}
+    </section>
+
+    <section className="home-vitrine-section favorites-section">
+      <div className="home-vitrine-heading"><div><p className="eyebrow">Scelti da te</p><h2>Preferiti</h2></div><span>La parte più personale della libreria</span></div>
+      {favorites.length ? <div className="favorites-gallery">{favorites.map((row, index) => <div key={row.id} className={`favorite-piece favorite-piece-${index + 1}`}><DemoCover item={toItem(row)} href={itemHref(row)}/></div>)}</div> : <div className="catalog-notice"><div><strong>Nessun preferito.</strong><p>Contrassegna le opere dalla loro scheda personale.</p></div></div>}
+    </section>
+  </main>;
 }
