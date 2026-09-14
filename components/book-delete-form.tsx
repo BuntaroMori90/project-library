@@ -13,10 +13,11 @@ export function BookDeleteForm({
   return (
     <form
       action={removeBookFromLibraryAction}
+      className="book-delete-form"
       onSubmit={(event) => {
         if (
           !window.confirm(
-            `Rimuovere “${title}” dalla tua libreria? Il catalogo dell'opera non verrà cancellato.`,
+            `Rimuovere “${title}” dalla tua libreria? Stato, progresso e copie possedute verranno rimossi. L'opera resterà nel catalogo.`,
           )
         ) {
           event.preventDefault();
@@ -24,7 +25,7 @@ export function BookDeleteForm({
       }}
     >
       <input type="hidden" name="workId" value={workId} />
-      <button type="submit" className="wishlist-remove">
+      <button type="submit" className="book-delete-button">
         <Trash2 size={17} />
         <span>Rimuovi dalla libreria</span>
       </button>
