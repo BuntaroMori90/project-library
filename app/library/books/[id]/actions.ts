@@ -4,11 +4,14 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { requireProfile } from "@/lib/profile";
 import {
+  createPersonalBookEdition,
   removeBookFromLibrary,
+  saveBookEditionOverrides,
   selectBookEdition,
   setBookProgress,
   setLibraryPersonal,
   setLibraryStatus,
+  type BookEditionOverrides,
   type LibraryStatus,
 } from "@/lib/repositories/personal";
 
@@ -24,6 +27,25 @@ function asNumber(value: FormDataEntryValue | null) {
   if (typeof value !== "string" || value.trim() === "") return null;
   const parsed = Number(value);
   return Number.isFinite(parsed) && parsed >= 0 ? parsed : null;
+}
+
+function asText(value: FormDataEntryValue | null) {
+  if (typeof value !== "string") return null;
+  const trimmed = value.trim();
+  return trimmed || null;
+}
+
+function editionValues(formData: FormData): BookEditionOverrides {
+  return {
+    name: asText(formData.get("customName")),
+    publisher: asText(formData.get("customPublisher")),
+    language: asText(formData.get("customLanguage")),
+    format: asText(formData.get("customFormat")),
+    coverUrl: asText(formData.get("customCoverUrl")),
+    pageCount: asNumber(formData.get("customPageCount")),
+    isbn: asText(formData.get("customIsbn")),
+    publicationYear: asNumber(formData.get("customPublicationYear")),
+  };
 }
 
 function refreshBook(workId: string) {
@@ -96,6 +118,32 @@ export async function chooseBookEdition(formData: FormData) {
   await selectBookEdition(profile.id, workId, editionId);
   refreshBook(workId);
   redirect(`/library/books/${workId}?saved=edition#edizioni`);
+}
+
+export async function updateBookEditionDetails(formData: FormData) {
+  const workId = String(formData.get("workId") ?? "");
+  const editionId = String(formData.get("editionId") ?? "");
+  if (!workId || !editionId) return;
+
+  const { profile } = await requireProfile();
+  await saveBookEditionOverrides(
+    profile.id,
+    workId,
+    editionId,
+    editionValues(formData),
+  );
+  refreshBook(workId);
+  redirect(`/library/books/${workId}?saved=editionDetails#edizioni`);
+}
+
+export async function addPersonalBookEdition(formData: FormData) {
+  const workId = String(formData.get("workId") ?? "");
+  if (!workId) return;
+
+  const { profile } = await requireProfile();
+  await createPersonalBookEdition(profile.id, workId, editionValues(formData));
+  refreshBook(workId);
+  redirect(`/library/books/${workId}?saved=personalEdition#edizioni`);
 }
 
 export async function removeBookFromLibraryAction(formData: FormData) {
