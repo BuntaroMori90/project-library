@@ -2,11 +2,12 @@ import "server-only";
 import { withTransaction } from "@/lib/db";
 import type { MangaCatalogResult } from "@/lib/catalog/types";
 
-const PROVIDER_FOR_DB = { MAL: "MAL", JIKAN_DEV: "MAL" } as const;
-
 export async function importMangaToCatalog(manga: MangaCatalogResult) {
   return withTransaction(async (client) => {
-    const provider = PROVIDER_FOR_DB[manga.provider];
+    if (manga.provider !== "MAL" && manga.provider !== "JIKAN_DEV") {
+      throw new Error(`Unsupported manga provider: ${manga.provider}`);
+    }
+    const provider = "MAL" as const;
     const existingExternal = await client.query<{ work_id: string }>(
       "select work_id from external_ids where provider=$1 and external_id=$2 limit 1",
       [provider, manga.providerId],
