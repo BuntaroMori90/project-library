@@ -25,9 +25,9 @@ const typeMeta = {
   book: {
     label: "Libro",
     icon: BookOpen,
-    placeholder: "Cerca titolo o autore…",
-    hint: "Cerchiamo l'opera e recuperiamo le edizioni disponibili senza confonderle con la tua copia personale.",
-    provider: "Open Library",
+    placeholder: "Titolo, autore o ISBN…",
+    hint: "Cerchiamo anche tra le edizioni e diamo priorità a quelle italiane. Puoi usare titolo, autore oppure ISBN.",
+    provider: "Open Library · ricerca edizioni italiane",
   },
   manga: {
     label: "Manga",
@@ -78,10 +78,16 @@ function resultSubtitle(result: Result, type: AddWorkType) {
 function facts(result: Result, type: AddWorkType) {
   if (type === "book") {
     const book = result as BookCatalogResult;
+    const edition = book.matchedEdition;
     return [
-      book.editionCount ? `${book.editionCount} edizioni` : null,
-      book.releaseYear,
-      book.genres[0],
+      edition?.language,
+      edition?.publisher,
+      edition?.isbn13
+        ? `ISBN ${edition.isbn13}`
+        : edition?.isbn10
+          ? `ISBN ${edition.isbn10}`
+          : null,
+      book.editionCount ? `${book.editionCount} edizioni` : book.releaseYear,
     ]
       .filter(Boolean)
       .map(String);
@@ -262,8 +268,8 @@ export function AddWorkFlow({
       {error ? <p className="catalog-error">{error}</p> : null}
       {searched && !loading && results.length === 0 && !error ? (
         <p className="catalog-empty">
-          Nessun risultato. Prova titolo originale, autore o una variante più
-          breve.
+          Nessun risultato. Per i libri prova anche autore, ISBN oppure una
+          variante più breve del titolo.
         </p>
       ) : null}
       <div className="catalog-results add-results">
