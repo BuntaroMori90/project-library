@@ -1,14 +1,12 @@
 "use client";
 
 import Link from "next/link";
-import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { authClient } from "@/lib/auth/client";
 
 type Mode = "login" | "register";
 
 export function AuthForm({ mode }: { mode: Mode }) {
-  const router = useRouter();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [displayName, setDisplayName] = useState("");
@@ -23,14 +21,22 @@ export function AuthForm({ mode }: { mode: Mode }) {
     event.preventDefault(); setBusy(true); setMessage(null);
     const normalizedEmail = email.trim().toLowerCase();
     if (mode === "login") {
-      const { error } = await authClient.signIn.email({ email: normalizedEmail, password, callbackURL: "/library" });
+      const { error } = await authClient.signIn.email({ email: normalizedEmail, password, rememberMe: true, callbackURL: "/library" });
       if (error) { setMessage("Email o password non corretti."); setBusy(false); return; }
-      router.replace("/library"); router.refresh(); return;
+      window.location.replace("/library"); return;
     }
     if (password.length < 8) { setMessage("La password deve contenere almeno 8 caratteri."); setBusy(false); return; }
-    const { error } = await authClient.signUp.email({ email: normalizedEmail, password, name: displayName.trim() || normalizedEmail.split("@")[0], callbackURL: "/onboarding" });
+    const { data, error } = await authClient.signUp.email({ email: normalizedEmail, password, name: displayName.trim() || normalizedEmail.split("@")[0], callbackURL: "/onboarding" });
     if (error) { setMessage("Non è stato possibile creare l'account. Controlla i dati o prova ad accedere."); setBusy(false); return; }
-    router.replace("/onboarding"); router.refresh();
+    if (!data?.token) {
+      const { error: signInError } = await authClient.signIn.email({ email: normalizedEmail, password, rememberMe: true, callbackURL: "/onboarding" });
+      if (signInError) {
+        setMessage("Account creato. Controlla l'email per confermarlo, poi accedi.");
+        setBusy(false);
+        return;
+      }
+    }
+    window.location.replace("/onboarding");
   }
   return (
     <form className="form-stack" onSubmit={submit}>
