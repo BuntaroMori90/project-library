@@ -1,14 +1,32 @@
+import Image from "next/image";
 import Link from "next/link";
 import type { DemoItem } from "@/lib/demo-data";
 
 export function DemoCover({ item, href }: { item: DemoItem; href?: string }) {
   const content = (
     <article className="cover-card">
-      <div className={`cover-art ${item.coverClass ?? "cover-ink"} ${item.coverUrl ? "cover-has-image" : ""}`}>
-        {item.coverUrl ? <img className="cover-image" src={item.coverUrl} alt="" /> : null}
-        {!item.coverUrl ? <span className="cover-flare" aria-hidden="true" /> : null}
-        {!item.coverUrl ? <span className="cover-title">{item.title}</span> : null}
-        {!item.coverUrl ? <span className="cover-author">{item.creator}</span> : null}
+      <div
+        className={`cover-art ${item.coverClass ?? "cover-ink"} ${item.coverUrl ? "cover-has-image" : ""}`}
+      >
+        {item.coverUrl ? (
+          <Image
+            className="cover-image"
+            src={item.coverUrl}
+            alt=""
+            width={400}
+            height={600}
+            sizes="(max-width: 640px) 42vw, 180px"
+          />
+        ) : null}
+        {!item.coverUrl ? (
+          <span className="cover-flare" aria-hidden="true" />
+        ) : null}
+        {!item.coverUrl ? (
+          <span className="cover-title">{item.title}</span>
+        ) : null}
+        {!item.coverUrl ? (
+          <span className="cover-author">{item.creator}</span>
+        ) : null}
       </div>
       <div className="cover-meta">
         <strong>{item.title}</strong>
@@ -17,5 +35,11 @@ export function DemoCover({ item, href }: { item: DemoItem; href?: string }) {
       </div>
     </article>
   );
-  return href ? <Link href={href} className="cover-link">{content}</Link> : content;
+  return href ? (
+    <Link href={href} className="cover-link">
+      {content}
+    </Link>
+  ) : (
+    content
+  );
 }

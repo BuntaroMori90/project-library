@@ -17,15 +17,26 @@ function createPool() {
   });
 }
 
-export const db = globalThis.__projectLibraryPool ?? createPool();
-if (process.env.NODE_ENV !== "production") globalThis.__projectLibraryPool = db;
+function getPool() {
+  if (globalThis.__projectLibraryPool) return globalThis.__projectLibraryPool;
 
-export async function query<T extends QueryResultRow = QueryResultRow>(text: string, values: unknown[] = []) {
-  return db.query<T>(text, values);
+  const pool = createPool();
+  if (process.env.NODE_ENV !== "production")
+    globalThis.__projectLibraryPool = pool;
+  return pool;
 }
 
-export async function withTransaction<T>(run: (client: import("pg").PoolClient) => Promise<T>) {
-  const client = await db.connect();
+export async function query<T extends QueryResultRow = QueryResultRow>(
+  text: string,
+  values: unknown[] = [],
+) {
+  return getPool().query<T>(text, values);
+}
+
+export async function withTransaction<T>(
+  run: (client: import("pg").PoolClient) => Promise<T>,
+) {
+  const client = await getPool().connect();
   try {
     await client.query("begin");
     const result = await run(client);
