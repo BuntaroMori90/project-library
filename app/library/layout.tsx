@@ -6,8 +6,8 @@ import { requireProfile } from "@/lib/profile";
 export const dynamic = "force-dynamic";
 
 export default async function LibraryLayout({ children }: { children: React.ReactNode }) {
-  const { profile } = await requireProfile();
+  const { user, profile } = await requireProfile();
   if (!profile.onboarding_completed) redirect("/onboarding");
   const preferences = normalizePreferences(profile.preferences);
-  return <AppShell preferences={preferences}>{children}</AppShell>;
+  return <AppShell preferences={preferences} displayName={profile.display_name ?? user.name ?? null}>{children}</AppShell>;
 }
