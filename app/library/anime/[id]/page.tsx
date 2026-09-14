@@ -4,7 +4,8 @@ import { Disc3, Heart, MonitorPlay, Star, StickyNote, Tv2 } from "lucide-react";
 import { requireProfile } from "@/lib/profile";
 import { getAnimeDetail } from "@/lib/repositories/library";
 import { demoAnime } from "@/lib/demo-data";
-import { updateAnimePersonal, updateAnimeProgress, updateAnimeState } from "./actions";\nimport { WishlistToggle } from "@/components/wishlist-toggle";
+import { updateAnimePersonal, updateAnimeProgress, updateAnimeState } from "./actions";
+import { WishlistToggle } from "@/components/wishlist-toggle";
 
 const UUID=/^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 const statusLabels:Record<string,string>={PLANNED:"Da vedere",IN_PROGRESS:"In visione",COMPLETED:"Completato",PAUSED:"In pausa",DROPPED:"Abbandonato"};
