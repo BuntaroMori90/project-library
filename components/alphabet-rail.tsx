@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useMemo, useRef, useState } from "react";
 
 const letters = ["#", ..."ABCDEFGHIJKLMNOPQRSTUVWXYZ"];
 
@@ -10,11 +10,22 @@ export function AlphabetRail({
   availableLetters?: string[];
 }) {
   const [open, setOpen] = useState(false);
+  const railRef = useRef<HTMLElement>(null);
   const available = useMemo(
     () => new Set(availableLetters.map((letter) => letter.toUpperCase())),
     [availableLetters],
   );
   const hasAvailability = available.size > 0;
+
+  function toggleRail() {
+    setOpen((value) => {
+      const next = !value;
+      if (next) {
+        requestAnimationFrame(() => railRef.current?.scrollTo({ top: 0 }));
+      }
+      return next;
+    });
+  }
 
   return (
     <div className={`alphabet-rail-shell ${open ? "open" : ""}`}>
@@ -23,12 +34,12 @@ export function AlphabetRail({
         className="alphabet-rail-trigger"
         aria-label={open ? "Chiudi indice alfabetico" : "Apri indice alfabetico"}
         aria-expanded={open}
-        onClick={() => setOpen((value) => !value)}
+        onClick={toggleRail}
       >
         <span>A–Z</span>
       </button>
 
-      <aside className="alphabet-rail" aria-label="Indice alfabetico">
+      <aside ref={railRef} className="alphabet-rail" aria-label="Indice alfabetico">
         {letters.map((letter) => {
           const enabled = !hasAvailability || available.has(letter);
           if (!enabled) {
