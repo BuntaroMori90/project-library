@@ -4,7 +4,8 @@ import { revalidatePath } from "next/cache";
 import { requireProfile } from "@/lib/profile";
 import { withTransaction } from "@/lib/db";
 
-const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+const UUID =
+  /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 
 export async function toggleWorkWishlist(formData: FormData) {
   const workId = String(formData.get("workId") ?? "");
@@ -18,7 +19,9 @@ export async function toggleWorkWishlist(formData: FormData) {
       [profile.id, workId],
     );
     if (existing.rows[0]) {
-      await client.query("delete from wishlist where id=$1", [existing.rows[0].id]);
+      await client.query("delete from wishlist where id=$1", [
+        existing.rows[0].id,
+      ]);
     } else {
       await client.query(
         "insert into wishlist (profile_id,work_id,priority) values ($1,$2,'NORMAL')",
@@ -28,5 +31,6 @@ export async function toggleWorkWishlist(formData: FormData) {
   });
 
   revalidatePath("/library");
+  revalidatePath("/library/wishlist");
   if (returnPath.startsWith("/library/")) revalidatePath(returnPath);
 }
