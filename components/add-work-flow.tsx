@@ -26,7 +26,7 @@ const typeMeta = {
     label: "Libro",
     icon: BookOpen,
     placeholder: "Titolo, autore o ISBN…",
-    hint: "Cerchiamo anche tra le edizioni e diamo priorità a quelle italiane. Puoi usare titolo, autore oppure ISBN.",
+    hint: "Cerchiamo anche tra le edizioni e diamo priorità a quelle italiane. Dopo l'aggiunta potrai scegliere esattamente la versione che possiedi.",
     provider: "Open Library · ricerca edizioni italiane",
   },
   manga: {
@@ -176,13 +176,21 @@ export function AddWorkFlow({
       const payload = await response.json();
       if (!response.ok)
         throw new Error(payload.error ?? "Import non riuscito.");
+
       if (destination === "wishlist" && payload.placement === "wishlist") {
         router.push("/library/wishlist");
-      } else {
-        const target =
-          type === "book" ? "books" : type === "anime" ? "anime" : "manga";
-        router.push(`/library/${target}/${payload.workId}`);
+        return;
       }
+
+      if (type === "book") {
+        router.push(
+          `/library/books/${payload.workId}?chooseEdition=1#edizioni`,
+        );
+        return;
+      }
+
+      const target = type === "anime" ? "anime" : "manga";
+      router.push(`/library/${target}/${payload.workId}`);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Import non riuscito.");
     } finally {
@@ -336,7 +344,9 @@ export function AddWorkFlow({
                 <span>
                   {importing === `${result.providerId}:library`
                     ? "Importo"
-                    : "Libreria"}
+                    : type === "book"
+                      ? "Scegli edizione"
+                      : "Libreria"}
                 </span>
               </button>
             </div>
