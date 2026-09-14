@@ -28,35 +28,55 @@
   overflow: hidden;
 }
 .shelf-browser.book .shelf-grid {
+  --book-card-width: 154px;
+  --book-cover-height: 231px;
   display: flex;
   grid-template-columns: none;
   grid-auto-rows: unset;
   align-items: stretch;
   gap: 18px;
-  min-height: var(--row-size);
+  min-height: 312px;
   overflow-x: auto;
   overflow-y: hidden;
   overscroll-behavior-inline: contain;
   scroll-snap-type: x proximity;
   scroll-padding-inline: 24px;
   scrollbar-width: thin;
-  scrollbar-color: rgba(216,170,109,.35) transparent;
+  scrollbar-color: rgba(216,170,109,.32) transparent;
 }
 .shelf-browser.book .shelf-grid::-webkit-scrollbar {
-  height: 6px;
+  height: 5px;
 }
 .shelf-browser.book .shelf-grid::-webkit-scrollbar-track {
   background: transparent;
 }
 .shelf-browser.book .shelf-grid::-webkit-scrollbar-thumb {
   border-radius: 999px;
-  background: rgba(216,170,109,.32);
+  background: rgba(216,170,109,.28);
 }
 .shelf-browser.book .shelf-grid > .cover-link {
-  flex: 0 0 var(--card-width);
-  width: var(--card-width);
-  height: var(--row-size);
+  flex: 0 0 var(--book-card-width);
+  width: var(--book-card-width);
+  height: 292px;
   scroll-snap-align: start;
+}
+.shelf-browser.book .cover-card {
+  height: 100%;
+  padding-top: 10px;
+  padding-bottom: 30px;
+}
+.shelf-browser.book.view-cover .cover-art {
+  width: var(--book-card-width) !important;
+  max-width: none !important;
+  height: var(--book-cover-height) !important;
+  min-height: var(--book-cover-height) !important;
+  aspect-ratio: auto !important;
+  flex: 0 0 var(--book-cover-height);
+}
+.shelf-browser.book.view-cover .cover-image {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
 }
 .shelf-browser.book .shelf-heading::after {
   content: "Scorri →";
@@ -67,15 +87,148 @@
   text-transform: uppercase;
 }
 
+/* A-Z: a slim translucent glass rail, always starting from the top. */
+.alphabet-rail-shell {
+  position: fixed;
+  z-index: 65;
+  right: 8px;
+  top: 94px;
+  bottom: 88px;
+  display: flex;
+  align-items: center;
+  pointer-events: none;
+}
+.alphabet-rail-shell .alphabet-rail {
+  position: static;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 1px;
+  padding: 8px 5px;
+  border: 1px solid rgba(255,255,255,.06);
+  border-radius: 18px;
+  background: rgba(16,14,13,.42);
+  box-shadow: 0 16px 40px rgba(0,0,0,.18);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  font-size: 11px;
+  font-weight: 850;
+  color: rgba(243,238,231,.82);
+  pointer-events: auto;
+}
+.alphabet-rail-shell .alphabet-rail a,
+.alphabet-rail-shell .alphabet-letter-disabled {
+  width: 27px;
+  min-height: 18px;
+  display: grid;
+  place-items: center;
+  border-radius: 999px;
+  line-height: 1;
+}
+.alphabet-rail-shell .alphabet-rail a:hover,
+.alphabet-rail-shell .alphabet-rail a:focus-visible {
+  color: var(--accent-2);
+  background: rgba(216,170,109,.12);
+  outline: none;
+}
+.alphabet-rail-shell .alphabet-letter-disabled {
+  opacity: .22;
+}
+.alphabet-rail-trigger {
+  display: none;
+}
+
 @media (max-width: 760px) {
   .book-delete-button {
     width: 100%;
   }
   .shelf-browser.book .shelf-grid {
-    gap: 12px;
+    --book-card-width: 122px;
+    --book-cover-height: 183px;
+    gap: 14px;
+    min-height: 262px;
     scroll-padding-inline: 13px;
+  }
+  .shelf-browser.book .shelf-grid > .cover-link {
+    height: 248px;
   }
   .shelf-browser.book .shelf-heading::after {
     font-size: 9px;
+  }
+
+  .alphabet-rail-shell {
+    right: 0;
+    top: 68px;
+    bottom: 76px;
+    width: 72px;
+    justify-content: flex-end;
+  }
+  .alphabet-rail-trigger {
+    position: absolute;
+    right: 0;
+    top: 50%;
+    transform: translateY(-50%);
+    width: 25px;
+    min-height: 92px;
+    padding: 8px 3px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border: 1px solid rgba(216,170,109,.18);
+    border-right: 0;
+    border-radius: 14px 0 0 14px;
+    background: rgba(20,17,15,.46);
+    color: rgba(240,201,147,.9);
+    box-shadow: -6px 10px 24px rgba(0,0,0,.14);
+    backdrop-filter: blur(14px);
+    -webkit-backdrop-filter: blur(14px);
+    pointer-events: auto;
+    cursor: pointer;
+  }
+  .alphabet-rail-trigger span {
+    writing-mode: vertical-rl;
+    transform: rotate(180deg);
+    font-size: 10px;
+    font-weight: 900;
+    letter-spacing: .12em;
+  }
+  .alphabet-rail-shell .alphabet-rail {
+    position: absolute;
+    right: 31px;
+    top: 50%;
+    width: 42px;
+    max-height: calc(100vh - 154px);
+    overflow-y: auto;
+    overscroll-behavior: contain;
+    scrollbar-width: none;
+    padding: 8px 5px;
+    gap: 0;
+    border: 1px solid rgba(255,255,255,.07);
+    border-radius: 20px;
+    background: rgba(13,12,11,.48);
+    box-shadow: 0 18px 50px rgba(0,0,0,.28);
+    backdrop-filter: blur(18px) saturate(120%);
+    -webkit-backdrop-filter: blur(18px) saturate(120%);
+    font-size: 11px;
+    opacity: 0;
+    visibility: hidden;
+    pointer-events: none;
+    transform: translate(12px,-50%) scale(.98);
+    transform-origin: right center;
+    transition: opacity .16s ease, transform .16s ease, visibility .16s ease;
+  }
+  .alphabet-rail-shell .alphabet-rail::-webkit-scrollbar {
+    display: none;
+  }
+  .alphabet-rail-shell.open .alphabet-rail {
+    opacity: 1;
+    visibility: visible;
+    pointer-events: auto;
+    transform: translate(0,-50%) scale(1);
+  }
+  .alphabet-rail-shell .alphabet-rail a,
+  .alphabet-rail-shell .alphabet-letter-disabled {
+    width: 30px;
+    min-height: 18px;
   }
 }
