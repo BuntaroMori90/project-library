@@ -1,6 +1,7 @@
 "use client";
 
 import Image from "next/image";
+import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { BookOpen, Film, LibraryBig, LoaderCircle, Plus, Search, Sparkles } from "lucide-react";
 import type { AnimeCatalogResult, BookCatalogResult, MangaCatalogResult } from "@/lib/catalog/types";
@@ -67,6 +68,7 @@ function facts(result: Result, type: AddWorkType) {
 }
 
 export function AddWorkFlow({ initialType = "manga" }: { initialType?: AddWorkType }) {
+  const router = useRouter();
   const [type, setType] = useState<AddWorkType>(initialType);
   const [query, setQuery] = useState("");
   const [results, setResults] = useState<Result[]>([]);
@@ -116,7 +118,7 @@ export function AddWorkFlow({ initialType = "manga" }: { initialType?: AddWorkTy
       const payload = await response.json();
       if (!response.ok) throw new Error(payload.error ?? "Import non riuscito.");
       const target = type === "book" ? "books" : type === "anime" ? "anime" : "manga";
-      window.location.href = `/library/${target}/${payload.workId}`;
+      router.push(`/library/${target}/${payload.workId}`);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Import non riuscito.");
     } finally {
