@@ -1,0 +1,10 @@
+import Link from "next/link";
+import { Plus } from "lucide-react";
+import { ShelfBrowser } from "@/components/shelf-browser";
+import { demoManga, type DemoItem } from "@/lib/demo-data";
+import { normalizePreferences } from "@/lib/preferences";
+import { requireProfile } from "@/lib/profile";
+import { listLibraryWorks } from "@/lib/repositories/library";
+
+const statusLabels:Record<string,string>={PLANNED:"Da iniziare",IN_PROGRESS:"In lettura",COMPLETED:"Completato",PAUSED:"In pausa",DROPPED:"Abbandonato"};
+export default async function MangaPage(){const{profile}=await requireProfile();const preferences=normalizePreferences(profile.preferences);const rows=(await listLibraryWorks(profile.id,"MANGA")).rows;const realItems:DemoItem[]=rows.map((row)=>{const currentVolume=row.current_volume!=null?Number(row.current_volume):null;const currentChapter=row.current_chapter!=null?Number(row.current_chapter):null;const owned=Number(row.owned_units??0);return{id:row.id,title:row.title,creator:row.creators?.join(" · ")||"Autore non disponibile",status:statusLabels[row.status]??"Da iniziare",progress:currentVolume?`Vol. ${currentVolume}${currentChapter?` · Cap. ${currentChapter}`:""}`:undefined,meta:owned||row.total_volumes?`${owned}${row.total_volumes?` / ${row.total_volumes}`:""} posseduti`:undefined,coverUrl:row.cover_url??undefined,coverClass:"cover-ink"}});const items=realItems.length?realItems:demoManga;return <main className="page page-library page-manga"><header className="page-header immersive-head page-header-actions"><div><p className="eyebrow">La tua stanza · Manga</p><h1 className="title">Serie, non volumi.</h1><p className="subtitle">Scaffali più stretti, una sola copertina per serie. Apri l'opera per vedere volumi, progresso e possesso.</p></div><Link className="primary-btn add-library-button" href="/library/add?type=manga"><Plus size={17}/> Aggiungi manga</Link></header><ShelfBrowser items={items} kind="manga" defaultGroupBy={preferences.manga.groupBy} density={preferences.manga.density} coverView={preferences.manga.coverView}/></main>}
