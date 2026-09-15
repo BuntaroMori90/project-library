@@ -1,7 +1,7 @@
 /* eslint-disable @next/next/no-img-element */
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { CheckCircle2, Heart, Star, StickyNote } from "lucide-react";
+import { CheckCircle2, Heart, RefreshCw, Search, Star, StickyNote } from "lucide-react";
 import { requireProfile } from "@/lib/profile";
 import {
   getBookDetail,
@@ -16,6 +16,7 @@ import { BookCoverField } from "@/components/book-cover-field";
 import {
   addPersonalBookEdition,
   chooseBookEdition,
+  refreshBookCatalogEditions,
   updateBookEditionDetails,
   updateBookPersonal,
   updateBookProgress,
@@ -40,6 +41,8 @@ const savedLabels: Record<string, string> = {
   edition: "Edizione selezionata e aggiunta alla tua collezione.",
   editionDetails: "Dati della tua edizione aggiornati.",
   personalEdition: "La tua edizione personale è stata aggiunta.",
+  catalog: "Catalogo edizioni aggiornato. Ora stai vedendo molte più versioni disponibili.",
+  catalogMissing: "Questo libro non ha un collegamento Open Library aggiornabile. Puoi comunque inserire la tua edizione manualmente.",
 };
 
 function BookTabs() {
@@ -128,12 +131,20 @@ function EditionFields({
   );
 }
 
+function normalizeEditionSearch(value: string) {
+  return value
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toLowerCase()
+    .trim();
+}
+
 export default async function BookDetailPage({
   params,
   searchParams,
 }: {
   params: Promise<{ id: string }>;
-  searchParams: Promise<{ saved?: string; chooseEdition?: string }>;
+  searchParams: Promise<{ saved?: string; chooseEdition?: string; editionQ?: string }>;
 }) {
   const { id } = await params;
   const query = await searchParams;
@@ -181,6 +192,26 @@ export default async function BookDetailPage({
       (edition.page_count ? 10 : 0);
     return score(b) - score(a);
   });
+
+  const editionQuery = normalizeEditionSearch(query.editionQ ?? "");
+  const visibleEditions = editionQuery
+    ? sortedEditions.filter((edition) => {
+        const personal = ownershipByEdition.get(edition.id);
+        const view = editionView(edition, personal);
+        return normalizeEditionSearch(
+          [
+            view.name,
+            view.publisher,
+            view.language,
+            view.format,
+            view.isbn,
+            view.publicationYear,
+          ]
+            .filter(Boolean)
+            .join(" "),
+        ).includes(editionQuery);
+      })
+    : sortedEditions;
 
   return (
     <main className="page book-detail-page work-detail-v2">
@@ -269,12 +300,25 @@ export default async function BookDetailPage({
       <section id="edizioni" className="detail-section book-editions-stage">
         <div className="section-heading detail-heading">
           <div><span className="eyebrow">Edizioni</span><h2>Scegli o correggi la tua versione</h2></div>
-          <span>{ownedEditionIds.size} possedute</span>
+          <span>{visibleEditions.length}{editionQuery ? ` di ${sortedEditions.length}` : ""} edizioni</span>
         </div>
 
         {query.chooseEdition === "1" || !selectedEdition ? (
           <div className="catalog-notice"><div><strong>Scegli l'edizione che possiedi.</strong><p>La scelta imposta copertina, editore, ISBN e pagine. Se i dati del catalogo non sono corretti, puoi modificarli solo per la tua copia.</p></div></div>
         ) : null}
+
+        <div className="edition-catalog-tools">
+          <form action={refreshBookCatalogEditions}>
+            <input type="hidden" name="workId" value={work.id} />
+            <button type="submit" className="soft-action edition-refresh-button"><RefreshCw size={16} /> Aggiorna edizioni dal catalogo</button>
+          </form>
+          <form method="get" className="edition-search-form">
+            <Search size={17} />
+            <input name="editionQ" defaultValue={query.editionQ ?? ""} placeholder="Cerca Einaudi, Mondadori, ISBN, anno…" />
+            <button type="submit" className="soft-action">Cerca</button>
+            {editionQuery ? <Link href={`/library/books/${work.id}#edizioni`} className="edition-clear-link">Azzera</Link> : null}
+          </form>
+        </div>
 
         <details className="manual-edition-panel">
           <summary>Non trovi la tua edizione? Inseriscila manualmente</summary>
@@ -294,11 +338,11 @@ export default async function BookDetailPage({
           </form>
         </details>
 
-        <p className="subtitle detail-explainer">Il catalogo resta condiviso. Le correzioni che inserisci qui sono personali e non modificano i dati degli altri utenti.</p>
+        <p className="subtitle detail-explainer">Ora il catalogo conserva molte più edizioni italiane. Puoi filtrare per editore o ISBN; le correzioni personali non modificano i dati degli altri utenti.</p>
 
-        {sortedEditions.length ? (
+        {visibleEditions.length ? (
           <div className="book-edition-grid">
-            {sortedEditions.map((edition) => {
+            {visibleEditions.map((edition) => {
               const owned = ownedEditionIds.has(edition.id);
               const selected = edition.id === selectedEdition?.id;
               const personal = ownershipByEdition.get(edition.id);
@@ -337,7 +381,7 @@ export default async function BookDetailPage({
             })}
           </div>
         ) : (
-          <div className="catalog-notice"><div><strong>Nessuna edizione collegata.</strong><p>Usa “Inseriscila manualmente” per creare la tua copia personale.</p></div></div>
+          <div className="catalog-notice"><div><strong>Nessuna edizione corrisponde alla ricerca.</strong><p>Prova un editore, l'ISBN oppure usa “Aggiorna edizioni dal catalogo”. Se manca ancora, puoi inserire la tua copia manualmente.</p></div></div>
         )}
       </section>
 
