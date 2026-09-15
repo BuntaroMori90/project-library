@@ -1,6 +1,6 @@
 import { revalidatePath } from "next/cache";
 import { NextResponse } from "next/server";
-import { requireProfile } from "@/lib/profile";
+import { getApiProfile } from "@/lib/profile";
 import { createPersonalBookEdition } from "@/lib/repositories/book-editions";
 import {
   saveBookEditionOverrides,
@@ -33,6 +33,8 @@ function editionValues(formData: FormData): BookEditionOverrides {
 }
 
 export async function POST(request: Request) {
+  let stage = "parse";
+
   try {
     const formData = await request.formData();
     const workId = asText(formData.get("workId"));
@@ -43,14 +45,33 @@ export async function POST(request: Request) {
     }
 
     const values = editionValues(formData);
-    const { profile } = await requireProfile();
 
-    if (editionId) {
-      await saveBookEditionOverrides(profile.id, workId, editionId, values);
-    } else {
-      await createPersonalBookEdition(profile.id, workId, values);
+    stage = "auth";
+    const sessionProfile = await getApiProfile();
+    if (!sessionProfile) {
+      return NextResponse.json(
+        { error: "Sessione scaduta. Accedi di nuovo e riprova." },
+        { status: 401 },
+      );
     }
 
+    stage = "database";
+    if (editionId) {
+      await saveBookEditionOverrides(
+        sessionProfile.profile.id,
+        workId,
+        editionId,
+        values,
+      );
+    } else {
+      await createPersonalBookEdition(
+        sessionProfile.profile.id,
+        workId,
+        values,
+      );
+    }
+
+    stage = "refresh";
     revalidatePath(`/library/books/${workId}`);
     revalidatePath("/library/books");
     revalidatePath("/library");
@@ -61,9 +82,11 @@ export async function POST(request: Request) {
       redirect: `/library/books/${workId}?saved=${saved}#edizioni`,
     });
   } catch (error) {
-    console.error("personal-edition upload failed", error);
+    console.error(`personal-edition upload failed at ${stage}`, error);
     return NextResponse.json(
-      { error: "Non siamo riusciti a salvare la copertina. Riprova." },
+      {
+        error: `Non siamo riusciti a salvare la copertina (fase: ${stage}).`,
+      },
       { status: 500 },
     );
   }
