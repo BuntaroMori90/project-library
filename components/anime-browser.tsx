@@ -163,6 +163,46 @@ export function AnimeBrowser({
           </div>
         </div>
       )}
+
+      {filtered.length ? (
+        <section className="tv-library-strip" aria-label="Anime nella videoteca">
+          <div className="tv-library-strip-head">
+            <div>
+              <span className="eyebrow">Videoteca</span>
+              <strong>{filtered.length} titoli</strong>
+            </div>
+            <span>Scorri e scegli cosa mostrare nella TV</span>
+          </div>
+          <div className="tv-library-posters">
+            {filtered.map((item, index) => (
+              <button
+                key={item.id}
+                type="button"
+                className={`tv-library-poster ${index === safeIndex ? "active" : ""}`}
+                onClick={() => setSelectedIndex(index)}
+                aria-label={`Mostra ${item.title} nella TV`}
+                aria-pressed={index === safeIndex}
+              >
+                <div className="tv-library-poster-art">
+                  {item.coverUrl ? (
+                    <Image
+                      src={item.coverUrl}
+                      alt=""
+                      width={240}
+                      height={360}
+                      sizes="110px"
+                    />
+                  ) : (
+                    <span>{item.title.slice(0, 1)}</span>
+                  )}
+                </div>
+                <strong>{item.title}</strong>
+                <small>{item.progress ?? item.status ?? "Da vedere"}</small>
+              </button>
+            ))}
+          </div>
+        </section>
+      ) : null}
     </section>
   );
 }
