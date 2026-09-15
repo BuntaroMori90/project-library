@@ -70,7 +70,10 @@ function DemoBookDetail({ id }: { id: string }) {
   if (!item) notFound();
   return (
     <main className="page book-detail-page work-detail-v2">
-      <Link href="/library/books" className="back-link">← Libri</Link>
+      <div className="book-detail-topbar">
+        <Link href="/library/books" className="back-link">← Libri</Link>
+        <Link href="/library/add?type=book" className="soft-action add-another-book-link">＋ Aggiungi libro</Link>
+      </div>
       <section className="work-hero book-work-hero">
         <div className="work-cover-wrap book-cover-wrap"><DemoCover item={item} /></div>
         <div className="work-identity">
@@ -117,16 +120,19 @@ function EditionFields({
       <input type="hidden" name="workId" value={workId} />
       <input type="hidden" name="editionId" value={edition.id} />
       <BookCoverField defaultValue={personal?.custom_cover_url ?? ""} />
-      <div className="edition-personal-grid">
-        <label>Nome edizione<input name="customName" defaultValue={current.name ?? ""} /></label>
-        <label>Editore<input name="customPublisher" defaultValue={current.publisher ?? ""} /></label>
-        <label>Lingua<input name="customLanguage" defaultValue={current.language ?? ""} /></label>
-        <label>Formato<input name="customFormat" defaultValue={current.format ?? ""} placeholder="Brossura, rilegato, eBook…" /></label>
-        <label>Pagine<input name="customPageCount" type="number" min="1" defaultValue={current.pageCount ?? ""} /></label>
-        <label>ISBN<input name="customIsbn" defaultValue={current.isbn ?? ""} /></label>
-        <label>Anno<input name="customPublicationYear" type="number" min="1000" max="9999" defaultValue={current.publicationYear ?? ""} /></label>
-      </div>
-      <button type="submit" className="primary-btn edition-save-button">Salva la mia edizione</button>
+      <details className="optional-edition-fields">
+        <summary>Modifica altri dati <span>facoltativo</span></summary>
+        <div className="edition-personal-grid">
+          <label>Nome edizione<input name="customName" defaultValue={personal?.custom_name ?? ""} placeholder={current.name ?? "Nome edizione"} /></label>
+          <label>Editore<input name="customPublisher" defaultValue={personal?.custom_publisher ?? ""} placeholder={current.publisher ?? "Editore"} /></label>
+          <label>Lingua<input name="customLanguage" defaultValue={personal?.custom_language ?? ""} placeholder={current.language ?? "Lingua"} /></label>
+          <label>Formato<input name="customFormat" defaultValue={personal?.custom_format ?? ""} placeholder={current.format ?? "Brossura, rilegato, eBook…"} /></label>
+          <label>Pagine<input name="customPageCount" type="number" min="1" defaultValue={personal?.custom_page_count ?? ""} placeholder={current.pageCount ? String(current.pageCount) : "Pagine"} /></label>
+          <label>ISBN<input name="customIsbn" defaultValue={personal?.custom_isbn ?? ""} placeholder={current.isbn ?? "ISBN"} /></label>
+          <label>Anno<input name="customPublicationYear" type="number" min="1000" max="9999" defaultValue={personal?.custom_publication_year ?? ""} placeholder={current.publicationYear ? String(current.publicationYear) : "Anno"} /></label>
+        </div>
+      </details>
+      <button type="submit" className="primary-btn edition-save-button">Salva modifiche</button>
     </form>
   );
 }
@@ -215,10 +221,21 @@ export default async function BookDetailPage({
 
   return (
     <main className="page book-detail-page work-detail-v2">
-      <Link href="/library/books" className="back-link">← Libri</Link>
+      <div className="book-detail-topbar">
+        <Link href="/library/books" className="back-link">← Libri</Link>
+        <Link href="/library/add?type=book" className="soft-action add-another-book-link">＋ Aggiungi libro</Link>
+      </div>
 
       {savedMessage ? (
-        <div className="catalog-notice saved-notice"><CheckCircle2 size={20} /><div><strong>{savedMessage}</strong></div></div>
+        <div className="catalog-notice saved-notice">
+          <CheckCircle2 size={20} />
+          <div>
+            <strong>{savedMessage}</strong>
+            {query.saved === "edition" || query.saved === "personalEdition" ? (
+              <Link className="saved-add-another" href="/library/add?type=book">Aggiungi un altro libro →</Link>
+            ) : null}
+          </div>
+        </div>
       ) : null}
 
       <section className="work-hero book-work-hero">
@@ -304,41 +321,48 @@ export default async function BookDetailPage({
         </div>
 
         {query.chooseEdition === "1" || !selectedEdition ? (
-          <div className="catalog-notice"><div><strong>Scegli l'edizione che possiedi.</strong><p>La scelta imposta copertina, editore, ISBN e pagine. Se i dati del catalogo non sono corretti, puoi modificarli solo per la tua copia.</p></div></div>
+          <div className="catalog-notice"><div><strong>Scegli l'edizione che possiedi.</strong><p>Se la trovi, basta un tocco. Se non la trovi, puoi creare la tua copia anche inserendo soltanto la copertina e completare i dati più tardi.</p></div></div>
         ) : null}
 
         <div className="edition-catalog-tools">
           <form action={refreshBookCatalogEditions}>
             <input type="hidden" name="workId" value={work.id} />
-            <button type="submit" className="soft-action edition-refresh-button"><RefreshCw size={16} /> Aggiorna edizioni dal catalogo</button>
+            <button type="submit" className="soft-action edition-refresh-button"><RefreshCw size={16} /> Aggiorna catalogo</button>
           </form>
           <form method="get" className="edition-search-form">
             <Search size={17} />
-            <input name="editionQ" defaultValue={query.editionQ ?? ""} placeholder="Cerca Einaudi, Mondadori, ISBN, anno…" />
+            <input name="editionQ" defaultValue={query.editionQ ?? ""} placeholder="Editore, ISBN, anno…" />
             <button type="submit" className="soft-action">Cerca</button>
             {editionQuery ? <Link href={`/library/books/${work.id}#edizioni`} className="edition-clear-link">Azzera</Link> : null}
           </form>
         </div>
 
         <details className="manual-edition-panel">
-          <summary>Non trovi la tua edizione? Inseriscila manualmente</summary>
+          <summary>Non trovi la tua? Crea la tua copia</summary>
           <form action={addPersonalBookEdition} className="edition-personal-form manual-edition-form">
             <input type="hidden" name="workId" value={work.id} />
-            <BookCoverField />
-            <div className="edition-personal-grid">
-              <label>Nome edizione<input name="customName" placeholder="Es. Super ET, Oscar, Vintage…" required /></label>
-              <label>Editore<input name="customPublisher" /></label>
-              <label>Lingua<input name="customLanguage" defaultValue="Italiano" /></label>
-              <label>Formato<input name="customFormat" placeholder="Brossura, rilegato, eBook…" /></label>
-              <label>Pagine<input name="customPageCount" type="number" min="1" /></label>
-              <label>ISBN<input name="customIsbn" /></label>
-              <label>Anno<input name="customPublicationYear" type="number" min="1000" max="9999" /></label>
+            <div className="manual-edition-intro">
+              <strong>Puoi salvare anche solo la copertina.</strong>
+              <p>Editore, pagine, ISBN e gli altri dettagli sono tutti facoltativi e potrai aggiungerli in seguito.</p>
             </div>
-            <button type="submit" className="primary-btn edition-save-button">Aggiungi questa edizione</button>
+            <BookCoverField />
+            <details className="optional-edition-fields">
+              <summary>Aggiungi dettagli <span>facoltativo</span></summary>
+              <div className="edition-personal-grid">
+                <label>Nome edizione<input name="customName" placeholder="Es. Super ET, Oscar, Vintage…" /></label>
+                <label>Editore<input name="customPublisher" placeholder="Es. Einaudi" /></label>
+                <label>Lingua<input name="customLanguage" placeholder="Es. Italiano" /></label>
+                <label>Formato<input name="customFormat" placeholder="Brossura, rilegato, eBook…" /></label>
+                <label>Pagine<input name="customPageCount" type="number" min="1" placeholder="Es. 320" /></label>
+                <label>ISBN<input name="customIsbn" placeholder="Facoltativo" /></label>
+                <label>Anno<input name="customPublicationYear" type="number" min="1000" max="9999" placeholder="Es. 2021" /></label>
+              </div>
+            </details>
+            <button type="submit" className="primary-btn edition-save-button">Salva la mia copia</button>
           </form>
         </details>
 
-        <p className="subtitle detail-explainer">Ora il catalogo conserva molte più edizioni italiane. Puoi filtrare per editore o ISBN; le correzioni personali non modificano i dati degli altri utenti.</p>
+        <p className="subtitle detail-explainer">Il catalogo è solo il punto di partenza: la tua copia può avere copertina e dati personali senza modificare quelli degli altri utenti.</p>
 
         {visibleEditions.length ? (
           <div className="book-edition-grid">
@@ -381,7 +405,7 @@ export default async function BookDetailPage({
             })}
           </div>
         ) : (
-          <div className="catalog-notice"><div><strong>Nessuna edizione corrisponde alla ricerca.</strong><p>Prova un editore, l'ISBN oppure usa “Aggiorna edizioni dal catalogo”. Se manca ancora, puoi inserire la tua copia manualmente.</p></div></div>
+          <div className="catalog-notice"><div><strong>Nessuna edizione corrisponde alla ricerca.</strong><p>Prova un editore, l'ISBN oppure usa “Aggiorna catalogo”. Se manca ancora, puoi creare la tua copia e partire anche dalla sola copertina.</p></div></div>
         )}
       </section>
 
