@@ -12,6 +12,9 @@ const optimizedCoverHosts = new Set([
 ]);
 
 function canOptimizeCover(src: string) {
+  // Le copertine personali passano da un endpoint autenticato: devono essere
+  // richieste direttamente dal browser per mantenere la sessione utente.
+  if (src.startsWith("/api/library/cover/")) return false;
   if (src.startsWith("/")) return true;
   try {
     return optimizedCoverHosts.has(new URL(src).hostname);
@@ -39,8 +42,8 @@ export function DemoCover({ item, href }: { item: DemoItem; href?: string }) {
               loading="lazy"
             />
           ) : (
-            // URL personali possono provenire da host non configurati in Next Image.
-            // Manteniamo il fallback per non rompere copertine inserite manualmente.
+            // URL personali o host esterni non configurati in Next Image.
+            // Il fallback preserva sia autenticazione sia copertine manuali.
             // eslint-disable-next-line @next/next/no-img-element
             <img
               className="cover-image"
