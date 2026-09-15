@@ -59,7 +59,13 @@ function resizeImage(file: File) {
   });
 }
 
-export function BookCoverField({ defaultValue = "" }: { defaultValue?: string }) {
+export function BookCoverField({
+  defaultValue = "",
+  uploadEndpoint = "/api/books/personal-edition",
+}: {
+  defaultValue?: string;
+  uploadEndpoint?: string;
+}) {
   const rootRef = useRef<HTMLDivElement>(null);
   const [value, setValue] = useState(defaultValue);
   const [busy, setBusy] = useState(false);
@@ -68,7 +74,7 @@ export function BookCoverField({ defaultValue = "" }: { defaultValue?: string })
   useEffect(() => {
     const root = rootRef.current;
     const form = root?.closest("form");
-    if (!form || !form.classList.contains("edition-personal-form")) return;
+    if (!form) return;
     const formElement = form;
 
     async function submitWithCover(event: Event) {
@@ -78,7 +84,7 @@ export function BookCoverField({ defaultValue = "" }: { defaultValue?: string })
       setError(null);
 
       try {
-        const response = await fetch("/api/books/personal-edition", {
+        const response = await fetch(uploadEndpoint, {
           method: "POST",
           credentials: "include",
           body: new FormData(formElement),
@@ -101,7 +107,7 @@ export function BookCoverField({ defaultValue = "" }: { defaultValue?: string })
 
     formElement.addEventListener("submit", submitWithCover);
     return () => formElement.removeEventListener("submit", submitWithCover);
-  }, [value]);
+  }, [uploadEndpoint, value]);
 
   async function onFile(file: File | undefined) {
     if (!file) return;
