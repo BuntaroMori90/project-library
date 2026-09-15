@@ -156,6 +156,44 @@
   font-size: .78rem;
 }
 
+.tv-library-alpha-list {
+  display: grid;
+  gap: 8px;
+}
+
+.tv-library-alpha-row {
+  min-width: 0;
+  padding: 14px 0 8px;
+  border-top: 1px solid rgba(255,255,255,.055);
+}
+
+.tv-library-alpha-row:first-child {
+  border-top-color: rgba(216,170,109,.16);
+}
+
+.tv-library-alpha-head {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+  padding: 0 4px 8px;
+}
+
+.tv-library-alpha-head strong {
+  min-width: 28px;
+  color: var(--accent-2, #d8aa6d);
+  font-family: Georgia, "Times New Roman", serif;
+  font-size: 1.9rem;
+  line-height: 1;
+}
+
+.tv-library-alpha-head span {
+  color: var(--muted-2, #7f7973);
+  font-size: .7rem;
+  font-weight: 750;
+  letter-spacing: .11em;
+  text-transform: uppercase;
+}
+
 .tv-library-posters {
   display: flex;
   gap: 12px;
@@ -325,6 +363,22 @@
 
   .tv-library-strip-head > span {
     display: none;
+  }
+
+  .tv-library-alpha-list {
+    gap: 2px;
+  }
+
+  .tv-library-alpha-row {
+    padding-top: 12px;
+  }
+
+  .tv-library-alpha-head {
+    padding-inline: 2px;
+  }
+
+  .tv-library-alpha-head strong {
+    font-size: 1.65rem;
   }
 
   .tv-library-posters {
