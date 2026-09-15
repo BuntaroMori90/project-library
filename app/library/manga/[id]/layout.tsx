@@ -1,4 +1,5 @@
 import type { ReactNode } from "react";
+import { LibraryRemovePanel } from "@/components/library-remove-panel";
 import { MangaCollectorPanel } from "./collector";
 
 const UUID =
@@ -12,11 +13,13 @@ export default async function MangaDetailLayout({
   params: Promise<{ id: string }>;
 }) {
   const { id } = await params;
+  const isRealWork = UUID.test(id);
 
   return (
     <>
       {children}
-      {UUID.test(id) ? <MangaCollectorPanel workId={id} /> : null}
+      {isRealWork ? <MangaCollectorPanel workId={id} /> : null}
+      {isRealWork ? <LibraryRemovePanel workId={id} mediaType="MANGA" /> : null}
     </>
   );
 }
