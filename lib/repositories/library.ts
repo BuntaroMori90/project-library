@@ -94,7 +94,7 @@ export async function getBookDetail(profileId: string, workId: string) {
          from editions e
         where e.work_id=$1
           and (
-            coalesce(e.source_provider,'') <> 'USER'
+            coalesce(e.source_provider,'') <> 'MANUAL'
             or exists (
               select 1 from ownership own
                where own.edition_id=e.id and own.profile_id=$2
@@ -135,6 +135,7 @@ export async function getMangaDetail(profileId: string, workId: string) {
     entryResult,
     progressResult,
     editionsResult,
+    ownershipResult,
   ] = await Promise.all([
     query<WorkRow>(
       "select id,title,original_title,description,release_year,publication_status,cover_url,genres,total_volumes,total_chapters from works where id=$1 and media_type='MANGA' limit 1",
@@ -156,8 +157,29 @@ export async function getMangaDetail(profileId: string, workId: string) {
       [profileId, workId],
     ),
     query<EditionRow>(
-      "select id,name,total_units,publisher,language,publication_year,is_canonical from editions where work_id=$1 order by is_canonical desc, publication_year desc nulls last, name",
-      [workId],
+      `select e.id,e.name,e.publisher,e.language,e.country,e.isbn10,e.isbn13,
+              e.publication_year,e.format,e.cover_url,e.total_units,e.page_count,
+              e.is_canonical,e.source_provider,e.source_external_id
+         from editions e
+        where e.work_id=$1
+          and (
+            coalesce(e.source_provider,'') <> 'MANUAL'
+            or exists (
+              select 1 from ownership own
+               where own.edition_id=e.id and own.profile_id=$2
+            )
+          )
+        order by e.is_canonical desc,e.publication_year desc nulls last,e.name`,
+      [workId, profileId],
+    ),
+    query<OwnershipEditionRow>(
+      `select o.edition_id,o.custom_name,o.custom_publisher,o.custom_language,
+              o.custom_format,o.custom_cover_url,o.custom_page_count,
+              o.custom_isbn,o.custom_publication_year
+         from ownership o
+         join editions e on e.id=o.edition_id
+        where o.profile_id=$1 and e.work_id=$2`,
+      [profileId, workId],
     ),
   ]);
 
@@ -194,6 +216,10 @@ export async function getMangaDetail(profileId: string, workId: string) {
     canonicalEdition,
     volumes,
     ownedIds,
+    ownedEditionIds: new Set(ownershipResult.rows.map((row) => row.edition_id)),
+    ownershipByEdition: new Map(
+      ownershipResult.rows.map((row) => [row.edition_id, row] as const),
+    ),
   };
 }
 
