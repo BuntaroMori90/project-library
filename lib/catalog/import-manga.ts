@@ -34,7 +34,8 @@ export async function importMangaToCatalog(manga: MangaCatalogResult) {
     } else {
       await client.query(
         `update works set title=$2, original_title=$3, description=$4, release_year=$5,
-         publication_status=$6, cover_url=$7, genres=$8, total_volumes=$9, total_chapters=$10, updated_at=now()
+         publication_status=$6, cover_url=coalesce($7,cover_url), genres=$8,
+         total_volumes=coalesce($9,total_volumes), total_chapters=coalesce($10,total_chapters), updated_at=now()
          where id=$1`,
         [workId, manga.title, manga.originalTitle ?? null, manga.description ?? null, manga.releaseYear ?? null, manga.publicationStatus, manga.coverUrl ?? null, manga.genres, manga.volumeCount ?? null, manga.chapterCount ?? null],
       );
@@ -73,7 +74,7 @@ export async function importMangaToCatalog(manga: MangaCatalogResult) {
       editionId = created.rows[0].id;
     } else {
       await client.query(
-        "update editions set total_units=$2, updated_at=now() where id=$1",
+        "update editions set total_units=coalesce($2,total_units), updated_at=now() where id=$1",
         [editionId, manga.volumeCount ?? null],
       );
     }
