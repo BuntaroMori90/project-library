@@ -48,7 +48,7 @@ export async function MangaCollectorPanel({ workId }: { workId: string }) {
           <span>{result.rows.length ? `${result.rows.length} registrate` : "La tua raccolta"}</span>
         </div>
         <p className="subtitle detail-explainer">
-          Il catalogo online descrive soprattutto l'opera. Qui puoi registrare
+          Il catalogo online descrive soprattutto l&apos;opera. Qui puoi registrare
           le copie particolari che possiedi anche quando non esistono nel provider.
         </p>
 
@@ -58,7 +58,7 @@ export async function MangaCollectorPanel({ workId }: { workId: string }) {
           </summary>
           <form action={addPersonalMangaEdition} className="manga-special-form">
             <input type="hidden" name="workId" value={workId} />
-            <BookCoverField />
+            <BookCoverField uploadEndpoint="/api/manga/personal-edition" />
 
             <div className="manga-special-primary-fields">
               <label>
