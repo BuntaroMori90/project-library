@@ -2,7 +2,7 @@
 
 /* eslint-disable @next/next/no-img-element */
 import { ImagePlus, X } from "lucide-react";
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 
 const MAX_DATA_URL_LENGTH = 220_000;
 
@@ -60,9 +60,46 @@ function resizeImage(file: File) {
 }
 
 export function BookCoverField({ defaultValue = "" }: { defaultValue?: string }) {
+  const rootRef = useRef<HTMLDivElement>(null);
   const [value, setValue] = useState(defaultValue);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    const root = rootRef.current;
+    const form = root?.closest("form");
+    if (!form || !form.classList.contains("edition-personal-form")) return;
+
+    async function submitWithCover(event: Event) {
+      if (!value.startsWith("data:")) return;
+      event.preventDefault();
+      setBusy(true);
+      setError(null);
+
+      try {
+        const response = await fetch("/api/books/personal-edition", {
+          method: "POST",
+          body: new FormData(form),
+        });
+        const payload = (await response.json()) as {
+          error?: string;
+          redirect?: string;
+        };
+
+        if (!response.ok || !payload.redirect) {
+          throw new Error(payload.error || "Salvataggio non riuscito");
+        }
+
+        window.location.assign(payload.redirect);
+      } catch (err) {
+        setError(err instanceof Error ? err.message : "Errore durante il salvataggio");
+        setBusy(false);
+      }
+    }
+
+    form.addEventListener("submit", submitWithCover);
+    return () => form.removeEventListener("submit", submitWithCover);
+  }, [value]);
 
   async function onFile(file: File | undefined) {
     if (!file) return;
@@ -78,7 +115,7 @@ export function BookCoverField({ defaultValue = "" }: { defaultValue?: string })
   }
 
   return (
-    <div className="book-cover-field">
+    <div ref={rootRef} className="book-cover-field">
       <input type="hidden" name="customCoverUrl" value={value} />
       {value ? (
         <div className="book-cover-preview">
@@ -93,7 +130,7 @@ export function BookCoverField({ defaultValue = "" }: { defaultValue?: string })
       <div className="book-cover-field-actions">
         <label className="soft-action book-cover-upload">
           <ImagePlus size={16} />
-          {busy ? "Ottimizzo…" : value ? "Cambia copertina" : "Carica copertina"}
+          {busy ? "Salvataggio…" : value ? "Cambia copertina" : "Carica copertina"}
           <input
             type="file"
             accept="image/jpeg,image/png,image/webp"
@@ -107,7 +144,7 @@ export function BookCoverField({ defaultValue = "" }: { defaultValue?: string })
           placeholder="URL immagine (facoltativo)"
           value={value.startsWith("data:") ? "" : value}
           onChange={(event) => setValue(event.target.value)}
-          disabled={value.startsWith("data:")}
+          disabled={value.startsWith("data:") || busy}
         />
         <small className="book-cover-help">La foto viene ridotta automaticamente prima del salvataggio.</small>
       </div>
