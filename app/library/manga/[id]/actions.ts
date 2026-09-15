@@ -5,6 +5,7 @@ import { query } from "@/lib/db";
 import { importMangaToCatalog } from "@/lib/catalog/import-manga";
 import { KitsuProvider } from "@/lib/catalog/providers/kitsu";
 import { requireProfile } from "@/lib/profile";
+import { createPersonalMangaEdition } from "@/lib/repositories/manga-editions";
 import {
   setLibraryPersonal,
   setLibraryStatus,
@@ -25,6 +26,12 @@ function asNumber(value: FormDataEntryValue | null) {
   if (typeof value !== "string" || value.trim() === "") return null;
   const parsed = Number(value);
   return Number.isFinite(parsed) && parsed >= 0 ? parsed : null;
+}
+
+function asText(value: FormDataEntryValue | null) {
+  if (typeof value !== "string") return null;
+  const text = value.trim();
+  return text || null;
 }
 
 async function refreshMissingMangaCounts(workId: string) {
@@ -89,6 +96,26 @@ export async function updateMangaPersonal(formData: FormData) {
     notes: notesRaw || null,
   });
   revalidatePath(`/library/manga/${workId}`);
+}
+
+export async function addPersonalMangaEdition(formData: FormData) {
+  const workId = String(formData.get("workId") ?? "");
+  if (!workId) return;
+
+  const { profile } = await requireProfile();
+  await createPersonalMangaEdition(profile.id, workId, {
+    name: asText(formData.get("customName")),
+    publisher: asText(formData.get("customPublisher")),
+    language: asText(formData.get("customLanguage")),
+    editionType: asText(formData.get("editionType")),
+    coverUrl: asText(formData.get("customCoverUrl")),
+    isbn: asText(formData.get("customIsbn")),
+    publicationYear: asNumber(formData.get("customPublicationYear")),
+    volumeNumber: asNumber(formData.get("volumeNumber")),
+  });
+
+  revalidatePath(`/library/manga/${workId}`);
+  revalidatePath("/library/manga");
 }
 
 export async function toggleOwnedVolume(formData: FormData) {
