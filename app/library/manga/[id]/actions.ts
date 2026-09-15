@@ -112,10 +112,12 @@ export async function addPersonalMangaEdition(formData: FormData) {
     isbn: asText(formData.get("customIsbn")),
     publicationYear: asNumber(formData.get("customPublicationYear")),
     volumeNumber: asNumber(formData.get("volumeNumber")),
+    totalVolumes: asNumber(formData.get("totalVolumes")),
   });
 
   revalidatePath(`/library/manga/${workId}`);
   revalidatePath("/library/manga");
+  revalidatePath("/library");
 }
 
 export async function toggleOwnedVolume(formData: FormData) {
