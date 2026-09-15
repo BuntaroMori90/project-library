@@ -34,7 +34,7 @@ export function DemoCover({ item, href }: { item: DemoItem; href?: string }) {
     </article>
   );
   return href ? (
-    <Link href={href} className="cover-link">
+    <Link href={href} prefetch={false} className="cover-link">
       {content}
     </Link>
   ) : (
