@@ -1,4 +1,5 @@
 import type { MangaCatalogProvider, MangaCatalogResult } from "@/lib/catalog/types";
+import { fetchMangaUpdatesCounts } from "@/lib/catalog/providers/mangaupdates";
 
 const BASE_URL = "https://kitsu.io/api/edge";
 
@@ -138,6 +139,21 @@ export class KitsuProvider implements MangaCatalogProvider {
     if (!payload.data || Array.isArray(payload.data)) {
       throw new Error("Manga non trovato su Kitsu.");
     }
-    return normalize(payload.data);
+
+    const result = normalize(payload.data);
+    if (result.volumeCount && result.chapterCount) return result;
+
+    const extra = await fetchMangaUpdatesCounts(result.title);
+    if (!extra) return result;
+
+    return {
+      ...result,
+      volumeCount: result.volumeCount ?? extra.volumeCount,
+      chapterCount: result.chapterCount ?? extra.chapterCount,
+      publicationStatus:
+        result.publicationStatus === "UNKNOWN" && extra.publicationStatus
+          ? extra.publicationStatus
+          : result.publicationStatus,
+    };
   }
 }
