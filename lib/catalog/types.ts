@@ -1,4 +1,4 @@
-export type CatalogProviderName = "MAL" | "JIKAN_DEV" | "OPEN_LIBRARY" | "TVMAZE";
+export type CatalogProviderName = "MAL" | "JIKAN_DEV" | "KITSU" | "OPEN_LIBRARY" | "TVMAZE";
 export type PublicationStatus = "ONGOING" | "COMPLETED" | "HIATUS" | "CANCELLED" | "UNKNOWN";
 
 export type MangaCatalogResult = {
