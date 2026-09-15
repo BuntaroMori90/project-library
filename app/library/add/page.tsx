@@ -11,6 +11,7 @@ export default async function AddWorkPage({
   const params = await searchParams;
   const raw = params.type as AddWorkType | undefined;
   const initialType: AddWorkType = raw && allowed.has(raw) ? raw : "manga";
+
   return (
     <main className="page add-work-page">
       <Link href="/library" className="back-link">
@@ -19,10 +20,11 @@ export default async function AddWorkPage({
       <header className="page-header immersive-head compact-head add-work-header">
         <div>
           <p className="eyebrow">Nuova opera</p>
-          <h1 className="title">Trova la prossima opera.</h1>
+          <h1 className="title">Aggiungi senza perdere tempo.</h1>
           <p className="subtitle">
-            Cercala nel catalogo, poi scegli se inserirla subito nella Libreria
-            oppure conservarla nella Wishlist.
+            Cerca nei cataloghi quando vuoi recuperare automaticamente dati e
+            copertine. Per libri e manga puoi anche partire dal solo titolo e
+            completare la scheda in seguito.
           </p>
         </div>
       </header>
