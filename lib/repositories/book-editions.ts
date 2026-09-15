@@ -17,7 +17,7 @@ export async function createPersonalBookEdition(
     const editionResult = await client.query<{ id: string }>(
       `insert into editions
          (work_id,name,source_provider,source_external_id,is_canonical,created_at,updated_at)
-       values ($1,$2,'MANUAL',concat($3,':',gen_random_uuid()::text),false,now(),now())
+       values ($1,$2,'MANUAL',$3::text || ':' || gen_random_uuid()::text,false,now(),now())
        returning id`,
       [workId, values.name || "Edizione personale", profileId],
     );
