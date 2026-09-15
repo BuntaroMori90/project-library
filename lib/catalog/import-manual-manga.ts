@@ -15,8 +15,8 @@ export async function createManualManga(title: string) {
 
     await client.query(
       `insert into external_ids (work_id,provider,external_id)
-       values ($1,'MANUAL',$1)`,
-      [workId],
+       values ($1,'MANUAL',$2)`,
+      [workId, workId],
     );
 
     const edition = await client.query<{ id: string }>(
