@@ -6,6 +6,30 @@ import type {
 
 const BASE = "https://openlibrary.org";
 const SEARCH_LIMIT = 20;
+const EDITION_FETCH_LIMIT = 1000;
+const MAX_IMPORTED_EDITIONS = 250;
+const NON_ITALIAN_FALLBACK_LIMIT = 80;
+const ITALIAN_PUBLISHER_HINTS = [
+  "einaudi",
+  "mondadori",
+  "feltrinelli",
+  "adelphi",
+  "bompiani",
+  "rizzoli",
+  "sellerio",
+  "garzanti",
+  "longanesi",
+  "marsilio",
+  "fazi",
+  "minimum fax",
+  "nottetempo",
+  "laterza",
+  "il saggiatore",
+  "edizioni e/o",
+  "e/o",
+  "sur",
+];
+
 const SEARCH_FIELDS = [
   "key",
   "title",
@@ -158,6 +182,7 @@ type OpenLibraryEdition = {
   title?: string;
   publishers?: string[];
   publish_date?: string;
+  publish_country?: string;
   physical_format?: string;
   number_of_pages?: number;
   isbn_10?: string[];
@@ -241,6 +266,64 @@ function searchScore(result: BookCatalogResult, query: string, rank: number) {
   if (result.editionCount) score += Math.min(8, Math.log2(result.editionCount + 1));
   score += Math.max(0, 20 - rank);
   return score;
+}
+
+function isItalianPublisher(publisher?: string | null) {
+  if (!publisher) return false;
+  const normalized = normalizeText(publisher);
+  return ITALIAN_PUBLISHER_HINTS.some((hint) =>
+    normalized.includes(normalizeText(hint)),
+  );
+}
+
+function editionScore(edition: BookEditionCatalogResult) {
+  return (
+    (edition.language === "Italiano" ? 120 : 0) +
+    (isItalianPublisher(edition.publisher) ? 70 : 0) +
+    (edition.coverUrl ? 16 : 0) +
+    (edition.isbn13 ? 12 : edition.isbn10 ? 6 : 0) +
+    (edition.publisher ? 8 : 0) +
+    (edition.pageCount ? 5 : 0) +
+    (edition.publicationYear ? 2 : 0) +
+    (edition.language === "English" ? 4 : 0)
+  );
+}
+
+function editionIdentity(edition: BookEditionCatalogResult) {
+  const isbn13 = edition.isbn13?.replace(/[^0-9X]/gi, "");
+  if (isbn13) return `13:${isbn13}`;
+  const isbn10 = edition.isbn10?.replace(/[^0-9X]/gi, "");
+  if (isbn10) return `10:${isbn10}`;
+  return `ol:${edition.providerId}`;
+}
+
+function selectUsefulEditions(editions: BookEditionCatalogResult[]) {
+  const unique = new Map<string, BookEditionCatalogResult>();
+  for (const edition of editions) {
+    const key = editionIdentity(edition);
+    const current = unique.get(key);
+    if (!current || editionScore(edition) > editionScore(current)) {
+      unique.set(key, edition);
+    }
+  }
+
+  const ranked = [...unique.values()].sort(
+    (a, b) => editionScore(b) - editionScore(a),
+  );
+  const italian = ranked.filter(
+    (edition) =>
+      edition.language === "Italiano" || isItalianPublisher(edition.publisher),
+  );
+  const fallback = ranked
+    .filter(
+      (edition) =>
+        edition.language !== "Italiano" && !isItalianPublisher(edition.publisher),
+    )
+    .slice(0, NON_ITALIAN_FALLBACK_LIMIT);
+
+  return [...italian, ...fallback]
+    .sort((a, b) => editionScore(b) - editionScore(a))
+    .slice(0, MAX_IMPORTED_EDITIONS);
 }
 
 async function searchOpenLibrary(params: {
@@ -327,7 +410,7 @@ export class OpenLibraryProvider implements BookCatalogProvider {
         cache: "no-store",
       }),
       fetch(
-        `${BASE}/works/${encodeURIComponent(safeId)}/editions.json?limit=100`,
+        `${BASE}/works/${encodeURIComponent(safeId)}/editions.json?limit=${EDITION_FETCH_LIMIT}`,
         { headers: catalogHeaders(), cache: "no-store" },
       ),
     ]);
@@ -362,7 +445,7 @@ export class OpenLibraryProvider implements BookCatalogProvider {
       }),
     );
 
-    const editions = (editionPayload.entries ?? [])
+    const normalizedEditions = (editionPayload.entries ?? [])
       .map((edition): BookEditionCatalogResult | null => {
         const providerId = idFromKey(edition.key, "M");
         if (!providerId) return null;
@@ -372,7 +455,7 @@ export class OpenLibraryProvider implements BookCatalogProvider {
           title: edition.title ?? work.title ?? "Edizione",
           publisher: edition.publishers?.[0] ?? null,
           language,
-          country: null,
+          country: edition.publish_country ?? null,
           isbn10: edition.isbn_10?.[0] ?? null,
           isbn13: edition.isbn_13?.[0] ?? null,
           publicationYear: yearFromDate(edition.publish_date),
@@ -381,23 +464,9 @@ export class OpenLibraryProvider implements BookCatalogProvider {
           coverUrl: coverFromId(edition.covers?.[0]),
         };
       })
-      .filter((edition): edition is BookEditionCatalogResult => Boolean(edition))
-      .sort((a, b) => {
-        const score = (edition: BookEditionCatalogResult) =>
-          (edition.language === "Italiano"
-            ? 50
-            : edition.language === "English"
-              ? 12
-              : 0) +
-          (edition.coverUrl ? 8 : 0) +
-          (edition.isbn13 ? 6 : edition.isbn10 ? 3 : 0) +
-          (edition.publisher ? 4 : 0) +
-          (edition.pageCount ? 2 : 0) +
-          (edition.publicationYear ? 1 : 0);
-        return score(b) - score(a);
-      })
-      .slice(0, 24);
+      .filter((edition): edition is BookEditionCatalogResult => Boolean(edition));
 
+    const editions = selectUsefulEditions(normalizedEditions);
     const preferredEdition = editions[0] ?? null;
     const workTitle = work.title ?? "Titolo non disponibile";
     const displayTitle =
