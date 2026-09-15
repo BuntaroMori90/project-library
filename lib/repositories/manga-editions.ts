@@ -92,12 +92,12 @@ export async function createPersonalMangaEdition(
                 total_units=coalesce($3,total_units),
                 source_provider=case when $4 then 'MANUAL' else source_provider end,
                 source_external_id=case
-                  when $4 then coalesce(source_external_id,concat($5,':base'))
+                  when $4 then coalesce(source_external_id,$5)
                   else source_external_id
                 end,
                 updated_at=now()
           where id=$1`,
-        [editionId, values.name, values.totalVolumes, work.manual, profileId],
+        [editionId, values.name, values.totalVolumes, work.manual, workId],
       );
     }
 
@@ -178,16 +178,25 @@ export async function createPersonalMangaEdition(
       );
     }
 
-    if (isStandard && work.manual && values.coverUrl) {
-      const coverValue = values.coverUrl.startsWith("data:image/")
-        ? `/api/library/cover/work/${workId}`
-        : values.coverUrl;
+    if (isStandard && work.manual) {
+      const coverValue = values.coverUrl
+        ? values.coverUrl.startsWith("data:image/")
+          ? `/api/library/cover/work/${workId}`
+          : values.coverUrl
+        : null;
+
       await client.query(
         `update works
-            set cover_url=$2,updated_at=now()
-          where id=$1
-            and (cover_url is null or cover_url like '/api/library/cover/work/%')`,
-        [workId, coverValue],
+            set cover_url=case
+                  when $2::text is not null
+                    and (cover_url is null or cover_url like '/api/library/cover/work/%')
+                    then $2
+                  else cover_url
+                end,
+                total_volumes=coalesce($3,total_volumes),
+                updated_at=now()
+          where id=$1`,
+        [workId, coverValue, values.totalVolumes],
       );
     }
 
