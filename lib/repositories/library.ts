@@ -279,12 +279,15 @@ export async function getAnimeDetail(profileId: string, workId: string) {
   };
 }
 
+type LibraryMediaType = "BOOK" | "MANGA" | "ANIME";
+
 export async function listLibraryWorks(
   profileId: string,
-  mediaType: "BOOK" | "MANGA" | "ANIME",
+  mediaType?: LibraryMediaType,
 ) {
   return query<{
     id: string;
+    media_type: LibraryMediaType;
     title: string;
     cover_url: string | null;
     total_volumes: number | null;
@@ -304,32 +307,39 @@ export async function listLibraryWorks(
     percentage: string | number | null;
     owned_units: string | number;
   }>(
-    `select w.id,w.title,
-            case when $2='BOOK'
+    `select w.id,w.media_type,w.title,
+            case when w.media_type='BOOK'
               then coalesce(so.custom_cover_url,se.cover_url,w.cover_url)
               else w.cover_url
             end as cover_url,
             w.total_volumes,w.total_seasons,w.total_episodes,
             le.status,le.favorite,le.rating,le.updated_at,
-            coalesce(array_agg(distinct c.name) filter (where c.name is not null), '{}') as creators,
+            coalesce(creators.names,'{}') as creators,
             p.current_volume,p.current_chapter,p.current_season,p.current_episode,
             p.current_page,p.total_pages,p.percentage,
-            count(distinct ou.id) as owned_units
+            coalesce(owned.count,0) as owned_units
        from library_entries le
-       join works w on w.id=le.work_id and w.media_type=$2
+       join works w on w.id=le.work_id
        left join progress p on p.profile_id=le.profile_id and p.work_id=w.id
        left join editions se on se.id=p.edition_id
        left join ownership so on so.profile_id=le.profile_id and so.edition_id=p.edition_id
-       left join work_creators wc on wc.work_id=w.id
-       left join creators c on c.id=wc.creator_id
-       left join editions e on e.work_id=w.id
-       left join owned_units ou on ou.profile_id=le.profile_id and ou.edition_id=e.id
+       left join lateral (
+         select array_agg(c.name order by wc.role,c.name) as names
+           from work_creators wc
+           join creators c on c.id=wc.creator_id
+          where wc.work_id=w.id
+       ) creators on true
+       left join lateral (
+         select count(*) as count
+           from owned_units ou
+           join editions e on e.id=ou.edition_id
+          where ou.profile_id=le.profile_id
+            and e.work_id=w.id
+       ) owned on w.media_type='MANGA'
       where le.profile_id=$1
-      group by w.id,se.cover_url,so.custom_cover_url,le.status,le.favorite,le.rating,le.updated_at,
-               p.current_volume,p.current_chapter,p.current_season,p.current_episode,
-               p.current_page,p.total_pages,p.percentage
+        and ($2::text is null or w.media_type=$2)
       order by le.updated_at desc`,
-    [profileId, mediaType],
+    [profileId, mediaType ?? null],
   );
 }
 
