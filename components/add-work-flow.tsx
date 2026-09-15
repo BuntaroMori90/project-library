@@ -9,6 +9,7 @@ import {
   Film,
   LibraryBig,
   LoaderCircle,
+  PenLine,
   Plus,
   Search,
   Sparkles,
@@ -32,9 +33,9 @@ const typeMeta = {
   manga: {
     label: "Manga",
     icon: LibraryBig,
-    placeholder: "Cerca Berserk, Monster, Vagabond…",
-    hint: "La serie entra una sola volta nel catalogo; volumi e capitoli restano collegati all'opera.",
-    provider: "Catalogo manga configurato",
+    placeholder: "Titolo italiano, inglese, originale o autore…",
+    hint: "Cerchiamo la stessa opera su più cataloghi e uniamo i risultati. Se non esiste, puoi crearla anche inserendo soltanto il titolo.",
+    provider: "MyAnimeList/Jikan + Kitsu",
   },
   anime: {
     label: "Anime",
@@ -127,6 +128,9 @@ export function AddWorkFlow({
   const [importing, setImporting] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [searched, setSearched] = useState(false);
+  const [manualOpen, setManualOpen] = useState(false);
+  const [manualTitle, setManualTitle] = useState("");
+  const [manualSaving, setManualSaving] = useState(false);
 
   function switchType(next: AddWorkType) {
     setType(next);
@@ -135,6 +139,8 @@ export function AddWorkFlow({
     setError(null);
     setSearched(false);
     setImporting(null);
+    setManualOpen(false);
+    setManualTitle("");
   }
 
   async function search(event: React.FormEvent) {
@@ -150,9 +156,15 @@ export function AddWorkFlow({
         `/api/catalog/${type}/search?q=${encodeURIComponent(normalized)}`,
       );
       const payload = await response.json();
-      if (!response.ok)
+      if (!response.ok) {
         throw new Error(payload.error ?? "Ricerca non disponibile.");
-      setResults(payload.results ?? []);
+      }
+      const nextResults = (payload.results ?? []) as Result[];
+      setResults(nextResults);
+      if (type === "manga" && nextResults.length === 0) {
+        setManualTitle(normalized);
+        setManualOpen(true);
+      }
     } catch (err) {
       setError(err instanceof Error ? err.message : "Ricerca non disponibile.");
     } finally {
@@ -164,18 +176,23 @@ export function AddWorkFlow({
     result: Result,
     destination: "library" | "wishlist",
   ) {
-    const importKey = `${result.providerId}:${destination}`;
+    const importKey = `${result.provider}:${result.providerId}:${destination}`;
     setImporting(importKey);
     setError(null);
     try {
       const response = await fetch(`/api/catalog/${type}/import`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ providerId: result.providerId, destination }),
+        body: JSON.stringify({
+          providerId: result.providerId,
+          provider: result.provider,
+          destination,
+        }),
       });
       const payload = await response.json();
-      if (!response.ok)
+      if (!response.ok) {
         throw new Error(payload.error ?? "Import non riuscito.");
+      }
 
       if (destination === "wishlist" && payload.placement === "wishlist") {
         router.push("/library/wishlist");
@@ -183,9 +200,7 @@ export function AddWorkFlow({
       }
 
       if (type === "book") {
-        router.push(
-          `/library/books/${payload.workId}?chooseEdition=1#edizioni`,
-        );
+        router.push(`/library/books/${payload.workId}?chooseEdition=1#edizioni`);
         return;
       }
 
@@ -195,6 +210,33 @@ export function AddWorkFlow({
       setError(err instanceof Error ? err.message : "Import non riuscito.");
     } finally {
       setImporting(null);
+    }
+  }
+
+  async function addManualManga(event: React.FormEvent) {
+    event.preventDefault();
+    const title = manualTitle.trim();
+    if (!title) return;
+    setManualSaving(true);
+    setError(null);
+    try {
+      const response = await fetch("/api/catalog/manga/manual", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ title, destination: "library" }),
+      });
+      const payload = await response.json();
+      if (!response.ok) {
+        throw new Error(payload.error ?? "Inserimento manuale non riuscito.");
+      }
+      router.push(`/library/manga/${payload.workId}`);
+      router.refresh();
+    } catch (err) {
+      setError(
+        err instanceof Error ? err.message : "Inserimento manuale non riuscito.",
+      );
+    } finally {
+      setManualSaving(false);
     }
   }
 
@@ -214,6 +256,7 @@ export function AddWorkFlow({
           <b>3</b> Conferma
         </span>
       </div>
+
       <div className="add-type-grid">
         {(Object.keys(typeMeta) as AddWorkType[]).map((key) => {
           const item = typeMeta[key];
@@ -238,6 +281,7 @@ export function AddWorkFlow({
           );
         })}
       </div>
+
       <div className="add-search-stage">
         <div className="add-search-copy">
           <div className="add-search-icon">
@@ -273,89 +317,140 @@ export function AddWorkFlow({
           </span>
         </div>
       </div>
+
       {error ? <p className="catalog-error">{error}</p> : null}
+
       {searched && !loading && results.length === 0 && !error ? (
         <p className="catalog-empty">
-          Nessun risultato. Per i libri prova anche autore, ISBN oppure una
-          variante più breve del titolo.
+          {type === "manga"
+            ? "Nessun risultato nei cataloghi. Il titolo è già pronto per l'inserimento manuale qui sotto."
+            : "Nessun risultato. Prova autore, ISBN oppure una variante più breve del titolo."}
         </p>
       ) : null}
-      <div className="catalog-results add-results">
-        {results.map((result) => (
-          <article
-            className="catalog-result add-result-card"
-            key={`${result.provider}-${result.providerId}`}
-          >
-            <div className="catalog-cover">
-              {result.coverUrl ? (
-                <Image
-                  src={result.coverUrl}
-                  alt={`Copertina di ${result.title}`}
-                  width={120}
-                  height={176}
-                  sizes="76px"
-                  unoptimized
+
+      {type === "manga" ? (
+        <section className={`manual-manga-entry ${manualOpen ? "open" : ""}`}>
+          <div className="manual-manga-entry-head">
+            <div>
+              <span className="eyebrow">Titolo assente?</span>
+              <strong>Aggiungilo senza compilare una scheda intera.</strong>
+              <p>Il titolo è l'unico dato obbligatorio. Il resto potrà essere completato dopo.</p>
+            </div>
+            <button
+              className="secondary-btn"
+              type="button"
+              onClick={() => {
+                setManualOpen((current) => !current);
+                if (!manualTitle.trim()) setManualTitle(query.trim());
+              }}
+            >
+              <PenLine size={16} />
+              {manualOpen ? "Chiudi" : "Inserisci a mano"}
+            </button>
+          </div>
+          {manualOpen ? (
+            <form className="manual-manga-form" onSubmit={addManualManga}>
+              <label>
+                <span>Titolo manga</span>
+                <input
+                  value={manualTitle}
+                  onChange={(event) => setManualTitle(event.target.value)}
+                  placeholder="Titolo italiano, originale o quello che conosci"
+                  autoFocus
                 />
-              ) : (
-                <span>{result.title.slice(0, 1)}</span>
-              )}
-            </div>
-            <div className="catalog-result-copy">
-              <span className="eyebrow">
-                {statusLabel(result.publicationStatus)}
-              </span>
-              <h2>{result.title}</h2>
-              <p>{resultSubtitle(result, type)}</p>
-              <div className="catalog-facts">
-                {facts(result, type).map((fact) => (
-                  <span key={fact}>{fact}</span>
-                ))}
-              </div>
-            </div>
-            <div className="add-result-actions">
+              </label>
               <button
-                className="add-result add-to-wishlist"
-                type="button"
-                onClick={() => importWork(result, "wishlist")}
-                disabled={Boolean(importing)}
+                className="primary-btn"
+                type="submit"
+                disabled={manualSaving || !manualTitle.trim()}
               >
-                {importing === `${result.providerId}:wishlist` ? (
-                  <LoaderCircle className="spin" size={18} />
-                ) : (
-                  <Bookmark size={18} />
-                )}
-                <span>
-                  {importing === `${result.providerId}:wishlist`
-                    ? "Salvo"
-                    : "Wishlist"}
-                </span>
-              </button>
-              <button
-                className="add-result"
-                type="button"
-                onClick={() => importWork(result, "library")}
-                disabled={Boolean(importing)}
-              >
-                {importing === `${result.providerId}:library` ? (
+                {manualSaving ? (
                   <LoaderCircle className="spin" size={18} />
                 ) : (
                   <Plus size={18} />
                 )}
-                <span>
-                  {importing === `${result.providerId}:library`
-                    ? "Importo"
-                    : type === "book"
-                      ? "Scegli edizione"
-                      : "Libreria"}
-                </span>
+                {manualSaving ? "Aggiungo…" : "Aggiungi alla libreria"}
               </button>
-            </div>
-          </article>
-        ))}
+            </form>
+          ) : null}
+        </section>
+      ) : null}
+
+      <div className="catalog-results add-results">
+        {results.map((result) => {
+          const wishlistKey = `${result.provider}:${result.providerId}:wishlist`;
+          const libraryKey = `${result.provider}:${result.providerId}:library`;
+          return (
+            <article
+              className="catalog-result add-result-card"
+              key={`${result.provider}-${result.providerId}`}
+            >
+              <div className="catalog-cover">
+                {result.coverUrl ? (
+                  <Image
+                    src={result.coverUrl}
+                    alt={`Copertina di ${result.title}`}
+                    width={120}
+                    height={176}
+                    sizes="76px"
+                    unoptimized
+                  />
+                ) : (
+                  <span>{result.title.slice(0, 1)}</span>
+                )}
+              </div>
+              <div className="catalog-result-copy">
+                <span className="eyebrow">{statusLabel(result.publicationStatus)}</span>
+                <h2>{result.title}</h2>
+                <p>{resultSubtitle(result, type)}</p>
+                <div className="catalog-facts">
+                  {facts(result, type).map((fact) => (
+                    <span key={fact}>{fact}</span>
+                  ))}
+                </div>
+              </div>
+              <div className="add-result-actions">
+                <button
+                  className="add-result add-to-wishlist"
+                  type="button"
+                  onClick={() => importWork(result, "wishlist")}
+                  disabled={Boolean(importing)}
+                >
+                  {importing === wishlistKey ? (
+                    <LoaderCircle className="spin" size={18} />
+                  ) : (
+                    <Bookmark size={18} />
+                  )}
+                  <span>{importing === wishlistKey ? "Salvo" : "Wishlist"}</span>
+                </button>
+                <button
+                  className="add-result"
+                  type="button"
+                  onClick={() => importWork(result, "library")}
+                  disabled={Boolean(importing)}
+                >
+                  {importing === libraryKey ? (
+                    <LoaderCircle className="spin" size={18} />
+                  ) : (
+                    <Plus size={18} />
+                  )}
+                  <span>
+                    {importing === libraryKey
+                      ? "Importo"
+                      : type === "book"
+                        ? "Scegli edizione"
+                        : "Libreria"}
+                  </span>
+                </button>
+              </div>
+            </article>
+          );
+        })}
       </div>
+
       <p className="catalog-attribution">
-        Libri: dati e copertine da Open Library. Anime: dati da TVmaze. Le fonti
-        restano sostituibili senza cambiare la tua libreria personale.
+        Manga: ricerca combinata MyAnimeList/Jikan e Kitsu. Libri: Open Library.
+        Anime: TVmaze. Le fonti restano separate dai tuoi dati personali.
       </p>
     </section>
   );
