@@ -69,6 +69,7 @@ export function BookCoverField({ defaultValue = "" }: { defaultValue?: string })
     const root = rootRef.current;
     const form = root?.closest("form");
     if (!form || !form.classList.contains("edition-personal-form")) return;
+    const formElement = form;
 
     async function submitWithCover(event: Event) {
       if (!value.startsWith("data:")) return;
@@ -79,7 +80,7 @@ export function BookCoverField({ defaultValue = "" }: { defaultValue?: string })
       try {
         const response = await fetch("/api/books/personal-edition", {
           method: "POST",
-          body: new FormData(form),
+          body: new FormData(formElement),
         });
         const payload = (await response.json()) as {
           error?: string;
@@ -97,8 +98,8 @@ export function BookCoverField({ defaultValue = "" }: { defaultValue?: string })
       }
     }
 
-    form.addEventListener("submit", submitWithCover);
-    return () => form.removeEventListener("submit", submitWithCover);
+    formElement.addEventListener("submit", submitWithCover);
+    return () => formElement.removeEventListener("submit", submitWithCover);
   }, [value]);
 
   async function onFile(file: File | undefined) {
