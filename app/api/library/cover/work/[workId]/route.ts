@@ -19,11 +19,18 @@ export async function GET(
 
   const result = await query<{ custom_cover_url: string | null }>(
     `select o.custom_cover_url
-       from progress p
-       join ownership o
-         on o.profile_id=p.profile_id
-        and o.edition_id=p.edition_id
-      where p.profile_id=$1 and p.work_id=$2
+       from ownership o
+       join editions e on e.id=o.edition_id
+       left join progress p
+         on p.profile_id=o.profile_id
+        and p.work_id=e.work_id
+        and p.edition_id=o.edition_id
+      where o.profile_id=$1
+        and e.work_id=$2
+        and o.custom_cover_url like 'data:image/%'
+      order by (p.edition_id is not null) desc,
+               (lower(coalesce(o.custom_format,''))='standard') desc,
+               o.updated_at desc
       limit 1`,
     [session.profile.id, workId],
   );
