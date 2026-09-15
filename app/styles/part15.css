@@ -1,0 +1,237 @@
+/* Scheda personale: controlli coerenti per Libri, Manga e Anime. */
+.work-detail-v2 .personal-editors,
+.book-detail-page .book-edit-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+  margin-top: 18px;
+}
+
+.work-detail-v2 .personal-editor-card,
+.book-detail-page .book-edit-grid .mini-edit-form,
+.book-detail-page .book-edit-grid .mini-edit-form:first-child {
+  min-width: 0;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  align-content: start;
+  gap: 12px;
+  padding: 16px;
+  border: 1px solid rgba(255, 255, 255, .075);
+  border-radius: 18px;
+  background:
+    linear-gradient(145deg, rgba(255, 255, 255, .026), rgba(255, 255, 255, .012)),
+    rgba(5, 5, 5, .18);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, .018);
+}
+
+/* Annulla il vecchio stato Libri a tutta larghezza: stato e progresso tornano equivalenti. */
+.book-detail-page .book-edit-grid .mini-edit-form:first-child {
+  grid-column: auto;
+}
+
+.work-detail-v2 .personal-editor-card > label,
+.book-detail-page .book-edit-grid .mini-edit-form > label,
+.book-detail-page .book-edit-grid .mini-edit-form:first-child > label {
+  min-width: 0;
+  display: grid;
+  gap: 7px;
+  color: var(--muted, #aaa39c);
+  font-size: .69rem;
+  font-weight: 800;
+  line-height: 1.2;
+  text-transform: uppercase;
+  letter-spacing: .085em;
+}
+
+.work-detail-v2 .personal-editor-card input:not([type="checkbox"]),
+.work-detail-v2 .personal-editor-card select,
+.book-detail-page .book-edit-grid .mini-edit-form input:not([type="checkbox"]),
+.book-detail-page .book-edit-grid .mini-edit-form select,
+.book-detail-page .book-edit-grid .mini-edit-form:first-child select {
+  width: 100%;
+  min-height: 48px;
+  padding: 0 13px;
+  border: 1px solid rgba(255, 255, 255, .085);
+  border-radius: 12px;
+  background: rgba(7, 7, 7, .72);
+  color: var(--text);
+  font: inherit;
+  font-size: .92rem;
+  font-weight: 650;
+  line-height: normal;
+  text-transform: none;
+  letter-spacing: normal;
+  outline: none;
+  transition: border-color .16s ease, box-shadow .16s ease, background .16s ease;
+}
+
+.work-detail-v2 .personal-editor-card textarea,
+.book-detail-page .book-edit-grid .mini-edit-form textarea {
+  width: 100%;
+  min-height: 108px;
+  resize: vertical;
+  padding: 12px 13px;
+  border: 1px solid rgba(255, 255, 255, .085);
+  border-radius: 12px;
+  background: rgba(7, 7, 7, .72);
+  color: var(--text);
+  font: inherit;
+  font-size: .92rem;
+  line-height: 1.45;
+  text-transform: none;
+  letter-spacing: normal;
+  outline: none;
+}
+
+.work-detail-v2 .personal-editor-card input:focus,
+.work-detail-v2 .personal-editor-card select:focus,
+.work-detail-v2 .personal-editor-card textarea:focus,
+.book-detail-page .book-edit-grid .mini-edit-form input:focus,
+.book-detail-page .book-edit-grid .mini-edit-form select:focus,
+.book-detail-page .book-edit-grid .mini-edit-form textarea:focus {
+  border-color: rgba(216, 170, 109, .48);
+  background: rgba(12, 11, 10, .88);
+  box-shadow: 0 0 0 3px rgba(216, 170, 109, .075);
+}
+
+/* Progresso: due campi per riga dove possibile, con azione allineata in fondo. */
+.work-detail-v2 .progress-card-editor,
+.work-detail-v2 .anime-progress-editor,
+.book-detail-page .book-edit-grid .mini-edit-form:nth-child(2) {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.work-detail-v2 .anime-progress-editor .anime-custom-source {
+  grid-column: auto;
+}
+
+/* Scheda personale/voto/note sempre a tutta larghezza. */
+.work-detail-v2 .personal-notes-editor,
+.book-detail-page .book-edit-grid .mini-edit-form.wide {
+  grid-column: 1 / -1;
+  grid-template-columns: minmax(0, .7fr) minmax(120px, .45fr) minmax(0, 2fr);
+  align-items: start;
+}
+
+.work-detail-v2 .personal-notes-editor .notes-field,
+.book-detail-page .book-edit-grid .mini-edit-form.wide .wide-field {
+  min-width: 0;
+}
+
+.work-detail-v2 .favorite-toggle,
+.book-detail-page .book-edit-grid .check-line {
+  min-height: 48px;
+  display: flex !important;
+  align-items: center;
+  gap: 10px !important;
+  padding: 0 13px;
+  border: 1px solid rgba(255, 255, 255, .075);
+  border-radius: 12px;
+  background: rgba(255, 255, 255, .018);
+  color: var(--text) !important;
+  font-size: .83rem !important;
+  font-weight: 750 !important;
+  text-transform: none !important;
+  letter-spacing: normal !important;
+}
+
+.work-detail-v2 .favorite-toggle input,
+.book-detail-page .book-edit-grid .check-line input {
+  width: 18px;
+  height: 18px;
+  margin: 0;
+  accent-color: #d8aa6d;
+}
+
+/* Unica gerarchia per tutte le azioni Salva/Aggiorna. */
+.work-detail-v2 .personal-editor-card > button,
+.book-detail-page .book-edit-grid .mini-edit-form > button,
+.book-detail-page .book-edit-grid .mini-edit-form:first-child .soft-action {
+  grid-column: 1 / -1;
+  width: 100%;
+  min-height: 48px;
+  margin: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0 16px;
+  border: 1px solid rgba(216, 170, 109, .36);
+  border-radius: 12px;
+  background: linear-gradient(135deg, rgba(216, 170, 109, .16), rgba(216, 170, 109, .075));
+  color: var(--accent-2, #efc27c);
+  font: inherit;
+  font-size: .88rem;
+  font-weight: 850;
+  line-height: 1;
+  text-decoration: none;
+  cursor: pointer;
+  box-shadow: none;
+  transition: transform .14s ease, border-color .14s ease, background .14s ease;
+}
+
+.work-detail-v2 .personal-editor-card > button:hover,
+.book-detail-page .book-edit-grid .mini-edit-form > button:hover {
+  border-color: rgba(216, 170, 109, .56);
+  background: linear-gradient(135deg, rgba(216, 170, 109, .22), rgba(216, 170, 109, .1));
+}
+
+.work-detail-v2 .personal-editor-card > button:active,
+.book-detail-page .book-edit-grid .mini-edit-form > button:active {
+  transform: translateY(1px);
+}
+
+@media (max-width: 760px) {
+  .work-detail-v2 .personal-editors,
+  .book-detail-page .book-edit-grid {
+    grid-template-columns: 1fr;
+    gap: 10px;
+    margin-top: 14px;
+  }
+
+  .work-detail-v2 .personal-editor-card,
+  .book-detail-page .book-edit-grid .mini-edit-form,
+  .book-detail-page .book-edit-grid .mini-edit-form:first-child {
+    grid-column: 1;
+    padding: 14px;
+    border-radius: 16px;
+  }
+
+  .work-detail-v2 .progress-card-editor,
+  .work-detail-v2 .anime-progress-editor,
+  .book-detail-page .book-edit-grid .mini-edit-form:nth-child(2) {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .work-detail-v2 .personal-notes-editor,
+  .book-detail-page .book-edit-grid .mini-edit-form.wide {
+    grid-column: 1;
+    grid-template-columns: minmax(0, 1fr) minmax(105px, .55fr);
+  }
+
+  .work-detail-v2 .personal-notes-editor .notes-field,
+  .book-detail-page .book-edit-grid .mini-edit-form.wide .wide-field {
+    grid-column: 1 / -1;
+  }
+
+  .work-detail-v2 .personal-editor-card > button,
+  .book-detail-page .book-edit-grid .mini-edit-form > button,
+  .book-detail-page .book-edit-grid .mini-edit-form:first-child .soft-action {
+    min-height: 50px;
+    font-size: .9rem;
+  }
+}
+
+@media (max-width: 430px) {
+  .work-detail-v2 .progress-card-editor,
+  .work-detail-v2 .anime-progress-editor,
+  .book-detail-page .book-edit-grid .mini-edit-form:nth-child(2),
+  .work-detail-v2 .personal-notes-editor,
+  .book-detail-page .book-edit-grid .mini-edit-form.wide {
+    grid-template-columns: 1fr;
+  }
+
+  .work-detail-v2 .personal-notes-editor .notes-field,
+  .book-detail-page .book-edit-grid .mini-edit-form.wide .wide-field {
+    grid-column: 1;
+  }
+}
