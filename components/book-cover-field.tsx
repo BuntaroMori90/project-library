@@ -4,7 +4,7 @@
 import { ImagePlus, X } from "lucide-react";
 import { useState } from "react";
 
-const MAX_DATA_URL_LENGTH = 320_000;
+const MAX_DATA_URL_LENGTH = 220_000;
 
 function drawResized(image: HTMLImageElement, maxWidth: number, maxHeight: number) {
   const scale = Math.min(1, maxWidth / image.width, maxHeight / image.height);
@@ -30,18 +30,18 @@ function resizeImage(file: File) {
       image.onerror = () => reject(new Error("Formato immagine non supportato"));
       image.onload = () => {
         try {
-          let canvas = drawResized(image, 480, 720);
-          let quality = 0.76;
+          let canvas = drawResized(image, 420, 630);
+          let quality = 0.72;
           let value = canvas.toDataURL("image/jpeg", quality);
 
-          while (value.length > MAX_DATA_URL_LENGTH && quality > 0.5) {
-            quality -= 0.07;
+          while (value.length > MAX_DATA_URL_LENGTH && quality > 0.46) {
+            quality -= 0.06;
             value = canvas.toDataURL("image/jpeg", quality);
           }
 
           if (value.length > MAX_DATA_URL_LENGTH) {
-            canvas = drawResized(image, 360, 540);
-            value = canvas.toDataURL("image/jpeg", 0.62);
+            canvas = drawResized(image, 320, 480);
+            value = canvas.toDataURL("image/jpeg", 0.56);
           }
 
           if (value.length > MAX_DATA_URL_LENGTH) {
