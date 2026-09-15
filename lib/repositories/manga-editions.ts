@@ -10,6 +10,7 @@ export type PersonalMangaEditionInput = {
   isbn: string | null;
   publicationYear: number | null;
   volumeNumber: number | null;
+  totalVolumes: number | null;
 };
 
 export async function createPersonalMangaEdition(
@@ -24,19 +25,22 @@ export async function createPersonalMangaEdition(
     );
     if (!workResult.rows[0]) throw new Error("Manga non valido.");
 
-    const fallbackName = [
-      values.editionType,
-      values.volumeNumber ? `Vol. ${values.volumeNumber}` : null,
-    ]
-      .filter(Boolean)
-      .join(" · ") || "Edizione personale";
+    const isStandard = values.editionType?.toLowerCase() === "standard";
+    const fallbackName = isStandard
+      ? "Edizione personale"
+      : [
+          values.editionType,
+          values.volumeNumber ? `Vol. ${values.volumeNumber}` : null,
+        ]
+          .filter(Boolean)
+          .join(" · ") || "Edizione personale";
 
     const editionResult = await client.query<{ id: string }>(
       `insert into editions
-         (work_id,name,source_provider,source_external_id,is_canonical,created_at,updated_at)
-       values ($1,$2,'MANUAL',concat($3,':',gen_random_uuid()::text),false,now(),now())
+         (work_id,name,total_units,source_provider,source_external_id,is_canonical,created_at,updated_at)
+       values ($1,$2,$3,'MANUAL',concat($4,':',gen_random_uuid()::text),false,now(),now())
        returning id`,
-      [workId, values.name || fallbackName, profileId],
+      [workId, values.name || fallbackName, values.totalVolumes, profileId],
     );
     const editionId = editionResult.rows[0].id;
 
@@ -59,7 +63,19 @@ export async function createPersonalMangaEdition(
       ],
     );
 
-    if (values.volumeNumber && values.volumeNumber > 0) {
+    if (values.totalVolumes && values.totalVolumes > 0) {
+      for (let number = 1; number <= values.totalVolumes; number += 1) {
+        await client.query(
+          `insert into content_units
+             (work_id,edition_id,unit_type,unit_number,sort_order)
+           values ($1,$2,'VOLUME',$3,$3)
+           on conflict (edition_id,unit_type,unit_number)
+             where edition_id is not null and unit_number is not null
+           do nothing`,
+          [workId, editionId, number],
+        );
+      }
+    } else if (values.volumeNumber && values.volumeNumber > 0) {
       await client.query(
         `insert into content_units
            (work_id,edition_id,unit_type,unit_number,sort_order,cover_url)
