@@ -1,0 +1,63 @@
+/* Book edition discovery tools */
+.edition-catalog-tools {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  gap: 12px;
+  align-items: center;
+  margin: 16px 0 18px;
+}
+.edition-refresh-button {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  white-space: nowrap;
+}
+.edition-search-form {
+  min-height: 48px;
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto auto;
+  gap: 10px;
+  align-items: center;
+  padding: 7px 8px 7px 14px;
+  border: 1px solid rgba(255,255,255,.08);
+  border-radius: 16px;
+  background: rgba(255,255,255,.025);
+}
+.edition-search-form > svg {
+  color: var(--muted-2);
+}
+.edition-search-form input {
+  width: 100%;
+  min-width: 0;
+  border: 0;
+  outline: 0;
+  background: transparent;
+  color: var(--text);
+  font: inherit;
+}
+.edition-search-form input::placeholder {
+  color: var(--muted-2);
+}
+.edition-clear-link {
+  padding: 8px 6px;
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 800;
+}
+
+@media (max-width: 760px) {
+  .edition-catalog-tools {
+    grid-template-columns: 1fr;
+  }
+  .edition-refresh-button {
+    width: 100%;
+    justify-content: center;
+  }
+  .edition-search-form {
+    grid-template-columns: auto minmax(0, 1fr) auto;
+  }
+  .edition-search-form .edition-clear-link {
+    grid-column: 2 / 4;
+    justify-self: end;
+  }
+}
