@@ -27,7 +27,9 @@ export default async function BooksPage() {
       ? `${row.current_page}${row.total_pages ? ` / ${row.total_pages}` : ""} pagine`
       : undefined,
     meta: row.rating != null ? `${row.rating} / 10` : undefined,
-    coverUrl: row.cover_url ?? undefined,
+    coverUrl: row.cover_url?.startsWith("data:image/")
+      ? `/api/library/cover/work/${row.id}`
+      : row.cover_url ?? undefined,
     coverClass: "cover-ink",
   }));
 
