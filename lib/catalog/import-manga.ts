@@ -4,10 +4,15 @@ import type { MangaCatalogResult } from "@/lib/catalog/types";
 
 export async function importMangaToCatalog(manga: MangaCatalogResult) {
   return withTransaction(async (client) => {
-    if (manga.provider !== "MAL" && manga.provider !== "JIKAN_DEV") {
+    let provider: "MAL" | "KITSU";
+    if (manga.provider === "MAL" || manga.provider === "JIKAN_DEV") {
+      provider = "MAL";
+    } else if (manga.provider === "KITSU") {
+      provider = "KITSU";
+    } else {
       throw new Error(`Unsupported manga provider: ${manga.provider}`);
     }
-    const provider = "MAL" as const;
+
     const existingExternal = await client.query<{ work_id: string }>(
       "select work_id from external_ids where provider=$1 and external_id=$2 limit 1",
       [provider, manga.providerId],
@@ -22,7 +27,10 @@ export async function importMangaToCatalog(manga: MangaCatalogResult) {
         [manga.title, manga.originalTitle ?? null, manga.description ?? null, manga.releaseYear ?? null, manga.publicationStatus, manga.coverUrl ?? null, manga.genres, manga.volumeCount ?? null, manga.chapterCount ?? null],
       );
       workId = created.rows[0].id;
-      await client.query("insert into external_ids (work_id,provider,external_id) values ($1,$2,$3)", [workId, provider, manga.providerId]);
+      await client.query(
+        "insert into external_ids (work_id,provider,external_id) values ($1,$2,$3)",
+        [workId, provider, manga.providerId],
+      );
     } else {
       await client.query(
         `update works set title=$2, original_title=$3, description=$4, release_year=$5,
@@ -33,8 +41,18 @@ export async function importMangaToCatalog(manga: MangaCatalogResult) {
     }
 
     for (const creator of manga.creators) {
-      const existing = await client.query<{ id: string }>("select id from creators where lower(name)=lower($1) limit 1", [creator.name]);
-      const creatorId = existing.rows[0]?.id ?? (await client.query<{ id: string }>("insert into creators (name) values ($1) returning id", [creator.name])).rows[0].id;
+      const existing = await client.query<{ id: string }>(
+        "select id from creators where lower(name)=lower($1) limit 1",
+        [creator.name],
+      );
+      const creatorId =
+        existing.rows[0]?.id ??
+        (
+          await client.query<{ id: string }>(
+            "insert into creators (name) values ($1) returning id",
+            [creator.name],
+          )
+        ).rows[0].id;
       await client.query(
         `insert into work_creators (work_id,creator_id,role) values ($1,$2,$3)
          on conflict (work_id,creator_id,role) do nothing`,
@@ -42,7 +60,10 @@ export async function importMangaToCatalog(manga: MangaCatalogResult) {
       );
     }
 
-    const canonical = await client.query<{ id: string }>("select id from editions where work_id=$1 and is_canonical=true limit 1", [workId]);
+    const canonical = await client.query<{ id: string }>(
+      "select id from editions where work_id=$1 and is_canonical=true limit 1",
+      [workId],
+    );
     let editionId = canonical.rows[0]?.id;
     if (!editionId) {
       const created = await client.query<{ id: string }>(
@@ -51,7 +72,10 @@ export async function importMangaToCatalog(manga: MangaCatalogResult) {
       );
       editionId = created.rows[0].id;
     } else {
-      await client.query("update editions set total_units=$2, updated_at=now() where id=$1", [editionId, manga.volumeCount ?? null]);
+      await client.query(
+        "update editions set total_units=$2, updated_at=now() where id=$1",
+        [editionId, manga.volumeCount ?? null],
+      );
     }
 
     if (manga.volumeCount && manga.volumeCount > 0) {
