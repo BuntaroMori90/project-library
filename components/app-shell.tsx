@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { Search } from "lucide-react";
 import { BottomDock } from "@/components/bottom-dock";
+import { SectionQuickAdd } from "@/components/section-quick-add";
 import type { LibraryPreferences } from "@/lib/preferences";
 
 function initials(name: string | null) {
@@ -49,6 +50,7 @@ export function AppShell({
             <Search size={17} />
             <span>Cerca e aggiungi un’opera</span>
           </Link>
+          <SectionQuickAdd />
           <Link
             href="/library/settings"
             className="profile-link"
