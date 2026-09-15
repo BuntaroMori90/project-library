@@ -309,7 +309,15 @@ export async function listLibraryWorks(
   }>(
     `select w.id,w.media_type,w.title,
             case when w.media_type='BOOK'
-              then coalesce(so.custom_cover_url,se.cover_url,w.cover_url)
+              then coalesce(
+                case
+                  when so.custom_cover_url like 'data:image/%'
+                    then '/api/library/cover/work/' || w.id::text
+                  else so.custom_cover_url
+                end,
+                se.cover_url,
+                w.cover_url
+              )
               else w.cover_url
             end as cover_url,
             w.total_volumes,w.total_seasons,w.total_episodes,
