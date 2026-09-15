@@ -1,5 +1,4 @@
 import Link from "next/link";
-import { Plus } from "lucide-react";
 import { ShelfBrowser } from "@/components/shelf-browser";
 import type { DemoItem } from "@/lib/demo-data";
 import { normalizePreferences } from "@/lib/preferences";
@@ -43,14 +42,6 @@ export default async function BooksPage() {
             Una lettera, un ripiano. Quando i libri sono molti, scorri lo scaffale
             lateralmente senza allungare inutilmente la pagina.
           </p>
-        </div>
-        <div className="library-header-actions">
-          <Link className="secondary-btn library-switch-link" href="/library/manga">
-            Manga →
-          </Link>
-          <Link className="primary-btn add-library-button" href="/library/add?type=book">
-            <Plus size={17} /> Aggiungi libro
-          </Link>
         </div>
       </header>
       {items.length ? (
