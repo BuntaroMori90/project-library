@@ -2,6 +2,9 @@
 
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
+import { query } from "@/lib/db";
+import { OpenLibraryProvider } from "@/lib/catalog/providers/openlibrary";
+import { importBookToCatalog } from "@/lib/catalog/import-book";
 import { requireProfile } from "@/lib/profile";
 import {
   createPersonalBookEdition,
@@ -144,6 +147,30 @@ export async function addPersonalBookEdition(formData: FormData) {
   await createPersonalBookEdition(profile.id, workId, editionValues(formData));
   refreshBook(workId);
   redirect(`/library/books/${workId}?saved=personalEdition#edizioni`);
+}
+
+export async function refreshBookCatalogEditions(formData: FormData) {
+  const workId = String(formData.get("workId") ?? "");
+  if (!workId) return;
+
+  await requireProfile();
+  const external = await query<{ external_id: string }>(
+    `select external_id
+       from external_ids
+      where work_id=$1 and provider='OPEN_LIBRARY'
+      limit 1`,
+    [workId],
+  );
+  const externalId = external.rows[0]?.external_id;
+  if (!externalId) {
+    redirect(`/library/books/${workId}?saved=catalogMissing#edizioni`);
+  }
+
+  const provider = new OpenLibraryProvider();
+  const book = await provider.getById(externalId);
+  await importBookToCatalog(book);
+  refreshBook(workId);
+  redirect(`/library/books/${workId}?saved=catalog#edizioni`);
 }
 
 export async function removeBookFromLibraryAction(formData: FormData) {
