@@ -2,21 +2,18 @@
 
 import Image from "next/image";
 import Link from "next/link";
+import { ChevronLeft, ChevronRight } from "lucide-react";
 import { useMemo, useState } from "react";
 import type { DemoItem } from "@/lib/demo-data";
 import type { Density, GroupBy } from "@/lib/preferences";
-import { AlphabetRail } from "@/components/alphabet-rail";
 
 function creatorSortKey(creator: string) {
   const parts = creator.trim().split(/\s+/);
   return parts.at(-1) ?? creator;
 }
+
 function keyFor(item: DemoItem, groupBy: GroupBy) {
   return groupBy === "creator" ? creatorSortKey(item.creator) : item.title;
-}
-function letterFor(value: string) {
-  const first = value.trim().charAt(0).toUpperCase();
-  return /[A-Z]/.test(first) ? first : "#";
 }
 
 export function AnimeBrowser({
@@ -30,6 +27,8 @@ export function AnimeBrowser({
 }) {
   const [query, setQuery] = useState("");
   const [groupBy, setGroupBy] = useState<GroupBy>(defaultGroupBy);
+  const [selectedIndex, setSelectedIndex] = useState(0);
+
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase();
     return (
@@ -46,145 +45,124 @@ export function AnimeBrowser({
         }),
       );
   }, [items, query, groupBy]);
-  const groups = useMemo(() => {
-    const map = new Map<string, DemoItem[]>();
-    filtered.forEach((item) => {
-      const letter = letterFor(keyFor(item, groupBy));
-      map.set(letter, [...(map.get(letter) ?? []), item]);
-    });
-    return [...map.entries()].sort(([a], [b]) => a.localeCompare(b));
-  }, [filtered, groupBy]);
-  const recentlyUpdated = items.filter((item) => item.progress).slice(0, 4);
-  const featured = recentlyUpdated[0] ?? items[0];
+
+  const safeIndex = filtered.length
+    ? Math.min(selectedIndex, filtered.length - 1)
+    : 0;
+  const selected = filtered[safeIndex] ?? null;
+
+  function changeQuery(value: string) {
+    setQuery(value);
+    setSelectedIndex(0);
+  }
+
+  function changeGroupBy(value: GroupBy) {
+    setGroupBy(value);
+    setSelectedIndex(0);
+  }
+
+  function previous() {
+    if (!filtered.length) return;
+    setSelectedIndex((current) =>
+      current <= 0 ? filtered.length - 1 : current - 1,
+    );
+  }
+
+  function next() {
+    if (!filtered.length) return;
+    setSelectedIndex((current) =>
+      current >= filtered.length - 1 ? 0 : current + 1,
+    );
+  }
+
   return (
-    <section className={`anime-browser density-${density}`}>
-      {featured ? (
-        <section className={`media-room ${featured.coverClass}`}>
-          <div className="tv-frame">
-            <div className="tv-screen">
-              <span className="eyebrow">In evidenza</span>
-              <h2>{featured.title}</h2>
-              <p>{featured.progress ?? featured.status}</p>
-              <Link
-                href={`/library/anime/${featured.id}`}
-                className="watch-button"
-              >
-                Apri scheda
-              </Link>
-            </div>
-          </div>
-        </section>
-      ) : null}
-      <div className="library-toolbar anime-toolbar">
+    <section className={`anime-browser anime-browser-tv-only density-${density}`}>
+      <div className="library-toolbar anime-toolbar anime-tv-toolbar">
         <label className="search-control">
           <span className="sr-only">Cerca</span>
           <input
             value={query}
-            onChange={(e) => setQuery(e.target.value)}
+            onChange={(event) => changeQuery(event.target.value)}
             placeholder="Cerca anime, studio o titolo…"
           />
         </label>
         <div className="segmented">
           <button
             className={groupBy === "title" ? "active" : ""}
-            onClick={() => setGroupBy("title")}
+            onClick={() => changeGroupBy("title")}
             type="button"
           >
             Titolo
           </button>
           <button
             className={groupBy === "creator" ? "active" : ""}
-            onClick={() => setGroupBy("creator")}
+            onClick={() => changeGroupBy("creator")}
             type="button"
           >
             Studio
           </button>
         </div>
       </div>
-      <section className="stream-section">
-        <div className="section-heading">
-          <div>
-            <span className="eyebrow">La tua videoteca</span>
-            <h2>Ultimi aggiornati</h2>
-          </div>
-        </div>
-        <div className="stream-strip">
-          {recentlyUpdated.map((item) => (
-            <Link
-              className="stream-tile"
-              href={`/library/anime/${item.id}`}
-              key={item.id}
-            >
-              <div
-                className={`poster-art ${item.coverClass} ${item.coverUrl ? "poster-has-image" : ""}`}
-              >
-                {item.coverUrl ? (
+
+      {selected ? (
+        <section className={`media-room tv-only-room ${selected.coverClass}`}>
+          <div className="tv-frame tv-catalog-frame">
+            <div className="tv-screen tv-catalog-screen">
+              <div className="tv-catalog-poster">
+                {selected.coverUrl ? (
                   <Image
-                    className="poster-image"
-                    src={item.coverUrl}
-                    alt=""
-                    width={400}
-                    height={600}
-                    sizes="160px"
+                    src={selected.coverUrl}
+                    alt={`Copertina di ${selected.title}`}
+                    width={420}
+                    height={630}
+                    sizes="(max-width: 760px) 38vw, 210px"
+                    priority
                   />
-                ) : null}
-                <strong>{item.title}</strong>
+                ) : (
+                  <div className="tv-poster-placeholder">
+                    <span>{selected.title}</span>
+                  </div>
+                )}
               </div>
-              <div>
-                <strong>{item.title}</strong>
-                <span>{item.progress}</span>
+              <div className="tv-catalog-copy">
+                <span className="eyebrow">La tua videoteca</span>
+                <h2>{selected.title}</h2>
+                <p className="tv-creator">{selected.creator}</p>
+                <div className="tv-meta-line">
+                  <strong>{selected.progress ?? selected.status ?? "Da vedere"}</strong>
+                  {selected.meta ? <span>{selected.meta}</span> : null}
+                </div>
+                <Link
+                  href={`/library/anime/${selected.id}`}
+                  className="watch-button"
+                >
+                  Apri scheda
+                </Link>
               </div>
-            </Link>
-          ))}
-        </div>
-      </section>
-      <AlphabetRail />
-      <section className="catalog-a-z">
-        <div className="section-heading">
+            </div>
+
+            <div className="tv-controls" aria-label="Naviga nella videoteca">
+              <button type="button" onClick={previous} aria-label="Anime precedente">
+                <ChevronLeft size={20} />
+              </button>
+              <div className="tv-channel-display">
+                <span>{safeIndex + 1} / {filtered.length}</span>
+                <strong>{selected.title}</strong>
+              </div>
+              <button type="button" onClick={next} aria-label="Anime successivo">
+                <ChevronRight size={20} />
+              </button>
+            </div>
+          </div>
+        </section>
+      ) : (
+        <div className="catalog-notice anime-empty-search">
           <div>
-            <span className="eyebrow">Videoteca</span>
-            <h2>Catalogo A–Z</h2>
+            <strong>Nessun anime corrisponde alla ricerca.</strong>
+            <p>Prova con un altro titolo o con il nome dello studio.</p>
           </div>
         </div>
-        {groups.map(([letter, group]) => (
-          <section
-            key={letter}
-            id={`letter-${letter}`}
-            className="anime-letter-group"
-          >
-            <div className="anime-letter">{letter}</div>
-            <div className="poster-grid">
-              {group.map((item) => (
-                <Link
-                  className="poster-card"
-                  href={`/library/anime/${item.id}`}
-                  key={item.id}
-                >
-                  <div
-                    className={`poster-art ${item.coverClass} ${item.coverUrl ? "poster-has-image" : ""}`}
-                  >
-                    {item.coverUrl ? (
-                      <Image
-                        className="poster-image"
-                        src={item.coverUrl}
-                        alt=""
-                        width={400}
-                        height={600}
-                        sizes="(max-width: 640px) 42vw, 180px"
-                      />
-                    ) : null}
-                    <strong>{item.title}</strong>
-                  </div>
-                  <div className="poster-info">
-                    <strong>{item.title}</strong>
-                    <span>{item.progress ?? item.status ?? item.creator}</span>
-                  </div>
-                </Link>
-              ))}
-            </div>
-          </section>
-        ))}
-      </section>
+      )}
     </section>
   );
 }
