@@ -1,0 +1,120 @@
+/* Library index: visible top actions and a non-sticky search toolbar. */
+.page-manga .library-header-actions,
+.page-anime .library-header-actions {
+  flex: 0 0 auto;
+}
+
+.page-manga .add-library-button,
+.page-anime .add-library-button {
+  display: inline-flex !important;
+  visibility: visible !important;
+  opacity: 1 !important;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  white-space: nowrap;
+}
+
+.page-library .library-toolbar,
+.page-anime .library-toolbar {
+  position: relative !important;
+  inset: auto !important;
+  top: auto !important;
+  z-index: 1;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  margin: 0 0 22px;
+  padding: 9px;
+  border: 1px solid rgba(255, 255, 255, .07);
+  border-radius: 17px;
+  background: rgba(255, 255, 255, .018);
+  box-shadow: none;
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
+}
+
+.page-library .library-toolbar .search-control,
+.page-anime .library-toolbar .search-control {
+  min-width: 0;
+  width: 100%;
+  margin: 0;
+}
+
+.page-library .library-toolbar .search-control input,
+.page-anime .library-toolbar .search-control input {
+  width: 100%;
+  min-height: 46px;
+  padding: 0 14px;
+  border: 1px solid rgba(255, 255, 255, .075);
+  border-radius: 12px;
+  background: rgba(7, 7, 7, .58);
+  color: var(--text);
+  font: inherit;
+  font-size: .9rem;
+  outline: none;
+  box-shadow: none;
+}
+
+.page-library .library-toolbar .search-control input::placeholder,
+.page-anime .library-toolbar .search-control input::placeholder {
+  color: var(--muted-2);
+}
+
+.page-library .library-toolbar .search-control input:focus,
+.page-anime .library-toolbar .search-control input:focus {
+  border-color: rgba(216, 170, 109, .34);
+  background: rgba(11, 10, 9, .74);
+  box-shadow: 0 0 0 3px rgba(216, 170, 109, .055);
+}
+
+.page-library .library-toolbar .segmented,
+.page-anime .library-toolbar .segmented {
+  flex: 0 0 auto;
+  margin: 0;
+}
+
+@media (max-width: 760px) {
+  .page-manga .page-header-actions,
+  .page-anime .page-header-actions {
+    align-items: stretch;
+  }
+
+  .page-manga .library-header-actions,
+  .page-anime .library-header-actions {
+    width: 100%;
+    margin-top: 2px;
+  }
+
+  .page-manga .library-header-actions > a,
+  .page-anime .library-header-actions > a {
+    width: 100%;
+    min-height: 48px;
+  }
+
+  .page-library .library-toolbar,
+  .page-anime .library-toolbar {
+    grid-template-columns: 1fr;
+    gap: 8px;
+    margin-bottom: 18px;
+    padding: 8px;
+    border-radius: 15px;
+  }
+
+  .page-library .library-toolbar .search-control input,
+  .page-anime .library-toolbar .search-control input {
+    min-height: 48px;
+  }
+
+  .page-library .library-toolbar .segmented,
+  .page-anime .library-toolbar .segmented {
+    width: 100%;
+  }
+
+  .page-library .library-toolbar .segmented button,
+  .page-anime .library-toolbar .segmented button {
+    flex: 1;
+  }
+}
