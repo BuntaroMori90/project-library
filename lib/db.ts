@@ -8,9 +8,10 @@ declare global {
 function createPool() {
   const connectionString = process.env.DATABASE_URL;
   if (!connectionString) throw new Error("DATABASE_URL is not configured");
+
   return new Pool({
     connectionString,
-    max: 5,
+    max: process.env.NODE_ENV === "production" ? 2 : 5,
     idleTimeoutMillis: 30_000,
     connectionTimeoutMillis: 10_000,
     ssl: { rejectUnauthorized: false },
@@ -18,12 +19,10 @@ function createPool() {
 }
 
 function getPool() {
-  if (globalThis.__projectLibraryPool) return globalThis.__projectLibraryPool;
-
-  const pool = createPool();
-  if (process.env.NODE_ENV !== "production")
-    globalThis.__projectLibraryPool = pool;
-  return pool;
+  if (!globalThis.__projectLibraryPool) {
+    globalThis.__projectLibraryPool = createPool();
+  }
+  return globalThis.__projectLibraryPool;
 }
 
 export async function query<T extends QueryResultRow = QueryResultRow>(
@@ -43,7 +42,11 @@ export async function withTransaction<T>(
     await client.query("commit");
     return result;
   } catch (error) {
-    await client.query("rollback");
+    try {
+      await client.query("rollback");
+    } catch {
+      // Preserve the original database error if the connection is already gone.
+    }
     throw error;
   } finally {
     client.release();

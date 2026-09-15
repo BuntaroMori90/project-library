@@ -32,6 +32,19 @@ function editionValues(formData: FormData): BookEditionOverrides {
   };
 }
 
+function databaseHint(error: unknown) {
+  if (!error || typeof error !== "object") return "";
+  const candidate = error as { code?: unknown; constraint?: unknown };
+  const parts: string[] = [];
+  if (typeof candidate.code === "string" && candidate.code) {
+    parts.push(`codice ${candidate.code}`);
+  }
+  if (typeof candidate.constraint === "string" && candidate.constraint) {
+    parts.push(`vincolo ${candidate.constraint}`);
+  }
+  return parts.length ? ` · ${parts.join(" · ")}` : "";
+}
+
 export async function POST(request: Request) {
   let stage = "parse";
 
@@ -83,9 +96,10 @@ export async function POST(request: Request) {
     });
   } catch (error) {
     console.error(`personal-edition upload failed at ${stage}`, error);
+    const hint = stage === "database" ? databaseHint(error) : "";
     return NextResponse.json(
       {
-        error: `Non siamo riusciti a salvare la copertina (fase: ${stage}).`,
+        error: `Non siamo riusciti a salvare la copertina (fase: ${stage}${hint}).`,
       },
       { status: 500 },
     );
