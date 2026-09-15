@@ -80,6 +80,7 @@ export function BookCoverField({ defaultValue = "" }: { defaultValue?: string })
       try {
         const response = await fetch("/api/books/personal-edition", {
           method: "POST",
+          credentials: "include",
           body: new FormData(formElement),
         });
         const payload = (await response.json()) as {
