@@ -1,0 +1,226 @@
+/* Manga collector: variant, limited e copie speciali personali. */
+.manga-collector-page {
+  padding-top: 0;
+}
+
+.manga-collector-stage {
+  margin-top: 0;
+}
+
+.manga-special-add {
+  margin: 18px 0 22px;
+  overflow: hidden;
+  border: 1px solid rgba(216,170,109,.18);
+  border-radius: 20px;
+  background: linear-gradient(145deg, rgba(216,170,109,.045), rgba(255,255,255,.018));
+}
+
+.manga-special-add > summary {
+  min-height: 58px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 0 18px;
+  list-style: none;
+  cursor: pointer;
+  color: var(--accent-2);
+  font-weight: 850;
+}
+
+.manga-special-add > summary::-webkit-details-marker,
+.manga-special-optional > summary::-webkit-details-marker {
+  display: none;
+}
+
+.manga-special-add > summary::after {
+  content: "+";
+  margin-left: auto;
+  color: var(--muted);
+  font-size: 1.3rem;
+  font-weight: 500;
+}
+
+.manga-special-add[open] > summary::after {
+  content: "−";
+}
+
+.manga-special-add[open] > summary {
+  border-bottom: 1px solid rgba(255,255,255,.06);
+}
+
+.manga-special-form {
+  display: grid;
+  gap: 16px;
+  padding: 18px;
+}
+
+.manga-special-primary-fields {
+  display: grid;
+  grid-template-columns: minmax(0,1fr) minmax(120px,.55fr);
+  gap: 10px;
+}
+
+.manga-special-primary-fields label,
+.manga-special-optional label {
+  display: grid;
+  gap: 6px;
+  color: var(--muted);
+  font-size: .68rem;
+  text-transform: uppercase;
+  letter-spacing: .08em;
+}
+
+.manga-special-primary-fields select,
+.manga-special-primary-fields input {
+  min-height: 46px;
+  width: 100%;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  background: #0d0c0b;
+  color: var(--text);
+  padding: 0 12px;
+  font: inherit;
+  outline: none;
+}
+
+.manga-special-primary-fields select:focus,
+.manga-special-primary-fields input:focus {
+  border-color: rgba(216,170,109,.45);
+  box-shadow: 0 0 0 3px rgba(216,170,109,.08);
+}
+
+.manga-special-optional {
+  border: 1px solid rgba(255,255,255,.07);
+  border-radius: 14px;
+  overflow: hidden;
+  background: rgba(0,0,0,.12);
+}
+
+.manga-special-optional > summary {
+  min-height: 48px;
+  display: flex;
+  align-items: center;
+  padding: 0 14px;
+  list-style: none;
+  cursor: pointer;
+  font-size: .84rem;
+  font-weight: 800;
+  color: var(--text);
+}
+
+.manga-special-optional[open] > summary {
+  border-bottom: 1px solid rgba(255,255,255,.06);
+}
+
+.manga-special-optional .edition-personal-grid {
+  padding: 14px;
+}
+
+.manga-special-save {
+  min-height: 52px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  justify-self: start;
+}
+
+.manga-special-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+  gap: 14px;
+  margin-top: 16px;
+}
+
+.manga-special-card {
+  min-width: 0;
+  display: grid;
+  grid-template-columns: 94px minmax(0,1fr);
+  gap: 14px;
+  align-items: center;
+  padding: 14px;
+  border: 1px solid rgba(255,255,255,.07);
+  border-radius: 18px;
+  background: rgba(255,255,255,.022);
+}
+
+.manga-special-cover {
+  width: 94px;
+  aspect-ratio: 2 / 3;
+  overflow: hidden;
+  display: grid;
+  place-items: center;
+  border-radius: 9px;
+  background: linear-gradient(155deg, rgba(216,170,109,.15), rgba(17,16,15,.92));
+  color: var(--accent-2);
+  box-shadow: 0 12px 28px rgba(0,0,0,.22);
+}
+
+.manga-special-cover img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.manga-special-copy {
+  min-width: 0;
+}
+
+.manga-special-copy h3 {
+  margin: 8px 0 5px;
+  font-size: 1rem;
+}
+
+.manga-special-copy p,
+.manga-special-copy small {
+  margin: 0;
+  color: var(--muted);
+}
+
+.manga-special-copy small {
+  display: block;
+  margin-top: 6px;
+  font-size: .72rem;
+}
+
+.manga-special-empty {
+  min-height: 86px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 16px;
+  border: 1px dashed rgba(216,170,109,.16);
+  border-radius: 16px;
+  color: var(--muted);
+}
+
+.manga-special-empty p {
+  margin: 0;
+}
+
+@media (max-width: 760px) {
+  .manga-special-form {
+    padding: 14px;
+  }
+
+  .manga-special-primary-fields {
+    grid-template-columns: 1fr 110px;
+  }
+
+  .manga-special-save {
+    width: 100%;
+  }
+
+  .manga-special-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .manga-special-card {
+    grid-template-columns: 82px minmax(0,1fr);
+    padding: 12px;
+  }
+
+  .manga-special-cover {
+    width: 82px;
+  }
+}
