@@ -1,0 +1,65 @@
+/* Topbar: keep brand, search, contextual add and account on one row. */
+.topbar-inner {
+  grid-template-columns: auto minmax(220px, 1fr) auto auto;
+}
+
+.profile-link {
+  min-width: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 9px;
+  white-space: nowrap;
+}
+
+.profile-orb {
+  flex: 0 0 auto;
+  background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat;
+}
+
+.profile-name {
+  max-width: 150px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: var(--muted);
+  font-size: .78rem;
+  font-weight: 700;
+}
+
+@media (max-width: 920px) {
+  .topbar-inner {
+    grid-template-columns: auto minmax(0, 1fr) auto auto;
+    gap: 12px;
+  }
+
+  .profile-name {
+    display: none;
+  }
+}
+
+@media (max-width: 680px) {
+  .topbar-inner {
+    grid-template-columns: auto minmax(0, 1fr) auto auto;
+    gap: 9px;
+  }
+
+  .brand {
+    min-width: 0;
+  }
+
+  .brand-copy strong {
+    white-space: nowrap;
+  }
+
+  .quick-search,
+  .section-quick-add {
+    flex: 0 0 auto;
+  }
+
+  .profile-link {
+    justify-self: end;
+  }
+}
