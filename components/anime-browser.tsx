@@ -4,6 +4,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import { useMemo, useState } from "react";
+import { AlphabetRail } from "@/components/alphabet-rail";
 import type { DemoItem } from "@/lib/demo-data";
 import type { Density, GroupBy } from "@/lib/preferences";
 
@@ -172,10 +173,7 @@ export function AnimeBrowser({
                   <strong>{selected.progress ?? selected.status ?? "Da vedere"}</strong>
                   {selected.meta ? <span>{selected.meta}</span> : null}
                 </div>
-                <Link
-                  href={`/library/anime/${selected.id}`}
-                  className="watch-button"
-                >
+                <Link href={`/library/anime/${selected.id}`} className="watch-button">
                   Apri scheda
                 </Link>
               </div>
@@ -205,54 +203,63 @@ export function AnimeBrowser({
       )}
 
       {filtered.length ? (
-        <section className="tv-library-strip tv-library-alphabet" aria-label="Anime nella videoteca">
-          <div className="tv-library-strip-head">
-            <div>
-              <span className="eyebrow">Videoteca</span>
-              <strong>{filtered.length} titoli</strong>
+        <>
+          <AlphabetRail availableLetters={alphabeticalRows.map((row) => row.initial)} />
+          <section className="tv-library-strip tv-library-alphabet" aria-label="Anime nella videoteca">
+            <div className="tv-library-strip-head">
+              <div>
+                <span className="eyebrow">Videoteca</span>
+                <strong>{filtered.length} titoli</strong>
+              </div>
+              <span>In ordine alfabetico</span>
             </div>
-            <span>In ordine alfabetico</span>
-          </div>
 
-          <div className="tv-library-alpha-list">
-            {alphabeticalRows.map((row) => (
-              <section className="tv-library-alpha-row" key={row.initial} aria-labelledby={`anime-letter-${row.initial}`}>
-                <div className="tv-library-alpha-head">
-                  <strong id={`anime-letter-${row.initial}`}>{row.initial}</strong>
-                  <span>{row.items.length} {row.items.length === 1 ? "titolo" : "titoli"}</span>
-                </div>
-                <div className="tv-library-posters">
-                  {row.items.map(({ item, selectedIndex: itemIndex }) => (
-                    <button
-                      key={item.id}
-                      type="button"
-                      className={`tv-library-poster ${itemIndex === safeIndex ? "active" : ""}`}
-                      onClick={() => setSelectedIndex(itemIndex)}
-                      aria-label={`Mostra ${item.title} nella TV`}
-                      aria-pressed={itemIndex === safeIndex}
-                    >
-                      <div className="tv-library-poster-art">
-                        {item.coverUrl ? (
-                          <Image
-                            src={item.coverUrl}
-                            alt=""
-                            width={240}
-                            height={360}
-                            sizes="110px"
-                          />
-                        ) : (
-                          <span>{item.title.slice(0, 1)}</span>
-                        )}
-                      </div>
-                      <strong>{item.title}</strong>
-                      <small>{item.progress ?? item.status ?? "Da vedere"}</small>
-                    </button>
-                  ))}
-                </div>
-              </section>
-            ))}
-          </div>
-        </section>
+            <div className="tv-library-alpha-list">
+              {alphabeticalRows.map((row) => (
+                <section
+                  className="tv-library-alpha-row"
+                  id={`letter-${row.initial}`}
+                  key={row.initial}
+                  aria-labelledby={`anime-letter-${row.initial}`}
+                  style={{ scrollMarginTop: 100 }}
+                >
+                  <div className="tv-library-alpha-head">
+                    <strong id={`anime-letter-${row.initial}`}>{row.initial}</strong>
+                    <span>{row.items.length} {row.items.length === 1 ? "titolo" : "titoli"}</span>
+                  </div>
+                  <div className="tv-library-posters">
+                    {row.items.map(({ item, selectedIndex: itemIndex }) => (
+                      <button
+                        key={item.id}
+                        type="button"
+                        className={`tv-library-poster ${itemIndex === safeIndex ? "active" : ""}`}
+                        onClick={() => setSelectedIndex(itemIndex)}
+                        aria-label={`Mostra ${item.title} nella TV`}
+                        aria-pressed={itemIndex === safeIndex}
+                      >
+                        <div className="tv-library-poster-art">
+                          {item.coverUrl ? (
+                            <Image
+                              src={item.coverUrl}
+                              alt=""
+                              width={240}
+                              height={360}
+                              sizes="110px"
+                            />
+                          ) : (
+                            <span>{item.title.slice(0, 1)}</span>
+                          )}
+                        </div>
+                        <strong>{item.title}</strong>
+                        <small>{item.progress ?? item.status ?? "Da vedere"}</small>
+                      </button>
+                    ))}
+                  </div>
+                </section>
+              ))}
+            </div>
+          </section>
+        </>
       ) : null}
     </section>
   );
