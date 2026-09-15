@@ -31,6 +31,7 @@ export function BottomDock() {
           <Link
             key={href}
             href={href}
+            prefetch={false}
             className={active ? "active" : ""}
             aria-current={active ? "page" : undefined}
           >
