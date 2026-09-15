@@ -19,11 +19,23 @@ export async function createPersonalMangaEdition(
   values: PersonalMangaEditionInput,
 ) {
   return withTransaction(async (client) => {
-    const workResult = await client.query<{ id: string }>(
-      "select id from works where id=$1 and media_type='MANGA' limit 1",
+    const workResult = await client.query<{
+      id: string;
+      cover_url: string | null;
+      manual: boolean;
+    }>(
+      `select w.id,w.cover_url,
+              exists(
+                select 1 from external_ids x
+                 where x.work_id=w.id and x.provider='MANUAL'
+              ) as manual
+         from works w
+        where w.id=$1 and w.media_type='MANGA'
+        limit 1`,
       [workId],
     );
-    if (!workResult.rows[0]) throw new Error("Manga non valido.");
+    const work = workResult.rows[0];
+    if (!work) throw new Error("Manga non valido.");
 
     const isStandard = values.editionType?.toLowerCase() === "standard";
     const fallbackName = isStandard
@@ -35,33 +47,112 @@ export async function createPersonalMangaEdition(
           .filter(Boolean)
           .join(" · ") || "Edizione personale";
 
-    const editionResult = await client.query<{ id: string }>(
-      `insert into editions
-         (work_id,name,total_units,source_provider,source_external_id,is_canonical,created_at,updated_at)
-       values ($1,$2,$3,'MANUAL',concat($4,':',gen_random_uuid()::text),false,now(),now())
-       returning id`,
-      [workId, values.name || fallbackName, values.totalVolumes, profileId],
-    );
-    const editionId = editionResult.rows[0].id;
+    let editionId: string | null = null;
 
-    await client.query(
-      `insert into ownership
-         (profile_id,edition_id,ownership_format,custom_name,custom_publisher,
-          custom_language,custom_format,custom_cover_url,custom_isbn,
-          custom_publication_year,updated_at)
-       values ($1,$2,'PHYSICAL',$3,$4,$5,$6,$7,$8,$9,now())`,
-      [
-        profileId,
-        editionId,
-        values.name || fallbackName,
-        values.publisher,
-        values.language,
-        values.editionType,
-        values.coverUrl,
-        values.isbn,
-        values.publicationYear,
-      ],
+    if (isStandard) {
+      const existingStandard = await client.query<{ id: string }>(
+        `select e.id
+           from editions e
+           join ownership o on o.edition_id=e.id
+          where e.work_id=$1
+            and o.profile_id=$2
+            and lower(coalesce(o.custom_format,''))='standard'
+          order by o.updated_at desc
+          limit 1`,
+        [workId, profileId],
+      );
+      editionId = existingStandard.rows[0]?.id ?? null;
+
+      if (!editionId && work.manual) {
+        const placeholder = await client.query<{ id: string }>(
+          `select e.id
+             from editions e
+            where e.work_id=$1 and e.is_canonical=true
+            order by e.created_at
+            limit 1`,
+          [workId],
+        );
+        editionId = placeholder.rows[0]?.id ?? null;
+      }
+    }
+
+    if (!editionId) {
+      const editionResult = await client.query<{ id: string }>(
+        `insert into editions
+           (work_id,name,total_units,source_provider,source_external_id,is_canonical,created_at,updated_at)
+         values ($1,$2,$3,'MANUAL',concat($4,':',gen_random_uuid()::text),false,now(),now())
+         returning id`,
+        [workId, values.name || fallbackName, values.totalVolumes, profileId],
+      );
+      editionId = editionResult.rows[0].id;
+    } else {
+      await client.query(
+        `update editions
+            set name=coalesce($2,name),
+                total_units=coalesce($3,total_units),
+                source_provider=case when $4 then 'MANUAL' else source_provider end,
+                source_external_id=case
+                  when $4 then coalesce(source_external_id,concat($5,':base'))
+                  else source_external_id
+                end,
+                updated_at=now()
+          where id=$1`,
+        [editionId, values.name, values.totalVolumes, work.manual, profileId],
+      );
+    }
+
+    const existingOwnership = await client.query<{ edition_id: string }>(
+      `select edition_id from ownership
+        where profile_id=$1 and edition_id=$2
+        limit 1`,
+      [profileId, editionId],
     );
+
+    if (existingOwnership.rows[0]) {
+      await client.query(
+        `update ownership
+            set ownership_format='PHYSICAL',
+                custom_name=coalesce($3,custom_name),
+                custom_publisher=coalesce($4,custom_publisher),
+                custom_language=coalesce($5,custom_language),
+                custom_format=coalesce($6,custom_format),
+                custom_cover_url=coalesce($7,custom_cover_url),
+                custom_isbn=coalesce($8,custom_isbn),
+                custom_publication_year=coalesce($9,custom_publication_year),
+                updated_at=now()
+          where profile_id=$1 and edition_id=$2`,
+        [
+          profileId,
+          editionId,
+          values.name,
+          values.publisher,
+          values.language,
+          values.editionType,
+          values.coverUrl,
+          values.isbn,
+          values.publicationYear,
+        ],
+      );
+    } else {
+      await client.query(
+        `insert into ownership
+           (profile_id,edition_id,ownership_format,custom_name,custom_publisher,
+            custom_language,custom_format,custom_cover_url,custom_isbn,
+            custom_publication_year,updated_at)
+         values ($1,$2,'PHYSICAL',$3,$4,$5,$6,$7,$8,$9,now())`,
+        [
+          profileId,
+          editionId,
+          values.name || fallbackName,
+          values.publisher,
+          values.language,
+          values.editionType,
+          values.coverUrl,
+          values.isbn,
+          values.publicationYear,
+        ],
+      );
+    }
 
     if (values.totalVolumes && values.totalVolumes > 0) {
       for (let number = 1; number <= values.totalVolumes; number += 1) {
@@ -84,6 +175,19 @@ export async function createPersonalMangaEdition(
            where edition_id is not null and unit_number is not null
          do update set cover_url=coalesce(excluded.cover_url,content_units.cover_url)`,
         [workId, editionId, values.volumeNumber, values.coverUrl],
+      );
+    }
+
+    if (isStandard && work.manual && values.coverUrl) {
+      const coverValue = values.coverUrl.startsWith("data:image/")
+        ? `/api/library/cover/work/${workId}`
+        : values.coverUrl;
+      await client.query(
+        `update works
+            set cover_url=$2,updated_at=now()
+          where id=$1
+            and (cover_url is null or cover_url like '/api/library/cover/work/%')`,
+        [workId, coverValue],
       );
     }
 
