@@ -76,6 +76,99 @@
   margin: 0;
 }
 
+/* Manga add: manual fallback is secondary, compact and progressive. */
+.manual-manga-entry {
+  display: grid;
+  gap: 0;
+  overflow: hidden;
+  border: 1px solid rgba(216, 170, 109, .13);
+  border-radius: 20px;
+  background: linear-gradient(145deg, rgba(216, 170, 109, .035), rgba(255, 255, 255, .012));
+}
+
+.manual-manga-entry-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 18px;
+  padding: 16px 18px;
+}
+
+.manual-manga-entry-head > div {
+  min-width: 0;
+  display: grid;
+  gap: 4px;
+}
+
+.manual-manga-entry-head strong {
+  font-size: .98rem;
+}
+
+.manual-manga-entry-head p {
+  margin: 0;
+  color: var(--muted);
+  font-size: .78rem;
+  line-height: 1.45;
+}
+
+.manual-manga-entry-head .secondary-btn {
+  flex: 0 0 auto;
+  min-height: 42px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+}
+
+.manual-manga-entry.open .manual-manga-entry-head {
+  border-bottom: 1px solid rgba(255, 255, 255, .055);
+}
+
+.manual-manga-form {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 10px;
+  align-items: end;
+  padding: 16px 18px 18px;
+}
+
+.manual-manga-form label {
+  min-width: 0;
+  display: grid;
+  gap: 7px;
+  color: var(--muted);
+  font-size: .68rem;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: .08em;
+}
+
+.manual-manga-form input {
+  width: 100%;
+  min-height: 48px;
+  padding: 0 13px;
+  border: 1px solid rgba(255, 255, 255, .08);
+  border-radius: 12px;
+  background: rgba(7, 7, 7, .68);
+  color: var(--text);
+  font: inherit;
+  font-size: .9rem;
+  font-weight: 600;
+  text-transform: none;
+  letter-spacing: normal;
+  outline: none;
+}
+
+.manual-manga-form input:focus {
+  border-color: rgba(216, 170, 109, .4);
+  box-shadow: 0 0 0 3px rgba(216, 170, 109, .06);
+}
+
+.manual-manga-form .primary-btn {
+  min-height: 48px;
+  white-space: nowrap;
+}
+
 @media (max-width: 760px) {
   .page-manga .page-header-actions,
   .page-anime .page-header-actions {
@@ -116,5 +209,25 @@
   .page-library .library-toolbar .segmented button,
   .page-anime .library-toolbar .segmented button {
     flex: 1;
+  }
+
+  .manual-manga-entry-head {
+    align-items: stretch;
+    flex-direction: column;
+    gap: 12px;
+    padding: 15px;
+  }
+
+  .manual-manga-entry-head .secondary-btn {
+    width: 100%;
+  }
+
+  .manual-manga-form {
+    grid-template-columns: 1fr;
+    padding: 14px 15px 16px;
+  }
+
+  .manual-manga-form .primary-btn {
+    width: 100%;
   }
 }
