@@ -11,7 +11,7 @@ function createPool() {
 
   return new Pool({
     connectionString,
-    max: process.env.NODE_ENV === "production" ? 2 : 5,
+    max: process.env.NODE_ENV === "production" ? 4 : 5,
     idleTimeoutMillis: 30_000,
     connectionTimeoutMillis: 10_000,
     ssl: { rejectUnauthorized: false },
