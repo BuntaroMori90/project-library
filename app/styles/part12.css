@@ -133,6 +133,99 @@
   color: inherit;
 }
 
+.tv-library-strip {
+  min-width: 0;
+  padding: 14px 0 2px;
+}
+
+.tv-library-strip-head {
+  display: flex;
+  align-items: end;
+  justify-content: space-between;
+  gap: 16px;
+  margin: 0 4px 12px;
+}
+
+.tv-library-strip-head > div {
+  display: grid;
+  gap: 3px;
+}
+
+.tv-library-strip-head > span {
+  color: var(--muted-2, #7f7973);
+  font-size: .78rem;
+}
+
+.tv-library-posters {
+  display: flex;
+  gap: 12px;
+  overflow-x: auto;
+  overflow-y: hidden;
+  padding: 3px 4px 10px;
+  scroll-snap-type: x proximity;
+  overscroll-behavior-inline: contain;
+  scrollbar-width: thin;
+}
+
+.tv-library-poster {
+  flex: 0 0 112px;
+  min-width: 0;
+  display: grid;
+  gap: 6px;
+  padding: 7px;
+  border: 1px solid transparent;
+  border-radius: 14px;
+  background: transparent;
+  color: inherit;
+  text-align: left;
+  scroll-snap-align: start;
+  cursor: pointer;
+}
+
+.tv-library-poster.active {
+  border-color: rgba(216,170,109,.42);
+  background: rgba(216,170,109,.08);
+  box-shadow: 0 12px 30px rgba(0,0,0,.18);
+}
+
+.tv-library-poster-art {
+  width: 100%;
+  aspect-ratio: 2 / 3;
+  overflow: hidden;
+  display: grid;
+  place-items: center;
+  border-radius: 9px;
+  background: linear-gradient(160deg, rgba(204,159,100,.18), rgba(19,20,23,.96));
+}
+
+.tv-library-poster-art img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.tv-library-poster-art span {
+  font-size: 1.6rem;
+  font-weight: 900;
+  color: var(--accent-2);
+}
+
+.tv-library-poster > strong,
+.tv-library-poster > small {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.tv-library-poster > strong {
+  font-size: .82rem;
+}
+
+.tv-library-poster > small {
+  color: var(--muted, #aaa39c);
+  font-size: .7rem;
+}
+
 /* Libri: stesso linguaggio visivo di Manga/Anime per il salvataggio dello stato. */
 .book-detail-page .book-edit-grid .mini-edit-form:first-child {
   grid-column: 1 / -1;
@@ -228,5 +321,23 @@
 
   .anime-browser-tv-only .tv-channel-display strong {
     max-width: 45vw;
+  }
+
+  .tv-library-strip-head > span {
+    display: none;
+  }
+
+  .tv-library-posters {
+    gap: 9px;
+    padding-inline: 2px;
+  }
+
+  .tv-library-poster {
+    flex-basis: 92px;
+    padding: 5px;
+  }
+
+  .tv-library-poster > strong {
+    font-size: .75rem;
   }
 }
