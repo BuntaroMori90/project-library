@@ -1,15 +1,57 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import { query } from "@/lib/db";
+import { importMangaToCatalog } from "@/lib/catalog/import-manga";
+import { KitsuProvider } from "@/lib/catalog/providers/kitsu";
 import { requireProfile } from "@/lib/profile";
-import { setLibraryPersonal, setLibraryStatus, setMangaProgress, toggleOwnedUnit, type LibraryStatus } from "@/lib/repositories/personal";
+import {
+  setLibraryPersonal,
+  setLibraryStatus,
+  setMangaProgress,
+  toggleOwnedUnit,
+  type LibraryStatus,
+} from "@/lib/repositories/personal";
 
-const statuses = new Set<LibraryStatus>(["PLANNED", "IN_PROGRESS", "COMPLETED", "PAUSED", "DROPPED"]);
+const statuses = new Set<LibraryStatus>([
+  "PLANNED",
+  "IN_PROGRESS",
+  "COMPLETED",
+  "PAUSED",
+  "DROPPED",
+]);
 
 function asNumber(value: FormDataEntryValue | null) {
   if (typeof value !== "string" || value.trim() === "") return null;
   const parsed = Number(value);
   return Number.isFinite(parsed) && parsed >= 0 ? parsed : null;
+}
+
+async function refreshMissingMangaCounts(workId: string) {
+  const work = await query<{ total_volumes: number | null; total_chapters: number | null }>(
+    "select total_volumes,total_chapters from works where id=$1 and media_type='MANGA' limit 1",
+    [workId],
+  );
+  const current = work.rows[0];
+  if (!current || (current.total_volumes !== null && current.total_chapters !== null)) {
+    return;
+  }
+
+  const source = await query<{ provider: string; external_id: string }>(
+    `select provider,external_id from external_ids
+      where work_id=$1 and provider='KITSU'
+      limit 1`,
+    [workId],
+  );
+  const external = source.rows[0];
+  if (!external) return;
+
+  try {
+    const manga = await new KitsuProvider().getById(external.external_id);
+    await importMangaToCatalog(manga);
+  } catch {
+    // Il salvataggio personale non deve fallire se il catalogo esterno è offline.
+  }
 }
 
 export async function updateMangaState(formData: FormData) {
@@ -18,6 +60,7 @@ export async function updateMangaState(formData: FormData) {
   if (!workId || !statuses.has(status)) return;
   const { profile } = await requireProfile();
   await setLibraryStatus(profile.id, workId, status);
+  await refreshMissingMangaCounts(workId);
   revalidatePath(`/library/manga/${workId}`);
 }
 
@@ -28,6 +71,7 @@ export async function updateMangaProgress(formData: FormData) {
   if (!workId) return;
   const { profile } = await requireProfile();
   await setMangaProgress(profile.id, workId, currentVolume, currentChapter);
+  await refreshMissingMangaCounts(workId);
   revalidatePath(`/library/manga/${workId}`);
 }
 
@@ -39,7 +83,11 @@ export async function updateMangaPersonal(formData: FormData) {
   const notesRaw = String(formData.get("notes") ?? "").trim();
   const favorite = formData.get("favorite") === "on";
   const { profile } = await requireProfile();
-  await setLibraryPersonal(profile.id, workId, { favorite, rating, notes: notesRaw || null });
+  await setLibraryPersonal(profile.id, workId, {
+    favorite,
+    rating,
+    notes: notesRaw || null,
+  });
   revalidatePath(`/library/manga/${workId}`);
 }
 
