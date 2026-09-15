@@ -6,8 +6,8 @@ import { query } from "@/lib/db";
 import { OpenLibraryProvider } from "@/lib/catalog/providers/openlibrary";
 import { importBookToCatalog } from "@/lib/catalog/import-book";
 import { requireProfile } from "@/lib/profile";
+import { createPersonalBookEdition } from "@/lib/repositories/book-editions";
 import {
-  createPersonalBookEdition,
   removeBookFromLibrary,
   saveBookEditionOverrides,
   selectBookEdition,
