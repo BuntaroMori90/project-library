@@ -76,7 +76,7 @@
   margin: 0;
 }
 
-/* Manga add: manual fallback is secondary, compact and progressive. */
+/* Legacy manga manual fallback. */
 .manual-manga-entry {
   display: grid;
   gap: 0;
@@ -169,6 +169,204 @@
   white-space: nowrap;
 }
 
+/* Add flow v2: explicit catalog/manual choice and stronger visual hierarchy. */
+.add-work-page {
+  position: relative;
+}
+
+.add-work-page::before {
+  content: "";
+  position: absolute;
+  inset: -24px -18px auto;
+  height: 310px;
+  pointer-events: none;
+  background:
+    radial-gradient(circle at 16% 12%, rgba(216, 170, 109, .09), transparent 38%),
+    radial-gradient(circle at 82% 8%, rgba(111, 88, 62, .07), transparent 34%);
+  mask-image: linear-gradient(to bottom, #000 0%, transparent 88%);
+}
+
+.add-work-header,
+.add-work-flow {
+  position: relative;
+  z-index: 1;
+}
+
+.add-mode-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.add-mode-card {
+  min-width: 0;
+  min-height: 86px;
+  display: grid;
+  grid-template-columns: 36px minmax(0, 1fr);
+  gap: 12px;
+  align-items: center;
+  padding: 14px 16px;
+  border: 1px solid rgba(255, 255, 255, .07);
+  border-radius: 17px;
+  background: rgba(255, 255, 255, .018);
+  color: var(--text);
+  text-align: left;
+  cursor: pointer;
+  transition: border-color .15s ease, background .15s ease, transform .15s ease;
+}
+
+.add-mode-card > svg {
+  width: 36px;
+  height: 36px;
+  padding: 8px;
+  border-radius: 11px;
+  background: rgba(255, 255, 255, .035);
+  color: var(--muted);
+}
+
+.add-mode-card > span {
+  min-width: 0;
+  display: grid;
+  gap: 4px;
+}
+
+.add-mode-card strong {
+  font-size: .9rem;
+  line-height: 1.2;
+}
+
+.add-mode-card small {
+  color: var(--muted);
+  font-size: .75rem;
+  line-height: 1.4;
+}
+
+.add-mode-card:hover {
+  transform: translateY(-1px);
+  border-color: rgba(216, 170, 109, .2);
+  background: rgba(216, 170, 109, .025);
+}
+
+.add-mode-card.active {
+  border-color: rgba(216, 170, 109, .36);
+  background: linear-gradient(145deg, rgba(216, 170, 109, .09), rgba(216, 170, 109, .025));
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, .025);
+}
+
+.add-mode-card.active > svg {
+  background: rgba(216, 170, 109, .11);
+  color: var(--accent-2);
+}
+
+.manual-work-entry {
+  overflow: hidden;
+  border: 1px solid rgba(216, 170, 109, .2);
+  border-radius: 21px;
+  background:
+    linear-gradient(145deg, rgba(216, 170, 109, .055), rgba(255, 255, 255, .014)),
+    rgba(4, 4, 4, .32);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, .02);
+}
+
+.manual-work-entry-head {
+  display: grid;
+  grid-template-columns: 44px minmax(0, 1fr);
+  gap: 13px;
+  align-items: start;
+  padding: 18px 18px 15px;
+  border-bottom: 1px solid rgba(255, 255, 255, .055);
+}
+
+.manual-work-icon {
+  width: 44px;
+  height: 44px;
+  display: grid;
+  place-items: center;
+  border-radius: 13px;
+  background: rgba(216, 170, 109, .1);
+  color: var(--accent-2);
+}
+
+.manual-work-entry-head > div:last-child {
+  min-width: 0;
+  display: grid;
+  gap: 5px;
+}
+
+.manual-work-entry-head strong {
+  font-size: 1rem;
+}
+
+.manual-work-entry-head p {
+  max-width: 760px;
+  margin: 0;
+  color: var(--muted);
+  font-size: .8rem;
+  line-height: 1.5;
+}
+
+.manual-work-form {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 12px;
+  align-items: end;
+  padding: 16px 18px 18px;
+}
+
+.manual-work-form label {
+  min-width: 0;
+  display: grid;
+  gap: 7px;
+  color: var(--muted);
+  font-size: .68rem;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: .08em;
+}
+
+.manual-work-form input {
+  width: 100%;
+  min-height: 50px;
+  padding: 0 14px;
+  border: 1px solid rgba(255, 255, 255, .09);
+  border-radius: 13px;
+  background: rgba(7, 7, 7, .76);
+  color: var(--text);
+  font: inherit;
+  font-size: .92rem;
+  font-weight: 650;
+  text-transform: none;
+  letter-spacing: normal;
+  outline: none;
+  transition: border-color .15s ease, box-shadow .15s ease, background .15s ease;
+}
+
+.manual-work-form input:focus {
+  border-color: rgba(216, 170, 109, .46);
+  background: rgba(10, 9, 8, .9);
+  box-shadow: 0 0 0 3px rgba(216, 170, 109, .07);
+}
+
+.manual-work-actions {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+
+.manual-work-actions .primary-btn,
+.manual-work-actions .secondary-btn {
+  min-height: 50px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  white-space: nowrap;
+}
+
+.add-result-card .catalog-cover img {
+  background: rgba(255, 255, 255, .025);
+}
+
 @media (max-width: 760px) {
   .page-manga .page-header-actions,
   .page-anime .page-header-actions {
@@ -229,5 +427,48 @@
 
   .manual-manga-form .primary-btn {
     width: 100%;
+  }
+
+  .add-mode-grid {
+    grid-template-columns: 1fr;
+    gap: 8px;
+  }
+
+  .add-mode-card {
+    min-height: 78px;
+    padding: 12px 13px;
+  }
+
+  .manual-work-entry-head {
+    grid-template-columns: 40px minmax(0, 1fr);
+    padding: 15px;
+  }
+
+  .manual-work-icon {
+    width: 40px;
+    height: 40px;
+  }
+
+  .manual-work-form {
+    grid-template-columns: 1fr;
+    padding: 14px 15px 16px;
+  }
+
+  .manual-work-actions {
+    display: grid;
+    grid-template-columns: minmax(0, .72fr) minmax(0, 1.28fr);
+    width: 100%;
+  }
+
+  .manual-work-actions .primary-btn,
+  .manual-work-actions .secondary-btn {
+    width: 100%;
+    padding-inline: 10px;
+  }
+}
+
+@media (max-width: 430px) {
+  .manual-work-actions {
+    grid-template-columns: 1fr;
   }
 }
