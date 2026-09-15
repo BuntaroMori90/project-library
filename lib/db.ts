@@ -5,16 +5,30 @@ declare global {
   var __projectLibraryPool: Pool | undefined;
 }
 
+function normalizeConnectionString(connectionString: string) {
+  try {
+    const url = new URL(connectionString);
+    const sslMode = url.searchParams.get("sslmode");
+
+    if (["prefer", "require", "verify-ca"].includes(sslMode ?? "")) {
+      url.searchParams.set("sslmode", "verify-full");
+    }
+
+    return url.toString();
+  } catch {
+    return connectionString;
+  }
+}
+
 function createPool() {
   const connectionString = process.env.DATABASE_URL;
   if (!connectionString) throw new Error("DATABASE_URL is not configured");
 
   return new Pool({
-    connectionString,
+    connectionString: normalizeConnectionString(connectionString),
     max: process.env.NODE_ENV === "production" ? 4 : 5,
     idleTimeoutMillis: 30_000,
     connectionTimeoutMillis: 10_000,
-    ssl: { rejectUnauthorized: false },
   });
 }
 
