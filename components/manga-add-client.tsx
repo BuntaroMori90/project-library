@@ -13,6 +13,7 @@ export function MangaAddClient() {
   const [loading, setLoading] = useState(false);
   const [importing, setImporting] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+
   async function search(event: React.FormEvent) {
     event.preventDefault();
     if (query.trim().length < 2) return;
@@ -23,8 +24,9 @@ export function MangaAddClient() {
         `/api/catalog/manga/search?q=${encodeURIComponent(query.trim())}`,
       );
       const payload = await response.json();
-      if (!response.ok)
+      if (!response.ok) {
         throw new Error(payload.error ?? "Ricerca non disponibile.");
+      }
       setResults(payload.results ?? []);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Ricerca non disponibile.");
@@ -32,18 +34,24 @@ export function MangaAddClient() {
       setLoading(false);
     }
   }
+
   async function importManga(result: MangaCatalogResult) {
-    setImporting(result.providerId);
+    const key = `${result.provider}:${result.providerId}`;
+    setImporting(key);
     setError(null);
     try {
       const response = await fetch("/api/catalog/manga/import", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ providerId: result.providerId }),
+        body: JSON.stringify({
+          providerId: result.providerId,
+          provider: result.provider,
+        }),
       });
       const payload = await response.json();
-      if (!response.ok)
+      if (!response.ok) {
         throw new Error(payload.error ?? "Import non riuscito.");
+      }
       router.push(`/library/manga/${payload.workId}`);
       router.refresh();
     } catch (err) {
@@ -52,6 +60,7 @@ export function MangaAddClient() {
       setImporting(null);
     }
   }
+
   return (
     <div className="catalog-add">
       <form className="catalog-search" onSubmit={search}>
@@ -59,7 +68,7 @@ export function MangaAddClient() {
         <input
           value={query}
           onChange={(event) => setQuery(event.target.value)}
-          placeholder="Cerca Berserk, Monster, Vagabond…"
+          placeholder="Titolo italiano, inglese o originale…"
           autoFocus
         />
         <button className="primary-btn" type="submit" disabled={loading}>
@@ -69,70 +78,69 @@ export function MangaAddClient() {
       {error ? <p className="catalog-error">{error}</p> : null}
       {!loading && query && results.length === 0 && !error ? (
         <p className="catalog-empty">
-          Nessun risultato. Prova con titolo originale o autore.
+          Nessun risultato nei cataloghi. Usa l'inserimento manuale dalla pagina
+          Aggiungi.
         </p>
       ) : null}
       <div className="catalog-results">
-        {results.map((result) => (
-          <article
-            className="catalog-result"
-            key={`${result.provider}-${result.providerId}`}
-          >
-            <div className="catalog-cover">
-              {result.coverUrl ? (
-                <Image
-                  src={result.coverUrl}
-                  alt=""
-                  width={120}
-                  height={180}
-                  sizes="80px"
-                />
-              ) : (
-                <span>{result.title.slice(0, 1)}</span>
-              )}
-            </div>
-            <div className="catalog-result-copy">
-              <span className="eyebrow">
-                {result.publicationStatus === "ONGOING"
-                  ? "In pubblicazione"
-                  : result.publicationStatus === "COMPLETED"
-                    ? "Completo"
-                    : "Catalogo"}
-              </span>
-              <h2>{result.title}</h2>
-              <p>
-                {result.creators.map((creator) => creator.name).join(" · ") ||
-                  "Autore non disponibile"}
-              </p>
-              <div className="catalog-facts">
-                {result.volumeCount ? (
-                  <span>{result.volumeCount} volumi</span>
+        {results.map((result) => {
+          const key = `${result.provider}:${result.providerId}`;
+          return (
+            <article className="catalog-result" key={key}>
+              <div className="catalog-cover">
+                {result.coverUrl ? (
+                  <Image
+                    src={result.coverUrl}
+                    alt=""
+                    width={120}
+                    height={180}
+                    sizes="80px"
+                  />
                 ) : (
-                  <span>Volumi da verificare</span>
+                  <span>{result.title.slice(0, 1)}</span>
                 )}
-                {result.chapterCount ? (
-                  <span>{result.chapterCount} capitoli</span>
-                ) : null}
-                {result.releaseYear ? <span>{result.releaseYear}</span> : null}
               </div>
-            </div>
-            <button
-              className="add-result"
-              type="button"
-              onClick={() => importManga(result)}
-              disabled={Boolean(importing)}
-            >
-              {importing === result.providerId ? (
-                <LoaderCircle className="spin" size={18} />
-              ) : (
-                <Plus size={18} />
-              )}
-              <span>
-                {importing === result.providerId ? "Importo" : "Aggiungi"}
-              </span>
-            </button>
-          </article>
-        ))}
+              <div className="catalog-result-copy">
+                <span className="eyebrow">
+                  {result.publicationStatus === "ONGOING"
+                    ? "In pubblicazione"
+                    : result.publicationStatus === "COMPLETED"
+                      ? "Completo"
+                      : "Catalogo"}
+                </span>
+                <h2>{result.title}</h2>
+                <p>
+                  {result.creators.map((creator) => creator.name).join(" · ") ||
+                    "Autore non disponibile"}
+                </p>
+                <div className="catalog-facts">
+                  {result.volumeCount ? (
+                    <span>{result.volumeCount} volumi</span>
+                  ) : (
+                    <span>Volumi da verificare</span>
+                  )}
+                  {result.chapterCount ? (
+                    <span>{result.chapterCount} capitoli</span>
+                  ) : null}
+                  {result.releaseYear ? <span>{result.releaseYear}</span> : null}
+                </div>
+              </div>
+              <button
+                className="add-result"
+                type="button"
+                onClick={() => importManga(result)}
+                disabled={Boolean(importing)}
+              >
+                {importing === key ? (
+                  <LoaderCircle className="spin" size={18} />
+                ) : (
+                  <Plus size={18} />
+                )}
+                <span>{importing === key ? "Importo" : "Aggiungi"}</span>
+              </button>
+            </article>
+          );
+        })}
       </div>
     </div>
   );
