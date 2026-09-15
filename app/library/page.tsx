@@ -53,6 +53,9 @@ function toItem(row: LibraryRow): DemoItem {
     progress = `Vol. ${row.current_volume}${row.current_chapter ? ` · Cap. ${row.current_chapter}` : ""}`;
   if (row.mediaType === "ANIME" && row.current_season)
     progress = `S${row.current_season}${row.current_episode ? ` · Ep. ${row.current_episode}` : ""}`;
+  const coverUrl = row.cover_url?.startsWith("data:image/")
+    ? `/api/library/cover/work/${row.id}`
+    : row.cover_url ?? undefined;
   return {
     id: row.id,
     title: row.title,
@@ -60,7 +63,7 @@ function toItem(row: LibraryRow): DemoItem {
     status: statusLabels[row.mediaType][row.status] ?? "Da iniziare",
     progress,
     meta: row.rating != null ? `${row.rating} / 10` : undefined,
-    coverUrl: row.cover_url ?? undefined,
+    coverUrl,
     coverClass: row.mediaType === "ANIME" ? "poster-blue" : "cover-ink",
   };
 }
@@ -136,6 +139,7 @@ export default async function LibraryHomePage() {
                     width={400}
                     height={600}
                     sizes="(max-width: 640px) 42vw, 180px"
+                    unoptimized={item.coverUrl.startsWith("/api/")}
                   />
                 ) : (
                   <>
