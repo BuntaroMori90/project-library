@@ -48,16 +48,19 @@ export async function POST(request: Request) {
       );
     }
 
+    const editionType = asText(formData.get("editionType"));
+
     stage = "database";
     await createPersonalMangaEdition(sessionProfile.profile.id, workId, {
       name: asText(formData.get("customName")),
       publisher: asText(formData.get("customPublisher")),
       language: asText(formData.get("customLanguage")),
-      editionType: asText(formData.get("editionType")),
+      editionType,
       coverUrl: asText(formData.get("customCoverUrl")),
       isbn: asText(formData.get("customIsbn")),
       publicationYear: asNumber(formData.get("customPublicationYear")),
       volumeNumber: asNumber(formData.get("volumeNumber")),
+      totalVolumes: asNumber(formData.get("totalVolumes")),
     });
 
     stage = "refresh";
@@ -65,9 +68,13 @@ export async function POST(request: Request) {
     revalidatePath("/library/manga");
     revalidatePath("/library");
 
+    const anchor = editionType?.toLowerCase() === "standard"
+      ? "edizione-personale"
+      : "collezione-speciale";
+
     return NextResponse.json({
       ok: true,
-      redirect: `/library/manga/${workId}?saved=personalEdition#collezione-speciale`,
+      redirect: `/library/manga/${workId}?saved=personalEdition#${anchor}`,
     });
   } catch (error) {
     console.error(`manga personal-edition upload failed at ${stage}`, error);
