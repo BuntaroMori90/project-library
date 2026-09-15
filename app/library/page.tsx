@@ -67,27 +67,15 @@ function toItem(row: LibraryRow): DemoItem {
 
 export default async function LibraryHomePage() {
   const { profile } = await requireProfile();
-  const [booksResult, mangaResult, animeResult] = await Promise.all([
-    listLibraryWorks(profile.id, "BOOK"),
-    listLibraryWorks(profile.id, "MANGA"),
-    listLibraryWorks(profile.id, "ANIME"),
-  ]);
-  const books = booksResult.rows.map((row) => ({
+  const result = await listLibraryWorks(profile.id);
+  const all: LibraryRow[] = result.rows.map((row) => ({
     ...row,
-    mediaType: "BOOK" as const,
+    mediaType: row.media_type,
   }));
-  const manga = mangaResult.rows.map((row) => ({
-    ...row,
-    mediaType: "MANGA" as const,
-  }));
-  const anime = animeResult.rows.map((row) => ({
-    ...row,
-    mediaType: "ANIME" as const,
-  }));
-  const all: LibraryRow[] = [...books, ...manga, ...anime];
-  const recent = [...all]
-    .sort((a, b) => b.updated_at.getTime() - a.updated_at.getTime())
-    .slice(0, 5);
+  const books = all.filter((row) => row.mediaType === "BOOK");
+  const manga = all.filter((row) => row.mediaType === "MANGA");
+  const anime = all.filter((row) => row.mediaType === "ANIME");
+  const recent = all.slice(0, 5);
   const favorites = all.filter((row) => row.favorite).slice(0, 5);
   const showcase = (favorites.length ? favorites : recent).slice(0, 4);
 
