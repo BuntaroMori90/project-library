@@ -16,6 +16,16 @@ function keyFor(item: DemoItem, groupBy: GroupBy) {
   return groupBy === "creator" ? creatorSortKey(item.creator) : item.title;
 }
 
+function alphabeticalInitial(title: string) {
+  const normalized = title
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .trim()
+    .toUpperCase();
+  const first = normalized.charAt(0);
+  return /^[A-Z]$/.test(first) ? first : "#";
+}
+
 export function AnimeBrowser({
   items,
   defaultGroupBy,
@@ -45,6 +55,36 @@ export function AnimeBrowser({
         }),
       );
   }, [items, query, groupBy]);
+
+  const alphabeticalRows = useMemo(() => {
+    const selectedIndexes = new Map(
+      filtered.map((item, index) => [item.id, index] as const),
+    );
+    const byTitle = filtered
+      .slice()
+      .sort((a, b) =>
+        a.title.localeCompare(b.title, "it", { sensitivity: "base" }),
+      );
+    const grouped = new Map<string, DemoItem[]>();
+
+    for (const item of byTitle) {
+      const initial = alphabeticalInitial(item.title);
+      const group = grouped.get(initial) ?? [];
+      group.push(item);
+      grouped.set(initial, group);
+    }
+
+    const order = ["#", ..."ABCDEFGHIJKLMNOPQRSTUVWXYZ".split("")];
+    return order
+      .filter((initial) => grouped.has(initial))
+      .map((initial) => ({
+        initial,
+        items: (grouped.get(initial) ?? []).map((item) => ({
+          item,
+          selectedIndex: selectedIndexes.get(item.id) ?? 0,
+        })),
+      }));
+  }, [filtered]);
 
   const safeIndex = filtered.length
     ? Math.min(selectedIndex, filtered.length - 1)
@@ -165,40 +205,51 @@ export function AnimeBrowser({
       )}
 
       {filtered.length ? (
-        <section className="tv-library-strip" aria-label="Anime nella videoteca">
+        <section className="tv-library-strip tv-library-alphabet" aria-label="Anime nella videoteca">
           <div className="tv-library-strip-head">
             <div>
               <span className="eyebrow">Videoteca</span>
               <strong>{filtered.length} titoli</strong>
             </div>
-            <span>Scorri e scegli cosa mostrare nella TV</span>
+            <span>In ordine alfabetico</span>
           </div>
-          <div className="tv-library-posters">
-            {filtered.map((item, index) => (
-              <button
-                key={item.id}
-                type="button"
-                className={`tv-library-poster ${index === safeIndex ? "active" : ""}`}
-                onClick={() => setSelectedIndex(index)}
-                aria-label={`Mostra ${item.title} nella TV`}
-                aria-pressed={index === safeIndex}
-              >
-                <div className="tv-library-poster-art">
-                  {item.coverUrl ? (
-                    <Image
-                      src={item.coverUrl}
-                      alt=""
-                      width={240}
-                      height={360}
-                      sizes="110px"
-                    />
-                  ) : (
-                    <span>{item.title.slice(0, 1)}</span>
-                  )}
+
+          <div className="tv-library-alpha-list">
+            {alphabeticalRows.map((row) => (
+              <section className="tv-library-alpha-row" key={row.initial} aria-labelledby={`anime-letter-${row.initial}`}>
+                <div className="tv-library-alpha-head">
+                  <strong id={`anime-letter-${row.initial}`}>{row.initial}</strong>
+                  <span>{row.items.length} {row.items.length === 1 ? "titolo" : "titoli"}</span>
                 </div>
-                <strong>{item.title}</strong>
-                <small>{item.progress ?? item.status ?? "Da vedere"}</small>
-              </button>
+                <div className="tv-library-posters">
+                  {row.items.map(({ item, selectedIndex: itemIndex }) => (
+                    <button
+                      key={item.id}
+                      type="button"
+                      className={`tv-library-poster ${itemIndex === safeIndex ? "active" : ""}`}
+                      onClick={() => setSelectedIndex(itemIndex)}
+                      aria-label={`Mostra ${item.title} nella TV`}
+                      aria-pressed={itemIndex === safeIndex}
+                    >
+                      <div className="tv-library-poster-art">
+                        {item.coverUrl ? (
+                          <Image
+                            src={item.coverUrl}
+                            alt=""
+                            width={240}
+                            height={360}
+                            sizes="110px"
+                          />
+                        ) : (
+                          <span>{item.title.slice(0, 1)}</span>
+                        )}
+                      </div>
+                      <strong>{item.title}</strong>
+                      <small>{item.progress ?? item.status ?? "Da vedere"}</small>
+                    </button>
+                  ))}
+                </div>
+              </section>
             ))}
           </div>
         </section>
