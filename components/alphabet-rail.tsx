@@ -32,8 +32,10 @@ export function AlphabetRail({
   const railRef = useRef<HTMLElement>(null);
   const animationFrame = useRef<number | null>(null);
   const pendingPointerY = useRef<number | null>(null);
+  const dragStops = useRef<ScrollStop[]>([]);
   const pointerStartY = useRef<number | null>(null);
   const pointerMoved = useRef(false);
+  const activeLetterRef = useRef<string | null>(null);
 
   const available = useMemo(
     () => new Set(availableLetters.map((letter) => letter.toUpperCase())),
@@ -44,6 +46,12 @@ export function AlphabetRail({
     () => letters.filter((letter) => !hasAvailability || available.has(letter)),
     [available, hasAvailability],
   );
+
+  function updateActiveLetter(letter: string | null) {
+    if (activeLetterRef.current === letter) return;
+    activeLetterRef.current = letter;
+    setActiveLetter(letter);
+  }
 
   function getScrollStops(): ScrollStop[] {
     const maxScroll = Math.max(
@@ -116,12 +124,12 @@ export function AlphabetRail({
     const rect = rail.getBoundingClientRect();
     const progress = clamp((clientY - rect.top) / Math.max(1, rect.height), 0, 1);
     const rawIndex = progress * (letters.length - 1);
-    const stops = getScrollStops();
+    const stops = dragStops.current.length ? dragStops.current : getScrollStops();
     const top = interpolatedScrollTop(rawIndex, stops);
     const nearest = nearestEnabledLetter(rawIndex, stops);
 
-    if (nearest) setActiveLetter(nearest);
-    if (top !== null) window.scrollTo({ top, behavior: "auto" });
+    updateActiveLetter(nearest);
+    if (top !== null) window.scrollTo(0, top);
   }
 
   function scheduleScrub(clientY: number) {
@@ -141,7 +149,7 @@ export function AlphabetRail({
 
     const top = window.scrollY + target.getBoundingClientRect().top - PAGE_SCROLL_OFFSET;
     window.scrollTo({ top: Math.max(0, top), behavior });
-    setActiveLetter(letter);
+    updateActiveLetter(letter);
   }
 
   useEffect(() => {
@@ -156,7 +164,7 @@ export function AlphabetRail({
       cancelAnimationFrame(frame);
       frame = requestAnimationFrame(() => {
         if (!enabledLetters.length) {
-          setActiveLetter(null);
+          updateActiveLetter(null);
           return;
         }
 
@@ -170,7 +178,7 @@ export function AlphabetRail({
             break;
           }
         }
-        setActiveLetter(current);
+        updateActiveLetter(current);
       });
     };
 
@@ -197,6 +205,7 @@ export function AlphabetRail({
     pointerStartY.current = event.clientY;
     pointerMoved.current = false;
     pendingPointerY.current = event.clientY;
+    dragStops.current = getScrollStops();
     setOpen(true);
     setDragging(true);
     event.currentTarget.setPointerCapture(event.pointerId);
@@ -221,7 +230,12 @@ export function AlphabetRail({
   function finishScrub(event: ReactPointerEvent<HTMLElement>) {
     if (!dragging) return;
 
-    scheduleScrub(event.clientY);
+    if (animationFrame.current !== null) {
+      cancelAnimationFrame(animationFrame.current);
+      animationFrame.current = null;
+    }
+    scrubAt(event.clientY);
+
     if (event.currentTarget.hasPointerCapture(event.pointerId)) {
       event.currentTarget.releasePointerCapture(event.pointerId);
     }
@@ -229,8 +243,8 @@ export function AlphabetRail({
     setDragging(false);
     pointerStartY.current = null;
     pendingPointerY.current = null;
-    // Intentionally keep the alphabet open after scrubbing. It should behave
-    // like a persistent app control and close only when the A-Z tab is tapped.
+    dragStops.current = [];
+    // Keep the alphabet open after scrubbing. It closes only through the A-Z tab.
   }
 
   return (
