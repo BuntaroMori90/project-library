@@ -5,6 +5,7 @@ import type { DemoItem } from "@/lib/demo-data";
 import { normalizePreferences } from "@/lib/preferences";
 import { requireProfile } from "@/lib/profile";
 import { listLibraryWorks } from "@/lib/repositories/library";
+import { getMangaOwnedCounts } from "@/lib/repositories/manga-ownership";
 
 const statusLabels: Record<string, string> = {
   PLANNED: "Da iniziare",
@@ -18,10 +19,15 @@ export default async function MangaPage() {
   const { profile } = await requireProfile();
   const preferences = normalizePreferences(profile.preferences);
   const rows = (await listLibraryWorks(profile.id, "MANGA")).rows;
+  const ownedCounts = await getMangaOwnedCounts(
+    profile.id,
+    rows.map((row) => row.id),
+  );
+
   const items: DemoItem[] = rows.map((row) => {
     const currentVolume = row.current_volume != null ? Number(row.current_volume) : null;
     const currentChapter = row.current_chapter != null ? Number(row.current_chapter) : null;
-    const owned = Number(row.owned_units ?? 0);
+    const owned = ownedCounts.get(row.id) ?? 0;
 
     return {
       id: row.id,
