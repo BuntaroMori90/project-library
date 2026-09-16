@@ -10,6 +10,7 @@ import {
 
 const letters = ["#", ..."ABCDEFGHIJKLMNOPQRSTUVWXYZ"];
 const PAGE_SCROLL_OFFSET = 104;
+const DRAG_THRESHOLD = 5;
 
 type ScrollStop = {
   letter: string;
@@ -36,6 +37,8 @@ export function AlphabetRail({
   const pointerStartY = useRef<number | null>(null);
   const pointerMoved = useRef(false);
   const activeLetterRef = useRef<string | null>(null);
+  const triggerGestureActive = useRef(false);
+  const triggerWasOpen = useRef(false);
 
   const available = useMemo(
     () => new Set(availableLetters.map((letter) => letter.toUpperCase())),
@@ -201,11 +204,26 @@ export function AlphabetRail({
     [],
   );
 
-  function handlePointerDown(event: ReactPointerEvent<HTMLElement>) {
-    pointerStartY.current = event.clientY;
+  function prepareGesture(clientY: number) {
+    pointerStartY.current = clientY;
     pointerMoved.current = false;
-    pendingPointerY.current = event.clientY;
+    pendingPointerY.current = clientY;
     dragStops.current = getScrollStops();
+  }
+
+  function endGesture(event: ReactPointerEvent<HTMLElement>) {
+    if (event.currentTarget.hasPointerCapture(event.pointerId)) {
+      event.currentTarget.releasePointerCapture(event.pointerId);
+    }
+
+    pointerStartY.current = null;
+    pendingPointerY.current = null;
+    dragStops.current = [];
+    triggerGestureActive.current = false;
+  }
+
+  function handleRailPointerDown(event: ReactPointerEvent<HTMLElement>) {
+    prepareGesture(event.clientY);
     setOpen(true);
     setDragging(true);
     event.currentTarget.setPointerCapture(event.pointerId);
@@ -213,7 +231,7 @@ export function AlphabetRail({
     event.preventDefault();
   }
 
-  function handlePointerMove(event: ReactPointerEvent<HTMLElement>) {
+  function handleRailPointerMove(event: ReactPointerEvent<HTMLElement>) {
     if (!dragging) return;
 
     if (
@@ -227,7 +245,7 @@ export function AlphabetRail({
     event.preventDefault();
   }
 
-  function finishScrub(event: ReactPointerEvent<HTMLElement>) {
+  function finishRailScrub(event: ReactPointerEvent<HTMLElement>) {
     if (!dragging) return;
 
     if (animationFrame.current !== null) {
@@ -235,16 +253,52 @@ export function AlphabetRail({
       animationFrame.current = null;
     }
     scrubAt(event.clientY);
+    setDragging(false);
+    endGesture(event);
+  }
 
-    if (event.currentTarget.hasPointerCapture(event.pointerId)) {
-      event.currentTarget.releasePointerCapture(event.pointerId);
+  function handleTriggerPointerDown(event: ReactPointerEvent<HTMLButtonElement>) {
+    triggerGestureActive.current = true;
+    triggerWasOpen.current = open;
+    prepareGesture(event.clientY);
+    setOpen(true);
+    event.currentTarget.setPointerCapture(event.pointerId);
+    event.preventDefault();
+  }
+
+  function handleTriggerPointerMove(event: ReactPointerEvent<HTMLButtonElement>) {
+    if (!triggerGestureActive.current || pointerStartY.current === null) return;
+
+    const distance = Math.abs(event.clientY - pointerStartY.current);
+    if (distance < DRAG_THRESHOLD && !pointerMoved.current) return;
+
+    if (!pointerMoved.current) {
+      pointerMoved.current = true;
+      setDragging(true);
     }
 
-    setDragging(false);
-    pointerStartY.current = null;
-    pendingPointerY.current = null;
-    dragStops.current = [];
-    // Keep the alphabet open after scrubbing. It closes only through the A-Z tab.
+    scheduleScrub(event.clientY);
+    event.preventDefault();
+  }
+
+  function finishTriggerGesture(event: ReactPointerEvent<HTMLButtonElement>) {
+    if (!triggerGestureActive.current) return;
+
+    const wasDrag = pointerMoved.current;
+
+    if (wasDrag) {
+      if (animationFrame.current !== null) {
+        cancelAnimationFrame(animationFrame.current);
+        animationFrame.current = null;
+      }
+      scrubAt(event.clientY);
+      setDragging(false);
+      setOpen(true);
+    } else {
+      setOpen(!triggerWasOpen.current);
+    }
+
+    endGesture(event);
   }
 
   return (
@@ -256,7 +310,10 @@ export function AlphabetRail({
         className="alphabet-rail-trigger"
         aria-label={open ? "Chiudi indice alfabetico" : "Apri indice alfabetico"}
         aria-expanded={open}
-        onClick={() => setOpen((value) => !value)}
+        onPointerDown={handleTriggerPointerDown}
+        onPointerMove={handleTriggerPointerMove}
+        onPointerUp={finishTriggerGesture}
+        onPointerCancel={finishTriggerGesture}
       >
         <span>A–Z</span>
       </button>
@@ -271,10 +328,10 @@ export function AlphabetRail({
         ref={railRef}
         className="alphabet-rail"
         aria-label="Indice alfabetico"
-        onPointerDown={handlePointerDown}
-        onPointerMove={handlePointerMove}
-        onPointerUp={finishScrub}
-        onPointerCancel={finishScrub}
+        onPointerDown={handleRailPointerDown}
+        onPointerMove={handleRailPointerMove}
+        onPointerUp={finishRailScrub}
+        onPointerCancel={finishRailScrub}
       >
         {letters.map((letter) => {
           const enabled = !hasAvailability || available.has(letter);
