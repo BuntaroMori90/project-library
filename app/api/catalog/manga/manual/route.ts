@@ -48,7 +48,7 @@ export async function POST(request: Request) {
       await query(
         `insert into ownership
            (profile_id,edition_id,ownership_format,custom_format,custom_name,updated_at)
-         values ($1,$2,'TRACKING','Standard','Edizione personale',now())
+         values ($1,$2,'PHYSICAL','Standard','Edizione personale',now())
          on conflict (profile_id,edition_id) do update set
            custom_format=coalesce(ownership.custom_format,'Standard'),
            updated_at=now()`,
