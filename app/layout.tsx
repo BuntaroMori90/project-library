@@ -4,13 +4,13 @@ import { PwaRegister } from "@/components/pwa-register";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: "Library",
+  title: "Libronia",
   description: "La tua libreria personale di libri, manga e anime.",
   manifest: "/manifest.webmanifest",
-  applicationName: "Library",
+  applicationName: "Libronia",
   appleWebApp: {
     capable: true,
-    title: "Library",
+    title: "Libronia",
     statusBarStyle: "black-translucent",
   },
   icons: {

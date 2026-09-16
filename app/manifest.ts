@@ -3,8 +3,8 @@ import type { MetadataRoute } from "next";
 export default function manifest(): MetadataRoute.Manifest {
   return {
     id: "/library",
-    name: "Library",
-    short_name: "Library",
+    name: "Libronia",
+    short_name: "Libronia",
     description: "La tua libreria personale di libri, manga e anime.",
     start_url: "/library",
     scope: "/",
