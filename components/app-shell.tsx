@@ -1,4 +1,5 @@
 import Link from "next/link";
+import Image from "next/image";
 import { Search } from "lucide-react";
 import { BottomDock } from "@/components/bottom-dock";
 import { SectionQuickAdd } from "@/components/section-quick-add";
@@ -36,7 +37,7 @@ export function AppShell({
       <header className="topbar">
         <div className="topbar-inner">
           <Link href="/library" className="brand" aria-label="Libronia — Home">
-            <span className="brand-mark">L</span>
+            <Image className="brand-mark" src="/library-stories-v2-192.png" alt="" width={35} height={35} unoptimized />
             <span className="brand-copy">
               <strong>Libronia</strong>
               <small>personale</small>
