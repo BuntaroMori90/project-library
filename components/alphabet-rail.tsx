@@ -72,24 +72,17 @@ export function AlphabetRail({
     }
 
     let firstTop = Number.POSITIVE_INFINITY;
-    let lastBottom = 0;
-
     for (const section of sections) {
       const rect = section.getBoundingClientRect();
-      const absoluteTop = window.scrollY + rect.top;
-      const absoluteBottom = window.scrollY + rect.bottom;
-      firstTop = Math.min(firstTop, absoluteTop);
-      lastBottom = Math.max(lastBottom, absoluteBottom);
+      firstTop = Math.min(firstTop, window.scrollY + rect.top);
     }
 
     const start = clamp(firstTop - PAGE_SCROLL_OFFSET, 0, maxScroll);
-    const end = clamp(
-      Math.max(start, lastBottom - window.innerHeight + 128),
-      start,
-      maxScroll,
-    );
 
-    return { start, end };
+    // The alphabet is a continuous scrub track, not a list of anchors.
+    // Always use all remaining document scroll so #..Z stays usable even
+    // when only a few initials currently contain items.
+    return { start, end: Math.max(start, maxScroll) };
   }
 
   function progressForScroll(scrollY: number, range = getCatalogRange()) {
