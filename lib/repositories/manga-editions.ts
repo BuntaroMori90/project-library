@@ -80,7 +80,7 @@ export async function createPersonalMangaEdition(
       const editionResult = await client.query<{ id: string }>(
         `insert into editions
            (work_id,name,total_units,source_provider,source_external_id,is_canonical,created_at,updated_at)
-         values ($1,$2,$3,'MANUAL',concat($4,':',gen_random_uuid()::text),false,now(),now())
+         values ($1,$2,$3,'MANUAL',concat($4::text,':',gen_random_uuid()::text),false,now(),now())
          returning id`,
         [workId, values.name || fallbackName, values.totalVolumes, profileId],
       );
