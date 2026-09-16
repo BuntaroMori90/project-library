@@ -1,0 +1,259 @@
+/* Detail pages: modalità app. Consultazione pulita, modifica on demand. */
+body.detail-app-shell:not(.detail-edit-mode) .book-detail-page .book-edit-grid,
+body.detail-app-shell:not(.detail-edit-mode) .manga-detail-page .personal-editors,
+body.detail-app-shell:not(.detail-edit-mode) .anime-detail-page .personal-editors {
+  display: none !important;
+}
+
+body.detail-app-shell:not(.detail-edit-mode) .book-detail-page .book-editions-stage .edition-catalog-tools,
+body.detail-app-shell:not(.detail-edit-mode) .book-detail-page .book-editions-stage .manual-edition-panel,
+body.detail-app-shell:not(.detail-edit-mode) .book-detail-page .book-editions-stage .edition-edit-details,
+body.detail-app-shell:not(.detail-edit-mode) .book-detail-page .book-editions-stage .detail-explainer,
+body.detail-app-shell:not(.detail-edit-mode) .anime-detail-page .anime-source-grid,
+body.detail-app-shell:not(.detail-edit-mode) .danger-zone {
+  display: none !important;
+}
+
+body.detail-app-shell:not(.detail-edit-mode) .book-detail-page .book-edition-card:not(.selected):not(.owned) {
+  display: none !important;
+}
+
+body.detail-app-shell:not(.detail-edit-mode) .manga-collector-page .manga-special-add:not([open]),
+body.detail-app-shell:not(.detail-edit-mode) .manga-collector-page .detail-explainer {
+  display: none !important;
+}
+
+.book-detail-page .add-another-book-link,
+.book-detail-page .book-tabs a[href="#personale"],
+.manga-detail-page .detail-tabs a[href="#capitoli"],
+.manga-detail-page .detail-tabs a[href="#edizioni"],
+.manga-detail-page .detail-tabs a[href="#personale"],
+.anime-detail-page .anime-tabs a[href="#piattaforma"] {
+  display: none !important;
+}
+
+.manga-detail-page .detail-tabs a[href="#volumi"],
+.anime-detail-page .anime-tabs a[href="#episodi"] {
+  order: -1;
+}
+
+.work-detail-v2 .personal-dashboard {
+  overflow: hidden;
+}
+
+.work-detail-v2 .detail-tabs {
+  width: fit-content;
+  max-width: 100%;
+  display: flex;
+  gap: 5px;
+  overflow-x: auto;
+  padding: 5px;
+  border: 1px solid rgba(255, 255, 255, .065);
+  border-radius: 14px;
+  background: rgba(255, 255, 255, .018);
+  scrollbar-width: none;
+}
+
+.work-detail-v2 .detail-tabs::-webkit-scrollbar {
+  display: none;
+}
+
+.work-detail-v2 .detail-tabs a {
+  min-height: 38px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0 13px;
+  border: 0;
+  border-radius: 10px;
+  white-space: nowrap;
+}
+
+.work-detail-v2 .detail-tabs a.active {
+  background: rgba(216, 170, 109, .1);
+  color: var(--accent-2);
+}
+
+body.detail-app-shell:not(.detail-edit-mode) .personal-dashboard {
+  border-color: rgba(216, 170, 109, .11);
+  background:
+    linear-gradient(145deg, rgba(216, 170, 109, .025), rgba(255,255,255,.01)),
+    rgba(5,5,5,.18);
+}
+
+body.detail-edit-mode .personal-dashboard {
+  border-color: rgba(216, 170, 109, .22);
+}
+
+.detail-edit-fab {
+  position: fixed;
+  right: max(16px, env(safe-area-inset-right));
+  bottom: calc(82px + env(safe-area-inset-bottom));
+  z-index: 80;
+  min-height: 46px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 0 15px;
+  border: 1px solid rgba(216, 170, 109, .34);
+  border-radius: 999px;
+  background: rgba(19, 17, 14, .96);
+  color: var(--accent-2, #efc27c);
+  font: inherit;
+  font-size: .8rem;
+  font-weight: 850;
+  box-shadow: 0 12px 36px rgba(0,0,0,.38), inset 0 1px 0 rgba(255,255,255,.045);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  cursor: pointer;
+}
+
+.detail-edit-fab.active {
+  border-color: rgba(216, 170, 109, .52);
+  background: rgba(216, 170, 109, .14);
+}
+
+body.detail-edit-mode .book-detail-page .book-edit-grid,
+body.detail-edit-mode .manga-detail-page .personal-editors,
+body.detail-edit-mode .anime-detail-page .personal-editors {
+  animation: detail-panel-in .16s ease-out;
+}
+
+@keyframes detail-panel-in {
+  from { opacity: 0; transform: translateY(-4px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+#manga-special-volume-source {
+  display: none !important;
+}
+
+.manga-detail-page .variant-volume {
+  position: relative;
+  display: grid;
+  grid-template-columns: 76px minmax(0, 1fr);
+  align-items: center;
+  gap: 13px;
+  border-color: rgba(216, 170, 109, .34);
+  background:
+    linear-gradient(145deg, rgba(216, 170, 109, .09), rgba(255, 255, 255, .018)),
+    rgba(8, 7, 6, .72);
+}
+
+.manga-detail-page .variant-volume-cover {
+  width: 76px;
+  aspect-ratio: 2 / 3;
+  overflow: hidden;
+  border-radius: 10px;
+  background: rgba(255, 255, 255, .025);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, .24);
+}
+
+.manga-detail-page .variant-volume-cover img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.manga-detail-page .variant-volume-placeholder {
+  width: 100%;
+  height: 100%;
+  display: grid;
+  place-items: center;
+  background: linear-gradient(160deg, rgba(216, 170, 109, .15), rgba(255, 255, 255, .025));
+  color: var(--accent-2);
+  font-size: 1rem;
+  font-weight: 900;
+}
+
+.manga-detail-page .variant-volume-copy {
+  min-width: 0;
+  align-self: center;
+}
+
+.manga-detail-page .variant-volume-badge {
+  width: fit-content;
+  display: inline-flex;
+  align-items: center;
+  min-height: 23px;
+  padding: 0 8px;
+  border: 1px solid rgba(216, 170, 109, .28);
+  border-radius: 999px;
+  background: rgba(216, 170, 109, .1);
+  color: var(--accent-2);
+  font-size: .62rem;
+  font-weight: 900;
+  letter-spacing: .08em;
+  text-transform: uppercase;
+}
+
+.manga-detail-page .variant-owned-label {
+  grid-column: 1 / -1;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  width: fit-content;
+  color: var(--accent-2);
+  font-size: .72rem;
+  font-weight: 800;
+}
+
+body.detail-app-shell:not(.detail-edit-mode) .manga-collector-page .manga-collector-stage {
+  padding-top: 18px;
+  padding-bottom: 18px;
+}
+
+body.detail-app-shell:not(.detail-edit-mode) .manga-collector-page .manga-special-grid {
+  margin-top: 10px;
+}
+
+@media (min-width: 900px) {
+  .detail-edit-fab {
+    bottom: 24px;
+    right: 24px;
+  }
+}
+
+@media (max-width: 760px) {
+  .work-detail-v2 .personal-dashboard {
+    padding: 16px;
+  }
+
+  .work-detail-v2 .personal-metrics {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 8px;
+  }
+
+  .work-detail-v2 .personal-metrics > div {
+    min-height: 88px;
+    padding: 12px;
+  }
+
+  .work-detail-v2 .detail-tabs {
+    width: 100%;
+  }
+
+  .work-detail-v2 .detail-tabs a {
+    flex: 1 0 auto;
+  }
+
+  body.detail-app-shell:not(.detail-edit-mode) .work-detail-v2 .work-description {
+    display: -webkit-box;
+    -webkit-line-clamp: 3;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+  }
+}
+
+@media (max-width: 560px) {
+  .manga-detail-page .variant-volume {
+    grid-template-columns: 68px minmax(0, 1fr);
+    gap: 11px;
+  }
+
+  .manga-detail-page .variant-volume-cover {
+    width: 68px;
+  }
+}

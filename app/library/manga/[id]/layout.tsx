@@ -1,6 +1,7 @@
 import type { ReactNode } from "react";
 import { LibraryRemovePanel } from "@/components/library-remove-panel";
 import { MangaCollectorPanel } from "./collector";
+import { MangaSpecialVolumeSource } from "./special-volume-source";
 
 const UUID =
   /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
@@ -18,6 +19,7 @@ export default async function MangaDetailLayout({
   return (
     <>
       {children}
+      {isRealWork ? <MangaSpecialVolumeSource workId={id} /> : null}
       {isRealWork ? <MangaCollectorPanel workId={id} /> : null}
       {isRealWork ? <LibraryRemovePanel workId={id} mediaType="MANGA" /> : null}
     </>

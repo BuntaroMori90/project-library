@@ -1,4 +1,5 @@
 import type { Metadata, Viewport } from "next";
+import { DetailAppMode } from "@/components/detail-app-mode";
 import { PwaRegister } from "@/components/pwa-register";
 import "./globals.css";
 
@@ -29,6 +30,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       <body>
         <PwaRegister />
         {children}
+        <DetailAppMode />
       </body>
     </html>
   );
