@@ -217,7 +217,15 @@
     backdrop-filter: blur(14px);
     -webkit-backdrop-filter: blur(14px);
     pointer-events: auto;
-    cursor: pointer;
+    touch-action: none;
+    user-select: none;
+    -webkit-user-select: none;
+    cursor: grab;
+  }
+  .alphabet-rail-shell.scrubbing .alphabet-rail-trigger {
+    cursor: grabbing;
+    border-color: rgba(216,170,109,.36);
+    background: rgba(28,22,18,.72);
   }
   .alphabet-rail-trigger span {
     writing-mode: vertical-rl;
