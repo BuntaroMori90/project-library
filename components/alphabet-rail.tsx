@@ -10,6 +10,7 @@ import {
 const letters = ["#", ..."ABCDEFGHIJKLMNOPQRSTUVWXYZ"];
 const PAGE_SCROLL_OFFSET = 104;
 const DRAG_THRESHOLD = 4;
+const TRIGGER_SCRUB_TRAVEL = 200;
 const LAST_INDEX = letters.length - 1;
 
 type ScrollStop = {
@@ -269,7 +270,8 @@ export function AlphabetRail({
         return;
       }
 
-      const distance = Math.abs(event.clientY - gestureStartY.current);
+      const deltaY = event.clientY - gestureStartY.current;
+      const distance = Math.abs(deltaY);
       if (!gestureMoved.current && distance < DRAG_THRESHOLD) return;
 
       if (!gestureMoved.current) {
@@ -289,22 +291,14 @@ export function AlphabetRail({
           );
           index = progress * LAST_INDEX;
         }
+      } else if (deltaY >= 0) {
+        const progress = clamp(deltaY / TRIGGER_SCRUB_TRAVEL, 0, 1);
+        index =
+          gestureStartIndex.current +
+          (LAST_INDEX - gestureStartIndex.current) * progress;
       } else {
-        const topEdge = 72;
-        const bottomEdge = Math.max(topEdge + 120, window.innerHeight - 84);
-        const startY = clamp(gestureStartY.current, topEdge, bottomEdge);
-        const currentY = clamp(event.clientY, topEdge, bottomEdge);
-        const startIndex = gestureStartIndex.current;
-
-        if (currentY >= startY) {
-          const room = Math.max(1, bottomEdge - startY);
-          const progress = (currentY - startY) / room;
-          index = startIndex + (LAST_INDEX - startIndex) * progress;
-        } else {
-          const room = Math.max(1, startY - topEdge);
-          const progress = (startY - currentY) / room;
-          index = startIndex * (1 - progress);
-        }
+        const progress = clamp(-deltaY / TRIGGER_SCRUB_TRAVEL, 0, 1);
+        index = gestureStartIndex.current * (1 - progress);
       }
 
       scheduleIndex(index);
