@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { createManualManga } from "@/lib/catalog/import-manual-manga";
+import { query } from "@/lib/db";
 import { getApiProfile } from "@/lib/profile";
 import {
   saveCatalogDestination,
@@ -33,10 +34,8 @@ export async function POST(request: Request) {
       );
     }
 
-    const created = await createManualManga(
-      title,
-      asPositiveInteger(body.totalVolumes),
-    );
+    const totalVolumes = asPositiveInteger(body.totalVolumes);
+    const created = await createManualManga(title, totalVolumes);
     const destination =
       body.destination === "wishlist" ? "wishlist" : "library";
     const placement = await saveCatalogDestination(
@@ -45,9 +44,22 @@ export async function POST(request: Request) {
       destination,
     );
 
+    if (destination === "library") {
+      await query(
+        `insert into ownership
+           (profile_id,edition_id,ownership_format,custom_format,custom_name,updated_at)
+         values ($1,$2,'TRACKING','Standard','Edizione personale',now())
+         on conflict (profile_id,edition_id) do update set
+           custom_format=coalesce(ownership.custom_format,'Standard'),
+           updated_at=now()`,
+        [authContext.profile.id, created.editionId],
+      );
+    }
+
     return NextResponse.json({
       ok: true,
       workId: created.workId,
+      totalVolumes,
       ...placement,
     });
   } catch (error) {
