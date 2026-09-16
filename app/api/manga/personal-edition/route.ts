@@ -81,7 +81,7 @@ export async function POST(request: Request) {
     const hint = stage === "database" ? databaseHint(error) : "";
     return NextResponse.json(
       {
-        error: `Non siamo riusciti a salvare la copertina (fase: ${stage}${hint}).`,
+        error: `Non siamo riusciti a salvare l'edizione personale (fase: ${stage}${hint}).`,
       },
       { status: 500 },
     );
