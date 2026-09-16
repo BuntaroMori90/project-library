@@ -10,10 +10,11 @@ import {
 const letters = ["#", ..."ABCDEFGHIJKLMNOPQRSTUVWXYZ"];
 const PAGE_SCROLL_OFFSET = 104;
 const DRAG_THRESHOLD = 4;
+const LAST_INDEX = letters.length - 1;
 
-type CatalogRange = {
-  start: number;
-  end: number;
+type ScrollStop = {
+  index: number;
+  top: number;
 };
 
 type GestureSource = "trigger" | "rail" | null;
@@ -35,13 +36,13 @@ export function AlphabetRail({
   const openRef = useRef(false);
   const activeLetterRef = useRef("#");
   const animationFrame = useRef<number | null>(null);
-  const pendingProgress = useRef<number | null>(null);
-  const catalogRangeRef = useRef<CatalogRange>({ start: 0, end: 0 });
+  const pendingIndex = useRef<number | null>(null);
+  const scrollStopsRef = useRef<ScrollStop[]>([]);
 
   const gestureSource = useRef<GestureSource>(null);
   const gesturePointerId = useRef<number | null>(null);
   const gestureStartY = useRef(0);
-  const gestureStartProgress = useRef(0);
+  const gestureStartIndex = useRef(0);
   const gestureStartOpen = useRef(false);
   const gestureMoved = useRef(false);
   const railRectRef = useRef<DOMRect | null>(null);
@@ -57,70 +58,122 @@ export function AlphabetRail({
     setActiveLetter(letter);
   }
 
-  function getCatalogRange(): CatalogRange {
+  function getScrollStops(): ScrollStop[] {
     const maxScroll = Math.max(
       0,
       document.documentElement.scrollHeight - window.innerHeight,
     );
 
-    const sections = availableLetters
-      .map((letter) => document.getElementById(`letter-${letter.toUpperCase()}`))
-      .filter((element): element is HTMLElement => Boolean(element));
+    const realStops = availableLetters
+      .map((letter) => {
+        const normalized = letter.toUpperCase();
+        const index = letters.indexOf(normalized);
+        const target = document.getElementById(`letter-${normalized}`);
+        if (index < 0 || !target) return null;
 
-    if (!sections.length) {
-      return { start: 0, end: maxScroll };
+        const top = clamp(
+          window.scrollY + target.getBoundingClientRect().top - PAGE_SCROLL_OFFSET,
+          0,
+          maxScroll,
+        );
+        return { index, top };
+      })
+      .filter((stop): stop is ScrollStop => Boolean(stop))
+      .sort((a, b) => a.index - b.index);
+
+    if (!realStops.length) {
+      return [
+        { index: 0, top: 0 },
+        { index: LAST_INDEX, top: maxScroll },
+      ];
     }
 
-    let firstTop = Number.POSITIVE_INFINITY;
-    for (const section of sections) {
-      const rect = section.getBoundingClientRect();
-      firstTop = Math.min(firstTop, window.scrollY + rect.top);
+    const firstTop = realStops[0].top;
+    const stops = [...realStops];
+
+    if (stops[0].index !== 0) {
+      stops.unshift({ index: 0, top: firstTop });
+    } else {
+      stops[0] = { index: 0, top: firstTop };
     }
 
-    const start = clamp(firstTop - PAGE_SCROLL_OFFSET, 0, maxScroll);
+    const last = stops.at(-1)!;
+    if (last.index !== LAST_INDEX) {
+      stops.push({ index: LAST_INDEX, top: maxScroll });
+    } else {
+      last.top = maxScroll;
+    }
 
-    // The alphabet is a continuous scrub track, not a list of anchors.
-    // Always use all remaining document scroll so #..Z stays usable even
-    // when only a few initials currently contain items.
-    return { start, end: Math.max(start, maxScroll) };
+    return stops;
   }
 
-  function progressForScroll(scrollY: number, range = getCatalogRange()) {
-    const span = range.end - range.start;
-    if (span <= 1) return 0;
-    return clamp((scrollY - range.start) / span, 0, 1);
+  function topForIndex(rawIndex: number, stops: ScrollStop[]) {
+    const index = clamp(rawIndex, 0, LAST_INDEX);
+    if (index <= stops[0].index) return stops[0].top;
+    if (index >= stops.at(-1)!.index) return stops.at(-1)!.top;
+
+    let previous = stops[0];
+    let next = stops.at(-1)!;
+
+    for (let i = 1; i < stops.length; i += 1) {
+      if (stops[i].index >= index) {
+        previous = stops[i - 1];
+        next = stops[i];
+        break;
+      }
+    }
+
+    const span = next.index - previous.index;
+    if (span <= 0) return previous.top;
+    const progress = (index - previous.index) / span;
+    return previous.top + (next.top - previous.top) * progress;
   }
 
-  function letterForProgress(progress: number) {
-    const index = clamp(
-      Math.round(progress * (letters.length - 1)),
-      0,
-      letters.length - 1,
-    );
+  function indexForScroll(scrollY: number, stops = getScrollStops()) {
+    if (!stops.length) return 0;
+    if (scrollY <= stops[0].top) return stops[0].index;
+    if (scrollY >= stops.at(-1)!.top) return stops.at(-1)!.index;
+
+    let previous = stops[0];
+    let next = stops.at(-1)!;
+
+    for (let i = 1; i < stops.length; i += 1) {
+      if (stops[i].top >= scrollY) {
+        previous = stops[i - 1];
+        next = stops[i];
+        break;
+      }
+    }
+
+    const span = next.top - previous.top;
+    if (span <= 1) return next.index;
+    const progress = (scrollY - previous.top) / span;
+    return previous.index + (next.index - previous.index) * progress;
+  }
+
+  function letterForIndex(rawIndex: number) {
+    const index = clamp(Math.round(rawIndex), 0, LAST_INDEX);
     return letters[index];
   }
 
-  function scrollForProgress(progress: number, range: CatalogRange) {
-    return range.start + (range.end - range.start) * clamp(progress, 0, 1);
+  function applyIndex(rawIndex: number) {
+    const index = clamp(rawIndex, 0, LAST_INDEX);
+    const stops = scrollStopsRef.current.length
+      ? scrollStopsRef.current
+      : getScrollStops();
+
+    updateActiveLetter(letterForIndex(index));
+    window.scrollTo(0, topForIndex(index, stops));
   }
 
-  function applyProgress(progress: number) {
-    const normalized = clamp(progress, 0, 1);
-    const range = catalogRangeRef.current;
-    const top = scrollForProgress(normalized, range);
-
-    updateActiveLetter(letterForProgress(normalized));
-    window.scrollTo(0, top);
-  }
-
-  function scheduleProgress(progress: number) {
-    pendingProgress.current = clamp(progress, 0, 1);
+  function scheduleIndex(rawIndex: number) {
+    pendingIndex.current = clamp(rawIndex, 0, LAST_INDEX);
     if (animationFrame.current !== null) return;
 
     animationFrame.current = requestAnimationFrame(() => {
       animationFrame.current = null;
-      const next = pendingProgress.current;
-      if (next !== null) applyProgress(next);
+      const next = pendingIndex.current;
+      if (next !== null) applyIndex(next);
     });
   }
 
@@ -128,26 +181,22 @@ export function AlphabetRail({
     const index = letters.indexOf(letter);
     if (index < 0) return;
 
-    const range = getCatalogRange();
-    catalogRangeRef.current = range;
-    const progress = index / (letters.length - 1);
+    const stops = getScrollStops();
+    scrollStopsRef.current = stops;
     updateActiveLetter(letter);
-    window.scrollTo({
-      top: scrollForProgress(progress, range),
-      behavior: "smooth",
-    });
+    window.scrollTo({ top: topForIndex(index, stops), behavior: "smooth" });
   }
 
   function startGesture(
     source: Exclude<GestureSource, null>,
     event: ReactPointerEvent<HTMLElement>,
   ) {
-    const range = getCatalogRange();
-    catalogRangeRef.current = range;
+    const stops = getScrollStops();
+    scrollStopsRef.current = stops;
     gestureSource.current = source;
     gesturePointerId.current = event.pointerId;
     gestureStartY.current = event.clientY;
-    gestureStartProgress.current = progressForScroll(window.scrollY, range);
+    gestureStartIndex.current = indexForScroll(window.scrollY, stops);
     gestureStartOpen.current = openRef.current;
     gestureMoved.current = false;
     railRectRef.current = railRef.current?.getBoundingClientRect() ?? null;
@@ -164,8 +213,8 @@ export function AlphabetRail({
       cancelAnimationFrame(animationFrame.current);
       animationFrame.current = null;
     }
-    if (pendingProgress.current !== null && gestureMoved.current) {
-      applyProgress(pendingProgress.current);
+    if (pendingIndex.current !== null && gestureMoved.current) {
+      applyIndex(pendingIndex.current);
     }
 
     const source = gestureSource.current;
@@ -175,7 +224,8 @@ export function AlphabetRail({
     gestureSource.current = null;
     gesturePointerId.current = null;
     railRectRef.current = null;
-    pendingProgress.current = null;
+    pendingIndex.current = null;
+    scrollStopsRef.current = [];
 
     if (source === "trigger" && !moved) {
       updateOpen(!gestureStartOpen.current);
@@ -195,10 +245,8 @@ export function AlphabetRail({
 
       animationFrame.current = requestAnimationFrame(() => {
         animationFrame.current = null;
-        const range = getCatalogRange();
-        catalogRangeRef.current = range;
-        const progress = progressForScroll(window.scrollY, range);
-        updateActiveLetter(letterForProgress(progress));
+        const stops = getScrollStops();
+        updateActiveLetter(letterForIndex(indexForScroll(window.scrollY, stops)));
       });
     };
 
@@ -229,28 +277,37 @@ export function AlphabetRail({
         setDragging(true);
       }
 
-      let progress = gestureStartProgress.current;
+      let index = gestureStartIndex.current;
 
       if (gestureSource.current === "rail") {
         const rect = railRectRef.current ?? railRef.current?.getBoundingClientRect();
         if (rect) {
-          progress = clamp(
+          const progress = clamp(
             (event.clientY - rect.top) / Math.max(1, rect.height),
             0,
             1,
           );
+          index = progress * LAST_INDEX;
         }
       } else {
-        const usableHeight = Math.max(220, window.innerHeight - 150);
-        progress = clamp(
-          gestureStartProgress.current +
-            (event.clientY - gestureStartY.current) / usableHeight,
-          0,
-          1,
-        );
+        const topEdge = 72;
+        const bottomEdge = Math.max(topEdge + 120, window.innerHeight - 84);
+        const startY = clamp(gestureStartY.current, topEdge, bottomEdge);
+        const currentY = clamp(event.clientY, topEdge, bottomEdge);
+        const startIndex = gestureStartIndex.current;
+
+        if (currentY >= startY) {
+          const room = Math.max(1, bottomEdge - startY);
+          const progress = (currentY - startY) / room;
+          index = startIndex + (LAST_INDEX - startIndex) * progress;
+        } else {
+          const room = Math.max(1, startY - topEdge);
+          const progress = (startY - currentY) / room;
+          index = startIndex * (1 - progress);
+        }
       }
 
-      scheduleProgress(progress);
+      scheduleIndex(index);
       event.preventDefault();
     };
 
