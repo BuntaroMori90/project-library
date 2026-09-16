@@ -63,3 +63,144 @@
     justify-self: end;
   }
 }
+
+/* Persistent adaptive alphabet index.
+   Only initials that actually exist are rendered. */
+.alphabet-rail-shell.alphabet-rail-persistent {
+  position: fixed;
+  z-index: 72;
+  right: 5px;
+  top: 92px;
+  bottom: 88px;
+  width: 44px;
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  pointer-events: none;
+}
+
+.alphabet-rail-shell.alphabet-rail-persistent .alphabet-rail-trigger {
+  display: none !important;
+}
+
+.alphabet-rail-shell.alphabet-rail-persistent .alphabet-rail {
+  position: static;
+  width: 34px;
+  height: min(
+    calc(var(--alphabet-count, 2) * 29px + 12px),
+    calc(100dvh - 196px)
+  );
+  max-height: 68dvh;
+  min-height: calc(var(--alphabet-count, 2) * 20px + 10px);
+  display: grid;
+  grid-template-rows: repeat(var(--alphabet-count, 2), minmax(0, 1fr));
+  align-items: stretch;
+  gap: 0;
+  overflow: hidden;
+  padding: 6px 3px;
+  border: 1px solid rgba(216,170,109,.16);
+  border-radius: 18px;
+  background: rgba(15,13,12,.5);
+  box-shadow: 0 12px 32px rgba(0,0,0,.22);
+  backdrop-filter: blur(16px) saturate(120%);
+  -webkit-backdrop-filter: blur(16px) saturate(120%);
+  opacity: 1;
+  visibility: visible;
+  transform: none;
+  transition: border-color .12s ease, background .12s ease, box-shadow .12s ease;
+  pointer-events: auto;
+  touch-action: none;
+  user-select: none;
+  -webkit-user-select: none;
+}
+
+.alphabet-rail-shell.alphabet-rail-persistent.scrubbing .alphabet-rail {
+  border-color: rgba(216,170,109,.42);
+  background: rgba(20,17,15,.78);
+  box-shadow: 0 16px 42px rgba(0,0,0,.32), 0 0 0 1px rgba(216,170,109,.08);
+}
+
+.alphabet-rail-shell.alphabet-rail-persistent .alphabet-rail button {
+  appearance: none;
+  -webkit-appearance: none;
+  width: 100%;
+  min-width: 0;
+  min-height: 0;
+  height: 100%;
+  display: grid;
+  place-items: center;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  border-radius: 999px;
+  background: transparent;
+  color: rgba(239,233,225,.68);
+  font: inherit;
+  font-size: clamp(9px, 1.35dvh, 11px);
+  font-weight: 850;
+  line-height: 1;
+  cursor: pointer;
+  touch-action: none;
+}
+
+.alphabet-rail-shell.alphabet-rail-persistent .alphabet-rail button.active {
+  background: rgba(216,170,109,.18);
+  color: var(--accent-2, #d8aa6d);
+  transform: scale(1.08);
+}
+
+.alphabet-rail-shell.alphabet-rail-persistent .alphabet-rail button:focus-visible {
+  outline: 1px solid rgba(216,170,109,.55);
+  outline-offset: -1px;
+}
+
+.alphabet-rail-shell.alphabet-rail-persistent .alphabet-scrub-bubble {
+  position: absolute;
+  right: 48px;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 58px;
+  height: 58px;
+  display: grid;
+  place-items: center;
+  border: 1px solid rgba(216,170,109,.28);
+  border-radius: 19px;
+  background: rgba(17,15,14,.94);
+  color: var(--accent-2, #d8aa6d);
+  box-shadow: 0 18px 48px rgba(0,0,0,.34);
+  backdrop-filter: blur(18px);
+  -webkit-backdrop-filter: blur(18px);
+  font-family: Georgia, "Times New Roman", serif;
+  font-size: 1.8rem;
+  font-weight: 800;
+  pointer-events: none;
+}
+
+@media (max-width: 760px) {
+  .alphabet-rail-shell.alphabet-rail-persistent {
+    right: 2px;
+    top: 74px;
+    bottom: 80px;
+    width: 42px;
+  }
+
+  .alphabet-rail-shell.alphabet-rail-persistent .alphabet-rail {
+    width: 32px;
+    max-height: 70dvh;
+    height: min(
+      calc(var(--alphabet-count, 2) * 30px + 10px),
+      calc(100dvh - 170px)
+    );
+    min-height: calc(var(--alphabet-count, 2) * 22px + 8px);
+    padding: 5px 2px;
+    border-radius: 17px;
+  }
+
+  .alphabet-rail-shell.alphabet-rail-persistent .alphabet-rail button {
+    font-size: clamp(9px, 1.4dvh, 11px);
+  }
+
+  .alphabet-rail-shell.alphabet-rail-persistent .alphabet-scrub-bubble {
+    right: 44px;
+  }
+}
