@@ -22,9 +22,9 @@ export async function createManualManga(title: string) {
     const edition = await client.query<{ id: string }>(
       `insert into editions
          (work_id,name,source_provider,source_external_id,is_canonical)
-       values ($1,'Edizione da completare','MANUAL',$1::text,true)
+       values ($1,'Edizione da completare','MANUAL',$2,true)
        returning id`,
-      [workId],
+      [workId, workId],
     );
 
     return { workId, editionId: edition.rows[0].id };
