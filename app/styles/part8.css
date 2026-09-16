@@ -194,7 +194,7 @@
     right: 0;
     top: 68px;
     bottom: 76px;
-    width: 76px;
+    width: 84px;
     justify-content: flex-end;
   }
   .alphabet-rail-trigger {
@@ -238,12 +238,16 @@
     position: absolute;
     right: 31px;
     top: 50%;
-    width: 42px;
-    max-height: calc(100vh - 154px);
-    overflow-y: auto;
-    overscroll-behavior: contain;
-    scrollbar-width: none;
-    padding: 8px 5px;
+    width: 40px;
+    height: min(72dvh, 540px);
+    max-height: calc(100dvh - 164px);
+    display: grid;
+    grid-template-rows: repeat(27, minmax(0, 1fr));
+    align-items: stretch;
+    justify-content: stretch;
+    overflow: hidden;
+    overscroll-behavior: none;
+    padding: 6px 4px;
     gap: 0;
     border: 1px solid rgba(255,255,255,.07);
     border-radius: 20px;
@@ -251,16 +255,13 @@
     box-shadow: 0 18px 50px rgba(0,0,0,.28);
     backdrop-filter: blur(18px) saturate(120%);
     -webkit-backdrop-filter: blur(18px) saturate(120%);
-    font-size: 11px;
+    font-size: clamp(8px, 1.1dvh, 10px);
     opacity: 0;
     visibility: hidden;
     pointer-events: none;
     transform: translate(12px,-50%) scale(.98);
     transform-origin: right center;
     transition: opacity .14s ease, transform .14s ease, visibility .14s ease;
-  }
-  .alphabet-rail-shell .alphabet-rail::-webkit-scrollbar {
-    display: none;
   }
   .alphabet-rail-shell.open .alphabet-rail,
   .alphabet-rail-shell.scrubbing .alphabet-rail {
@@ -275,7 +276,9 @@
   .alphabet-rail-shell .alphabet-rail a,
   .alphabet-rail-shell .alphabet-letter-disabled {
     width: 30px;
-    min-height: 18px;
+    min-height: 0;
+    height: 100%;
+    line-height: 1;
   }
   .alphabet-scrub-bubble {
     right: 84px;
@@ -283,5 +286,14 @@
     height: 58px;
     border-radius: 19px;
     font-size: 1.8rem;
+  }
+}
+
+@media (max-width: 760px) and (max-height: 700px) {
+  .alphabet-rail-shell .alphabet-rail {
+    height: calc(100dvh - 150px);
+    max-height: calc(100dvh - 150px);
+    padding-block: 4px;
+    font-size: 7.5px;
   }
 }
