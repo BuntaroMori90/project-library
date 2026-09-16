@@ -1,5 +1,6 @@
 import "server-only";
 import { query } from "@/lib/db";
+import { getMangaOwnedVolumeNumbers } from "@/lib/repositories/manga-ownership";
 
 export type WorkRow = {
   id: string;
@@ -136,6 +137,7 @@ export async function getMangaDetail(profileId: string, workId: string) {
     progressResult,
     editionsResult,
     ownershipResult,
+    ownedVolumeNumbers,
   ] = await Promise.all([
     query<WorkRow>(
       "select id,title,original_title,description,release_year,publication_status,cover_url,genres,total_volumes,total_chapters from works where id=$1 and media_type='MANGA' limit 1",
@@ -181,6 +183,7 @@ export async function getMangaDetail(profileId: string, workId: string) {
         where o.profile_id=$1 and e.work_id=$2`,
       [profileId, workId],
     ),
+    getMangaOwnedVolumeNumbers(profileId, workId),
   ]);
 
   const editions = editionsResult.rows;
@@ -216,6 +219,7 @@ export async function getMangaDetail(profileId: string, workId: string) {
     canonicalEdition,
     volumes,
     ownedIds,
+    ownedVolumeNumbers,
     ownedEditionIds: new Set(ownershipResult.rows.map((row) => row.edition_id)),
     ownershipByEdition: new Map(
       ownershipResult.rows.map((row) => [row.edition_id, row] as const),
