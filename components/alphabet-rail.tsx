@@ -1,27 +1,35 @@
 "use client";
 
 import {
+  type CSSProperties,
   type PointerEvent as ReactPointerEvent,
   useEffect,
+  useMemo,
   useRef,
   useState,
 } from "react";
 
-const letters = ["#", ..."ABCDEFGHIJKLMNOPQRSTUVWXYZ"];
+const LETTER_ORDER = ["#", ..."ABCDEFGHIJKLMNOPQRSTUVWXYZ"];
 const PAGE_SCROLL_OFFSET = 104;
-const DRAG_THRESHOLD = 4;
-const TRIGGER_SCRUB_TRAVEL = 200;
-const LAST_INDEX = letters.length - 1;
+const DRAG_THRESHOLD = 3;
 
 type ScrollStop = {
-  index: number;
+  letter: string;
   top: number;
 };
 
-type GestureSource = "trigger" | "rail" | null;
-
 function clamp(value: number, min: number, max: number) {
   return Math.min(max, Math.max(min, value));
+}
+
+function normalizeLetters(values: string[]) {
+  const unique = new Set(
+    values
+      .map((value) => value.trim().toUpperCase())
+      .filter((value) => LETTER_ORDER.includes(value)),
+  );
+
+  return LETTER_ORDER.filter((letter) => unique.has(letter));
 }
 
 export function AlphabetRail({
@@ -29,29 +37,24 @@ export function AlphabetRail({
 }: {
   availableLetters?: string[];
 }) {
-  const [open, setOpen] = useState(false);
+  const displayLetters = useMemo(
+    () => normalizeLetters(availableLetters),
+    [availableLetters.join("|")],
+  );
+
   const [dragging, setDragging] = useState(false);
-  const [activeLetter, setActiveLetter] = useState("#");
+  const [activeLetter, setActiveLetter] = useState(
+    displayLetters[0] ?? "#",
+  );
 
   const railRef = useRef<HTMLElement>(null);
-  const openRef = useRef(false);
-  const activeLetterRef = useRef("#");
-  const animationFrame = useRef<number | null>(null);
-  const pendingIndex = useRef<number | null>(null);
-  const scrollStopsRef = useRef<ScrollStop[]>([]);
-
-  const gestureSource = useRef<GestureSource>(null);
-  const gesturePointerId = useRef<number | null>(null);
-  const gestureStartY = useRef(0);
-  const gestureStartIndex = useRef(0);
-  const gestureStartOpen = useRef(false);
-  const gestureMoved = useRef(false);
-  const railRectRef = useRef<DOMRect | null>(null);
-
-  function updateOpen(value: boolean) {
-    openRef.current = value;
-    setOpen(value);
-  }
+  const pointerIdRef = useRef<number | null>(null);
+  const pointerStartYRef = useRef(0);
+  const pointerMovedRef = useRef(false);
+  const activeLetterRef = useRef(activeLetter);
+  const stopsRef = useRef<ScrollStop[]>([]);
+  const animationFrameRef = useRef<number | null>(null);
+  const pendingIndexRef = useRef<number | null>(null);
 
   function updateActiveLetter(letter: string) {
     if (activeLetterRef.current === letter) return;
@@ -59,249 +62,194 @@ export function AlphabetRail({
     setActiveLetter(letter);
   }
 
-  function getScrollStops(): ScrollStop[] {
+  function getStops(): ScrollStop[] {
     const maxScroll = Math.max(
       0,
       document.documentElement.scrollHeight - window.innerHeight,
     );
 
-    const realStops = availableLetters
+    const stops = displayLetters
       .map((letter) => {
-        const normalized = letter.toUpperCase();
-        const index = letters.indexOf(normalized);
-        const target = document.getElementById(`letter-${normalized}`);
-        if (index < 0 || !target) return null;
+        const target = document.getElementById(`letter-${letter}`);
+        if (!target) return null;
 
-        const top = clamp(
-          window.scrollY + target.getBoundingClientRect().top - PAGE_SCROLL_OFFSET,
-          0,
-          maxScroll,
-        );
-        return { index, top };
+        return {
+          letter,
+          top: clamp(
+            window.scrollY + target.getBoundingClientRect().top - PAGE_SCROLL_OFFSET,
+            0,
+            maxScroll,
+          ),
+        };
       })
-      .filter((stop): stop is ScrollStop => Boolean(stop))
-      .sort((a, b) => a.index - b.index);
+      .filter((stop): stop is ScrollStop => Boolean(stop));
 
-    if (!realStops.length) {
-      return [
-        { index: 0, top: 0 },
-        { index: LAST_INDEX, top: maxScroll },
-      ];
+    for (let index = 1; index < stops.length; index += 1) {
+      stops[index].top = Math.max(stops[index].top, stops[index - 1].top);
     }
 
-    const firstTop = realStops[0].top;
-    const stops = [...realStops];
-
-    if (stops[0].index !== 0) {
-      stops.unshift({ index: 0, top: firstTop });
-    } else {
-      stops[0] = { index: 0, top: firstTop };
-    }
-
-    const last = stops.at(-1)!;
-    if (last.index !== LAST_INDEX) {
-      stops.push({ index: LAST_INDEX, top: maxScroll });
-    } else {
-      last.top = maxScroll;
+    if (stops.length > 1) {
+      stops[stops.length - 1].top = maxScroll;
     }
 
     return stops;
   }
 
   function topForIndex(rawIndex: number, stops: ScrollStop[]) {
-    const index = clamp(rawIndex, 0, LAST_INDEX);
-    if (index <= stops[0].index) return stops[0].top;
-    if (index >= stops.at(-1)!.index) return stops.at(-1)!.top;
+    if (!stops.length) return window.scrollY;
+    if (stops.length === 1) return stops[0].top;
 
-    let previous = stops[0];
-    let next = stops.at(-1)!;
+    const index = clamp(rawIndex, 0, stops.length - 1);
+    const lowerIndex = Math.floor(index);
+    const upperIndex = Math.min(stops.length - 1, Math.ceil(index));
 
-    for (let i = 1; i < stops.length; i += 1) {
-      if (stops[i].index >= index) {
-        previous = stops[i - 1];
-        next = stops[i];
-        break;
+    if (lowerIndex === upperIndex) return stops[lowerIndex].top;
+
+    const progress = index - lowerIndex;
+    return (
+      stops[lowerIndex].top +
+      (stops[upperIndex].top - stops[lowerIndex].top) * progress
+    );
+  }
+
+  function indexForScroll(scrollY: number, stops: ScrollStop[]) {
+    if (stops.length <= 1) return 0;
+    if (scrollY <= stops[0].top) return 0;
+    if (scrollY >= stops[stops.length - 1].top) return stops.length - 1;
+
+    for (let index = 1; index < stops.length; index += 1) {
+      if (scrollY <= stops[index].top) {
+        const previous = stops[index - 1];
+        const next = stops[index];
+        const span = next.top - previous.top;
+        if (span <= 1) return index;
+        return index - 1 + (scrollY - previous.top) / span;
       }
     }
 
-    const span = next.index - previous.index;
-    if (span <= 0) return previous.top;
-    const progress = (index - previous.index) / span;
-    return previous.top + (next.top - previous.top) * progress;
-  }
-
-  function indexForScroll(scrollY: number, stops = getScrollStops()) {
-    if (!stops.length) return 0;
-    if (scrollY <= stops[0].top) return stops[0].index;
-    if (scrollY >= stops.at(-1)!.top) return stops.at(-1)!.index;
-
-    let previous = stops[0];
-    let next = stops.at(-1)!;
-
-    for (let i = 1; i < stops.length; i += 1) {
-      if (stops[i].top >= scrollY) {
-        previous = stops[i - 1];
-        next = stops[i];
-        break;
-      }
-    }
-
-    const span = next.top - previous.top;
-    if (span <= 1) return next.index;
-    const progress = (scrollY - previous.top) / span;
-    return previous.index + (next.index - previous.index) * progress;
-  }
-
-  function letterForIndex(rawIndex: number) {
-    const index = clamp(Math.round(rawIndex), 0, LAST_INDEX);
-    return letters[index];
+    return stops.length - 1;
   }
 
   function applyIndex(rawIndex: number) {
-    const index = clamp(rawIndex, 0, LAST_INDEX);
-    const stops = scrollStopsRef.current.length
-      ? scrollStopsRef.current
-      : getScrollStops();
+    const stops = stopsRef.current.length ? stopsRef.current : getStops();
+    if (!stops.length) return;
 
-    updateActiveLetter(letterForIndex(index));
+    const index = clamp(rawIndex, 0, stops.length - 1);
+    const activeIndex = clamp(Math.round(index), 0, stops.length - 1);
+    updateActiveLetter(stops[activeIndex].letter);
     window.scrollTo(0, topForIndex(index, stops));
   }
 
   function scheduleIndex(rawIndex: number) {
-    pendingIndex.current = clamp(rawIndex, 0, LAST_INDEX);
-    if (animationFrame.current !== null) return;
+    pendingIndexRef.current = rawIndex;
+    if (animationFrameRef.current !== null) return;
 
-    animationFrame.current = requestAnimationFrame(() => {
-      animationFrame.current = null;
-      const next = pendingIndex.current;
+    animationFrameRef.current = requestAnimationFrame(() => {
+      animationFrameRef.current = null;
+      const next = pendingIndexRef.current;
       if (next !== null) applyIndex(next);
     });
   }
 
-  function jumpToLetter(letter: string) {
-    const index = letters.indexOf(letter);
-    if (index < 0) return;
+  function indexFromPointer(clientY: number) {
+    const rect = railRef.current?.getBoundingClientRect();
+    const stops = stopsRef.current;
+    if (!rect || stops.length <= 1) return 0;
 
-    const stops = getScrollStops();
-    scrollStopsRef.current = stops;
-    updateActiveLetter(letter);
-    window.scrollTo({ top: topForIndex(index, stops), behavior: "smooth" });
+    const progress = clamp(
+      (clientY - rect.top) / Math.max(1, rect.height),
+      0,
+      1,
+    );
+    return progress * (stops.length - 1);
   }
 
-  function startGesture(
-    source: Exclude<GestureSource, null>,
-    event: ReactPointerEvent<HTMLElement>,
-  ) {
-    const stops = getScrollStops();
-    scrollStopsRef.current = stops;
-    gestureSource.current = source;
-    gesturePointerId.current = event.pointerId;
-    gestureStartY.current = event.clientY;
-    gestureStartIndex.current = indexForScroll(window.scrollY, stops);
-    gestureStartOpen.current = openRef.current;
-    gestureMoved.current = false;
-    railRectRef.current = railRef.current?.getBoundingClientRect() ?? null;
+  function startGesture(event: ReactPointerEvent<HTMLElement>) {
+    const stops = getStops();
+    if (!stops.length) return;
 
-    updateOpen(true);
+    stopsRef.current = stops;
+    pointerIdRef.current = event.pointerId;
+    pointerStartYRef.current = event.clientY;
+    pointerMovedRef.current = false;
+    setDragging(true);
+
     event.currentTarget.setPointerCapture(event.pointerId);
+    scheduleIndex(indexFromPointer(event.clientY));
     event.preventDefault();
   }
 
   function finishGesture(pointerId: number) {
-    if (gesturePointerId.current !== pointerId) return;
+    if (pointerIdRef.current !== pointerId) return;
 
-    if (animationFrame.current !== null) {
-      cancelAnimationFrame(animationFrame.current);
-      animationFrame.current = null;
-    }
-    if (pendingIndex.current !== null && gestureMoved.current) {
-      applyIndex(pendingIndex.current);
+    if (animationFrameRef.current !== null) {
+      cancelAnimationFrame(animationFrameRef.current);
+      animationFrameRef.current = null;
     }
 
-    const source = gestureSource.current;
-    const moved = gestureMoved.current;
+    if (pendingIndexRef.current !== null) {
+      applyIndex(pendingIndexRef.current);
+    }
 
+    pointerIdRef.current = null;
+    pendingIndexRef.current = null;
+    stopsRef.current = [];
     setDragging(false);
-    gestureSource.current = null;
-    gesturePointerId.current = null;
-    railRectRef.current = null;
-    pendingIndex.current = null;
-    scrollStopsRef.current = [];
+  }
 
-    if (source === "trigger" && !moved) {
-      updateOpen(!gestureStartOpen.current);
-    } else if (moved) {
-      updateOpen(true);
-    }
+  function jumpToLetter(letter: string) {
+    const stops = getStops();
+    const index = stops.findIndex((stop) => stop.letter === letter);
+    if (index < 0) return;
+
+    updateActiveLetter(letter);
+    window.scrollTo({ top: stops[index].top, behavior: "smooth" });
   }
 
   useEffect(() => {
-    openRef.current = open;
-  }, [open]);
+    if (!displayLetters.length) return;
+    if (!displayLetters.includes(activeLetterRef.current)) {
+      updateActiveLetter(displayLetters[0]);
+    }
+  }, [displayLetters.join("|")]);
 
   useEffect(() => {
-    const syncFromPage = () => {
-      if (gestureSource.current) return;
-      if (animationFrame.current !== null) return;
+    const handleScroll = () => {
+      if (pointerIdRef.current !== null) return;
+      if (animationFrameRef.current !== null) return;
 
-      animationFrame.current = requestAnimationFrame(() => {
-        animationFrame.current = null;
-        const stops = getScrollStops();
-        updateActiveLetter(letterForIndex(indexForScroll(window.scrollY, stops)));
+      animationFrameRef.current = requestAnimationFrame(() => {
+        animationFrameRef.current = null;
+        const stops = getStops();
+        if (!stops.length) return;
+        const index = indexForScroll(window.scrollY, stops);
+        const activeIndex = clamp(Math.round(index), 0, stops.length - 1);
+        updateActiveLetter(stops[activeIndex].letter);
       });
     };
 
-    syncFromPage();
-    window.addEventListener("scroll", syncFromPage, { passive: true });
-    window.addEventListener("resize", syncFromPage);
+    handleScroll();
+    window.addEventListener("scroll", handleScroll, { passive: true });
+    window.addEventListener("resize", handleScroll);
 
     return () => {
-      window.removeEventListener("scroll", syncFromPage);
-      window.removeEventListener("resize", syncFromPage);
+      window.removeEventListener("scroll", handleScroll);
+      window.removeEventListener("resize", handleScroll);
     };
-  }, [availableLetters.join("|")]);
+  }, [displayLetters.join("|")]);
 
   useEffect(() => {
     const handlePointerMove = (event: PointerEvent) => {
+      if (pointerIdRef.current !== event.pointerId) return;
+
       if (
-        gestureSource.current === null ||
-        gesturePointerId.current !== event.pointerId
+        !pointerMovedRef.current &&
+        Math.abs(event.clientY - pointerStartYRef.current) >= DRAG_THRESHOLD
       ) {
-        return;
+        pointerMovedRef.current = true;
       }
 
-      const deltaY = event.clientY - gestureStartY.current;
-      const distance = Math.abs(deltaY);
-      if (!gestureMoved.current && distance < DRAG_THRESHOLD) return;
-
-      if (!gestureMoved.current) {
-        gestureMoved.current = true;
-        setDragging(true);
-      }
-
-      let index = gestureStartIndex.current;
-
-      if (gestureSource.current === "rail") {
-        const rect = railRectRef.current ?? railRef.current?.getBoundingClientRect();
-        if (rect) {
-          const progress = clamp(
-            (event.clientY - rect.top) / Math.max(1, rect.height),
-            0,
-            1,
-          );
-          index = progress * LAST_INDEX;
-        }
-      } else if (deltaY >= 0) {
-        const progress = clamp(deltaY / TRIGGER_SCRUB_TRAVEL, 0, 1);
-        index =
-          gestureStartIndex.current +
-          (LAST_INDEX - gestureStartIndex.current) * progress;
-      } else {
-        const progress = clamp(-deltaY / TRIGGER_SCRUB_TRAVEL, 0, 1);
-        index = gestureStartIndex.current * (1 - progress);
-      }
-
-      scheduleIndex(index);
+      scheduleIndex(indexFromPointer(event.clientY));
       event.preventDefault();
     };
 
@@ -317,26 +265,18 @@ export function AlphabetRail({
       window.removeEventListener("pointermove", handlePointerMove);
       window.removeEventListener("pointerup", handlePointerEnd);
       window.removeEventListener("pointercancel", handlePointerEnd);
-      if (animationFrame.current !== null) {
-        cancelAnimationFrame(animationFrame.current);
+      if (animationFrameRef.current !== null) {
+        cancelAnimationFrame(animationFrameRef.current);
       }
     };
-  }, [availableLetters.join("|")]);
+  }, [displayLetters.join("|")]);
+
+  if (displayLetters.length < 2) return null;
 
   return (
     <div
-      className={`alphabet-rail-shell ${open ? "open" : ""} ${dragging ? "scrubbing" : ""}`}
+      className={`alphabet-rail-shell alphabet-rail-persistent ${dragging ? "scrubbing" : ""}`}
     >
-      <button
-        type="button"
-        className="alphabet-rail-trigger"
-        aria-label={open ? "Chiudi indice alfabetico" : "Apri indice alfabetico"}
-        aria-expanded={open}
-        onPointerDown={(event) => startGesture("trigger", event)}
-      >
-        <span>A–Z</span>
-      </button>
-
       {dragging ? (
         <div className="alphabet-scrub-bubble" aria-hidden="true">
           {activeLetter}
@@ -347,23 +287,23 @@ export function AlphabetRail({
         ref={railRef}
         className="alphabet-rail"
         aria-label="Indice alfabetico"
-        onPointerDown={(event) => startGesture("rail", event)}
+        onPointerDown={startGesture}
+        style={{ "--alphabet-count": displayLetters.length } as CSSProperties}
       >
-        {letters.map((letter) => (
-          <a
+        {displayLetters.map((letter) => (
+          <button
             key={letter}
-            href={`#alphabet-${letter}`}
+            type="button"
             className={activeLetter === letter ? "active" : undefined}
-            data-alphabet-letter={letter}
+            aria-label={`Vai alla lettera ${letter}`}
             aria-current={activeLetter === letter ? "location" : undefined}
-            onClick={(event) => {
-              event.preventDefault();
-              if (gestureMoved.current) return;
+            onClick={() => {
+              if (pointerMovedRef.current) return;
               jumpToLetter(letter);
             }}
           >
             {letter}
-          </a>
+          </button>
         ))}
       </aside>
     </div>
