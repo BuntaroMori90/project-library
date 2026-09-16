@@ -1,0 +1,51 @@
+/* Manga collector cards shown directly on the shelf. */
+.shelf-browser.manga .cover-art {
+  position: relative;
+}
+
+.cover-collection-badge {
+  position: absolute;
+  z-index: 4;
+  top: 8px;
+  left: 8px;
+  max-width: calc(100% - 16px);
+  padding: 5px 8px;
+  overflow: hidden;
+  border: 1px solid rgba(240, 201, 147, .34);
+  border-radius: 999px;
+  background: rgba(12, 10, 9, .88);
+  color: #f0c993;
+  box-shadow: 0 8px 22px rgba(0, 0, 0, .32);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  font-size: 9px;
+  font-weight: 900;
+  line-height: 1;
+  letter-spacing: .08em;
+  text-overflow: ellipsis;
+  text-transform: uppercase;
+  white-space: nowrap;
+  pointer-events: none;
+}
+
+.shelf-browser.manga .cover-link:has(.cover-collection-badge) .cover-art {
+  outline: 1px solid rgba(216, 170, 109, .22);
+  outline-offset: 2px;
+}
+
+.shelf-browser.manga .cover-link:has(.cover-collection-badge) .cover-meta > strong::after {
+  content: " · collezione";
+  color: var(--muted-2);
+  font-size: .72em;
+  font-weight: 700;
+}
+
+@media (max-width: 760px) {
+  .cover-collection-badge {
+    top: 6px;
+    left: 6px;
+    max-width: calc(100% - 12px);
+    padding: 4px 6px;
+    font-size: 8px;
+  }
+}
