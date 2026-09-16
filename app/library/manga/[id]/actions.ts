@@ -34,6 +34,12 @@ function asText(value: FormDataEntryValue | null) {
   return text || null;
 }
 
+function refreshManga(workId: string) {
+  revalidatePath(`/library/manga/${workId}`);
+  revalidatePath("/library/manga");
+  revalidatePath("/library");
+}
+
 async function refreshMissingMangaCounts(workId: string) {
   const work = await query<{ total_volumes: number | null; total_chapters: number | null }>(
     "select total_volumes,total_chapters from works where id=$1 and media_type='MANGA' limit 1",
@@ -68,7 +74,7 @@ export async function updateMangaState(formData: FormData) {
   const { profile } = await requireProfile();
   await setLibraryStatus(profile.id, workId, status);
   await refreshMissingMangaCounts(workId);
-  revalidatePath(`/library/manga/${workId}`);
+  refreshManga(workId);
 }
 
 export async function updateMangaProgress(formData: FormData) {
@@ -79,7 +85,7 @@ export async function updateMangaProgress(formData: FormData) {
   const { profile } = await requireProfile();
   await setMangaProgress(profile.id, workId, currentVolume, currentChapter);
   await refreshMissingMangaCounts(workId);
-  revalidatePath(`/library/manga/${workId}`);
+  refreshManga(workId);
 }
 
 export async function updateMangaPersonal(formData: FormData) {
@@ -95,7 +101,7 @@ export async function updateMangaPersonal(formData: FormData) {
     rating,
     notes: notesRaw || null,
   });
-  revalidatePath(`/library/manga/${workId}`);
+  refreshManga(workId);
 }
 
 export async function addPersonalMangaEdition(formData: FormData) {
@@ -115,9 +121,7 @@ export async function addPersonalMangaEdition(formData: FormData) {
     totalVolumes: asNumber(formData.get("totalVolumes")),
   });
 
-  revalidatePath(`/library/manga/${workId}`);
-  revalidatePath("/library/manga");
-  revalidatePath("/library");
+  refreshManga(workId);
 }
 
 export async function toggleOwnedVolume(formData: FormData) {
@@ -127,5 +131,5 @@ export async function toggleOwnedVolume(formData: FormData) {
   if (!workId || !editionId || !unitId) return;
   const { profile } = await requireProfile();
   await toggleOwnedUnit(profile.id, editionId, unitId);
-  revalidatePath(`/library/manga/${workId}`);
+  refreshManga(workId);
 }
