@@ -5,14 +5,14 @@ import { SectionQuickAdd } from "@/components/section-quick-add";
 import type { LibraryPreferences } from "@/lib/preferences";
 
 function initials(name: string | null) {
-  if (!name?.trim()) return "PL";
+  if (!name?.trim()) return "L";
   return (
     name
       .trim()
       .split(/\s+/)
       .slice(0, 2)
       .map((part) => part[0]?.toUpperCase())
-      .join("") || "PL"
+      .join("") || "L"
   );
 }
 
@@ -35,10 +35,10 @@ export function AppShell({
     >
       <header className="topbar">
         <div className="topbar-inner">
-          <Link href="/library" className="brand" aria-label="Home">
+          <Link href="/library" className="brand" aria-label="Libronia — Home">
             <span className="brand-mark">L</span>
             <span className="brand-copy">
-              <strong>Library</strong>
+              <strong>Libronia</strong>
               <small>personale</small>
             </span>
           </Link>

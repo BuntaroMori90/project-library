@@ -1,4 +1,4 @@
-# Project Library
+# Libronia
 
 Personal library for books, manga and anime.
 
