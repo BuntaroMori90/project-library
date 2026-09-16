@@ -131,6 +131,7 @@ export function AddWorkFlow({
   const [error, setError] = useState<string | null>(null);
   const [searched, setSearched] = useState(false);
   const [manualTitle, setManualTitle] = useState("");
+  const [manualAuthor, setManualAuthor] = useState("");
   const [manualSaving, setManualSaving] = useState<"library" | "wishlist" | null>(null);
 
   function switchType(next: AddWorkType) {
@@ -142,6 +143,7 @@ export function AddWorkFlow({
     setSearched(false);
     setImporting(null);
     setManualTitle("");
+    setManualAuthor("");
     setManualSaving(null);
   }
 
@@ -243,7 +245,11 @@ export function AddWorkFlow({
       const response = await fetch(`/api/catalog/${type}/manual`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ title, destination }),
+        body: JSON.stringify({
+          title,
+          author: type === "book" ? manualAuthor.trim() || undefined : undefined,
+          destination,
+        }),
       });
       const payload = await response.json();
       if (!response.ok) {
@@ -386,8 +392,9 @@ export function AddWorkFlow({
               <span className="eyebrow">Inserimento manuale</span>
               <strong>Parti dal minimo indispensabile.</strong>
               <p>
-                Il titolo è l'unico dato obbligatorio. Copertina, autore, edizione,
-                ISBN, volumi e dettagli potranno essere aggiunti dalla scheda.
+                Il titolo è l'unico dato obbligatorio. Se conosci già l'autore puoi
+                salvarlo subito; copertina, edizione e altri dettagli restano
+                completabili dalla scheda.
               </p>
             </div>
           </div>
@@ -411,6 +418,16 @@ export function AddWorkFlow({
                 autoFocus
               />
             </label>
+            {type === "book" ? (
+              <label>
+                <span>Autore <small>facoltativo</small></span>
+                <input
+                  value={manualAuthor}
+                  onChange={(event) => setManualAuthor(event.target.value)}
+                  placeholder="Es. Mark Z. Danielewski"
+                />
+              </label>
+            ) : null}
             <div className="manual-work-actions">
               <button
                 className="secondary-btn"
