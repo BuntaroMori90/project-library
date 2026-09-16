@@ -23,7 +23,15 @@ function canOptimizeCover(src: string) {
   }
 }
 
-export function DemoCover({ item, href }: { item: DemoItem; href?: string }) {
+export function DemoCover({
+  item,
+  href,
+  badge,
+}: {
+  item: DemoItem;
+  href?: string;
+  badge?: string;
+}) {
   const content = (
     <article className="cover-card">
       <div
@@ -63,6 +71,7 @@ export function DemoCover({ item, href }: { item: DemoItem; href?: string }) {
         {!item.coverUrl ? (
           <span className="cover-author">{item.creator}</span>
         ) : null}
+        {badge ? <span className="cover-collection-badge">{badge}</span> : null}
       </div>
       <div className="cover-meta">
         <strong>{item.title}</strong>
