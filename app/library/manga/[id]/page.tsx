@@ -52,7 +52,7 @@ function VolumeLegend() {
         <i className="legend-dot read" /> Letto
       </span>
       <span>
-        <i className="legend-dot owned" /> Posseduto
+        <i className="legend-dot owned" /> Posseduto fisicamente
       </span>
       <span>
         <i className="legend-dot current" /> Attuale
@@ -127,7 +127,7 @@ function DemoDetail({ id }: { id: string }) {
             <strong>
               {ownedThrough} / {totalVolumes}
             </strong>
-            <small>Berserk Collection</small>
+            <small>Volumi fisici · tutte le edizioni</small>
           </div>
           <div>
             <span>Il mio voto</span>
@@ -280,6 +280,7 @@ export default async function MangaDetailPage({
     canonicalEdition,
     volumes,
     ownedIds,
+    ownedVolumeNumbers,
   } = detail;
   if (!work) notFound();
   const currentVolume =
@@ -288,7 +289,7 @@ export default async function MangaDetailPage({
     progress?.current_chapter != null ? Number(progress.current_chapter) : null;
   const totalVolumes =
     work.total_volumes ?? canonicalEdition?.total_units ?? null;
-  const ownedCount = ownedIds.size;
+  const ownedCount = ownedVolumeNumbers.size;
   const state = libraryEntry?.status ?? "PLANNED";
   const statusText = statusLabels[state] ?? "Da iniziare";
   const publicationLabel =
@@ -374,7 +375,7 @@ export default async function MangaDetailPage({
               {currentVolume ? `Vol. ${currentVolume}` : "—"}
               {currentChapter ? ` · Cap. ${currentChapter}` : ""}
             </strong>
-            <small>Punto raggiunto</small>
+            <small>Letto nell'opera, anche online</small>
           </div>
           <div>
             <span>Posseduti</span>
@@ -382,7 +383,7 @@ export default async function MangaDetailPage({
               {ownedCount}
               {totalVolumes ? ` / ${totalVolumes}` : ""}
             </strong>
-            <small>{canonicalEdition?.name ?? "Edizione da scegliere"}</small>
+            <small>Volumi fisici · tutte le edizioni</small>
           </div>
           <div>
             <span>Il mio voto</span>
@@ -522,20 +523,21 @@ export default async function MangaDetailPage({
         </div>
         <p className="subtitle detail-explainer">
           L'intera serie resta visibile. Il progresso di lettura e il possesso
-          sono indipendenti.
+          fisico sono indipendenti, anche quando leggi online.
         </p>
         <VolumeLegend />
         {volumes.length && canonicalEdition?.id ? (
           <div className="volume-grid volume-grid-visual">
             {volumes.map((volume) => {
-              const owned = ownedIds.has(volume.id);
+              const ownedThisEdition = ownedIds.has(volume.id);
+              const ownedAnywhere = ownedVolumeNumbers.has(volume.unit_number);
               const read =
                 currentVolume !== null && volume.unit_number <= currentVolume;
               const current = currentVolume === volume.unit_number;
               return (
                 <article
                   key={volume.id}
-                  className={`volume visual-volume interactive-volume ${owned ? "owned" : ""} ${read ? "read" : ""} ${current ? "current" : ""}`}
+                  className={`volume visual-volume interactive-volume ${ownedAnywhere ? "owned" : ""} ${read ? "read" : ""} ${current ? "current" : ""}`}
                 >
                   <div className="volume-spine">
                     <span>{String(volume.unit_number).padStart(2, "0")}</span>
@@ -549,7 +551,13 @@ export default async function MangaDetailPage({
                           ? "Letto"
                           : "Da leggere"}
                     </span>
-                    <small>{owned ? "Posseduto" : "Non posseduto"}</small>
+                    <small>
+                      {ownedThisEdition
+                        ? "Posseduto · edizione principale"
+                        : ownedAnywhere
+                          ? "Posseduto · altra edizione"
+                          : "Non posseduto"}
+                    </small>
                   </div>
                   <form
                     action={toggleOwnedVolume}
@@ -566,13 +574,19 @@ export default async function MangaDetailPage({
                       className="volume-action"
                       type="submit"
                       aria-label={
-                        owned
-                          ? `Rimuovi volume ${volume.unit_number} dai posseduti`
-                          : `Segna volume ${volume.unit_number} come posseduto`
+                        ownedThisEdition
+                          ? `Rimuovi volume ${volume.unit_number} da questa edizione`
+                          : ownedAnywhere
+                            ? `Segna volume ${volume.unit_number} anche in questa edizione`
+                            : `Segna volume ${volume.unit_number} come posseduto`
                       }
                     >
-                      {owned ? <Check size={14} /> : <Circle size={14} />}{" "}
-                      {owned ? "Posseduto" : "Segna"}
+                      {ownedThisEdition ? <Check size={14} /> : <Circle size={14} />}{" "}
+                      {ownedThisEdition
+                        ? "Posseduto"
+                        : ownedAnywhere
+                          ? "Segna anche qui"
+                          : "Segna"}
                     </button>
                   </form>
                 </article>
