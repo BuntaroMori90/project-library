@@ -336,7 +336,11 @@ export async function setMangaProgress(
            (profile_id,work_id,status,updated_at)
          values ($1,$2,'IN_PROGRESS',now())
          on conflict (profile_id,work_id) do update set
-           status='IN_PROGRESS',updated_at=now()`,
+           status=case
+             when library_entries.status='PLANNED' then 'IN_PROGRESS'
+             else library_entries.status
+           end,
+           updated_at=now()`,
         [profileId, workId],
       );
     }
@@ -392,6 +396,16 @@ export async function toggleOwnedUnit(
   unitId: string,
 ) {
   return withTransaction(async (client) => {
+    const unit = await client.query<{ id: string }>(
+      `select cu.id
+         from content_units cu
+         join editions e on e.id=cu.edition_id
+        where cu.id=$1 and cu.edition_id=$2 and cu.unit_type='VOLUME'
+        limit 1`,
+      [unitId, editionId],
+    );
+    if (!unit.rows[0]) throw new Error("Volume non valido per questa edizione.");
+
     const existing = await client.query<{ id: string }>(
       "select id from owned_units where profile_id=$1 and unit_id=$2 limit 1",
       [profileId, unitId],
