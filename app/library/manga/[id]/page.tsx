@@ -317,6 +317,7 @@ export default async function MangaDetailPage({
                 height={750}
                 sizes="(max-width: 640px) 55vw, 260px"
                 priority
+                unoptimized={work.cover_url.startsWith("/api/library/cover/")}
               />
             ) : (
               <div className="cover-placeholder">{work.title.slice(0, 1)}</div>
