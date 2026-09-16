@@ -6,6 +6,11 @@ import type { CoverView, Density, GroupBy } from "@/lib/preferences";
 import { DemoCover } from "@/components/demo-cover";
 import { AlphabetRail } from "@/components/alphabet-rail";
 
+type ShelfItem = DemoItem & {
+  href?: string;
+  badge?: string;
+};
+
 function creatorSortKey(creator: string) {
   const clean = creator.trim();
   const parts = clean.split(/\s+/);
@@ -28,7 +33,7 @@ export function ShelfBrowser({
   density,
   coverView,
 }: {
-  items: DemoItem[];
+  items: ShelfItem[];
   kind: "book" | "manga";
   defaultGroupBy: GroupBy;
   density: Density;
@@ -41,7 +46,9 @@ export function ShelfBrowser({
     const q = query.trim().toLowerCase();
     const result = q
       ? items.filter((item) =>
-          `${item.title} ${item.creator}`.toLowerCase().includes(q),
+          `${item.title} ${item.creator} ${item.progress ?? ""} ${item.meta ?? ""} ${item.badge ?? ""}`
+            .toLowerCase()
+            .includes(q),
         )
       : items;
     return [...result].sort((a, b) =>
@@ -52,7 +59,7 @@ export function ShelfBrowser({
   }, [items, query, groupBy]);
 
   const groups = useMemo(() => {
-    const map = new Map<string, DemoItem[]>();
+    const map = new Map<string, ShelfItem[]>();
     filtered.forEach((item) => {
       const letter = initialLetter(groupKey(item, groupBy));
       map.set(letter, [...(map.get(letter) ?? []), item]);
@@ -107,7 +114,14 @@ export function ShelfBrowser({
                   </span>
                 </div>
                 <span>
-                  {group.length} {group.length === 1 ? "opera" : "opere"}
+                  {group.length}{" "}
+                  {kind === "manga"
+                    ? group.length === 1
+                      ? "copertina"
+                      : "copertine"
+                    : group.length === 1
+                      ? "opera"
+                      : "opere"}
                 </span>
               </header>
               <div className="shelf-grid">
@@ -115,10 +129,12 @@ export function ShelfBrowser({
                   <DemoCover
                     key={item.id}
                     item={item}
+                    badge={item.badge}
                     href={
-                      kind === "manga"
+                      item.href ??
+                      (kind === "manga"
                         ? `/library/manga/${item.id}`
-                        : `/library/books/${item.id}`
+                        : `/library/books/${item.id}`)
                     }
                   />
                 ))}
