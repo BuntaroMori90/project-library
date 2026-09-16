@@ -1,6 +1,7 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import { redirect } from "next/navigation";
 import { query } from "@/lib/db";
 import { importMangaToCatalog } from "@/lib/catalog/import-manga";
 import { KitsuProvider } from "@/lib/catalog/providers/kitsu";
@@ -75,6 +76,7 @@ export async function updateMangaState(formData: FormData) {
   await setLibraryStatus(profile.id, workId, status);
   await refreshMissingMangaCounts(workId);
   refreshManga(workId);
+  redirect(`/library/manga/${workId}?saved=state#personale`);
 }
 
 export async function updateMangaProgress(formData: FormData) {
@@ -86,6 +88,7 @@ export async function updateMangaProgress(formData: FormData) {
   await setMangaProgress(profile.id, workId, currentVolume, currentChapter);
   await refreshMissingMangaCounts(workId);
   refreshManga(workId);
+  redirect(`/library/manga/${workId}?saved=progress#personale`);
 }
 
 export async function updateMangaPersonal(formData: FormData) {
@@ -102,6 +105,7 @@ export async function updateMangaPersonal(formData: FormData) {
     notes: notesRaw || null,
   });
   refreshManga(workId);
+  redirect(`/library/manga/${workId}?saved=personal#personale`);
 }
 
 export async function addPersonalMangaEdition(formData: FormData) {
