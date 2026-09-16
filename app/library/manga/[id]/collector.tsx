@@ -44,55 +44,121 @@ export async function MangaCollectorPanel({ workId }: { workId: string }) {
   const specialEditions = result.rows.filter(
     (edition) => edition.custom_format?.toLowerCase() !== "standard",
   );
+  const standardEdition = standardEditions[0] ?? null;
+  const needsVolumes = !standardEdition?.total_units;
 
   return (
     <section className="page manga-collector-page">
-      <section id="edizione-personale" className="detail-section manga-collector-stage">
+      <section
+        id="edizione-personale"
+        className="detail-section manga-collector-stage"
+      >
         <div className="section-heading detail-heading">
           <div>
             <span className="eyebrow">Edizione personale</span>
             <h2>La tua edizione</h2>
           </div>
-          <span>{standardEditions.length ? "Edizione registrata" : "Da completare"}</span>
+          <span>
+            {standardEdition?.total_units
+              ? `${standardEdition.total_units} volumi`
+              : "Volumi da impostare"}
+          </span>
         </div>
         <p className="subtitle detail-explainer">
-          Se il catalogo non trova la tua edizione, creala qui. Puoi partire dalla
-          sola copertina e completare editore, lingua e numero di volumi in seguito.
-          Per i manga senza copertina di catalogo useremo questa nello scaffale.
+          Se il catalogo non trova la tua edizione, gestiscila qui. Il numero dei
+          volumi serve per creare la griglia Vol. 1…N: dopo potrai segnare ogni
+          volume fisicamente posseduto in modo indipendente dalla lettura.
         </p>
 
-        <details className="manga-special-add" open={!standardEditions.length}>
+        {needsVolumes ? (
+          <div className="catalog-notice">
+            <LibraryBig size={22} />
+            <div>
+              <strong>Manca ancora il numero dei volumi.</strong>
+              <p>
+                Inseriscilo qui sotto: li generiamo subito e potrai selezionare
+                quelli che possiedi.
+              </p>
+            </div>
+          </div>
+        ) : null}
+
+        <details className="manga-special-add" open={needsVolumes}>
           <summary>
-            <BadgePlus size={18} /> Aggiungi la tua edizione
+            <BadgePlus size={18} />
+            {standardEdition ? "Completa la tua edizione" : "Aggiungi la tua edizione"}
           </summary>
           <form action={addPersonalMangaEdition} className="manga-special-form">
             <input type="hidden" name="workId" value={workId} />
             <input type="hidden" name="editionType" value="Standard" />
-            <BookCoverField uploadEndpoint="/api/manga/personal-edition" />
+            <BookCoverField
+              uploadEndpoint="/api/manga/personal-edition"
+              defaultValue={standardEdition?.custom_cover_url ?? ""}
+            />
 
             <div className="manga-special-primary-fields">
               <label>
                 Nome edizione
-                <input name="customName" placeholder="Es. Edizione italiana" />
+                <input
+                  name="customName"
+                  defaultValue={standardEdition?.custom_name ?? ""}
+                  placeholder="Es. Edizione italiana"
+                />
               </label>
               <label>
                 Volumi totali
-                <input name="totalVolumes" type="number" min="1" step="1" placeholder="Es. 10" />
+                <input
+                  name="totalVolumes"
+                  type="number"
+                  min="1"
+                  step="1"
+                  defaultValue={standardEdition?.total_units ?? ""}
+                  placeholder="Es. 10"
+                />
               </label>
             </div>
 
             <details className="manga-special-optional">
               <summary>Altri dettagli · facoltativi</summary>
               <div className="edition-personal-grid">
-                <label>Editore<input name="customPublisher" placeholder="J-Pop, Panini, Star Comics…" /></label>
-                <label>Lingua<input name="customLanguage" defaultValue="Italiano" /></label>
-                <label>ISBN / EAN<input name="customIsbn" /></label>
-                <label>Anno<input name="customPublicationYear" type="number" min="1000" max="9999" /></label>
+                <label>
+                  Editore
+                  <input
+                    name="customPublisher"
+                    defaultValue={standardEdition?.custom_publisher ?? ""}
+                    placeholder="J-Pop, Panini, Star Comics…"
+                  />
+                </label>
+                <label>
+                  Lingua
+                  <input
+                    name="customLanguage"
+                    defaultValue={standardEdition?.custom_language ?? "Italiano"}
+                  />
+                </label>
+                <label>
+                  ISBN / EAN
+                  <input
+                    name="customIsbn"
+                    defaultValue={standardEdition?.custom_isbn ?? ""}
+                  />
+                </label>
+                <label>
+                  Anno
+                  <input
+                    name="customPublicationYear"
+                    type="number"
+                    min="1000"
+                    max="9999"
+                    defaultValue={standardEdition?.custom_publication_year ?? ""}
+                  />
+                </label>
               </div>
             </details>
 
             <button type="submit" className="primary-btn manga-special-save">
-              <LibraryBig size={17} /> Salva la mia edizione
+              <LibraryBig size={17} />
+              {needsVolumes ? "Genera i volumi" : "Salva la mia edizione"}
             </button>
           </form>
         </details>
@@ -105,7 +171,10 @@ export async function MangaCollectorPanel({ workId }: { workId: string }) {
                 <article key={edition.id} className="manga-special-card">
                   <div className="manga-special-cover">
                     {edition.custom_cover_url ? (
-                      <img src={edition.custom_cover_url} alt={`Copertina ${name}`} />
+                      <img
+                        src={edition.custom_cover_url}
+                        alt={`Copertina ${name}`}
+                      />
                     ) : (
                       <LibraryBig size={28} />
                     )}
@@ -114,13 +183,21 @@ export async function MangaCollectorPanel({ workId }: { workId: string }) {
                     <div className="edition-badge-row">
                       <span className="edition-badge">Edizione personale</span>
                       {edition.total_units ? (
-                        <span className="edition-badge subtle">{edition.total_units} volumi</span>
+                        <span className="edition-badge subtle">
+                          {edition.total_units} volumi
+                        </span>
                       ) : null}
                     </div>
                     <h3>{name}</h3>
-                    <p>{[edition.custom_publisher, edition.custom_language].filter(Boolean).join(" · ") || "Dati da completare"}</p>
+                    <p>
+                      {[edition.custom_publisher, edition.custom_language]
+                        .filter(Boolean)
+                        .join(" · ") || "Dati da completare"}
+                    </p>
                     <small>
-                      {[edition.custom_isbn, edition.custom_publication_year].filter(Boolean).join(" · ") || "Puoi completare i dati in seguito"}
+                      {[edition.custom_isbn, edition.custom_publication_year]
+                        .filter(Boolean)
+                        .join(" · ") || "Puoi completare i dati in seguito"}
                     </small>
                   </div>
                 </article>
@@ -130,17 +207,24 @@ export async function MangaCollectorPanel({ workId }: { workId: string }) {
         ) : null}
       </section>
 
-      <section id="collezione-speciale" className="detail-section manga-collector-stage">
+      <section
+        id="collezione-speciale"
+        className="detail-section manga-collector-stage"
+      >
         <div className="section-heading detail-heading">
           <div>
             <span className="eyebrow">Collezionismo</span>
             <h2>Variant, limited e speciali</h2>
           </div>
-          <span>{specialEditions.length ? `${specialEditions.length} registrate` : "La tua raccolta"}</span>
+          <span>
+            {specialEditions.length
+              ? `${specialEditions.length} registrate`
+              : "La tua raccolta"}
+          </span>
         </div>
         <p className="subtitle detail-explainer">
-          Qui registri copie particolari di singoli volumi senza duplicare l&apos;opera
-          principale nella libreria.
+          Qui registri copie particolari di singoli volumi senza duplicare
+          l&apos;opera principale nella libreria.
         </p>
 
         <details className="manga-special-add">
@@ -165,18 +249,50 @@ export async function MangaCollectorPanel({ workId }: { workId: string }) {
               </label>
               <label>
                 Volume
-                <input name="volumeNumber" type="number" min="1" step="1" placeholder="Es. 1" />
+                <input
+                  name="volumeNumber"
+                  type="number"
+                  min="1"
+                  step="1"
+                  placeholder="Es. 1"
+                />
               </label>
             </div>
 
             <details className="manga-special-optional">
               <summary>Altri dettagli · facoltativi</summary>
               <div className="edition-personal-grid">
-                <label>Nome / etichetta<input name="customName" placeholder="Es. Variant Lucca Comics" /></label>
-                <label>Editore<input name="customPublisher" placeholder="J-Pop, Panini, Star Comics…" /></label>
-                <label>Lingua<input name="customLanguage" defaultValue="Italiano" /></label>
-                <label>ISBN / EAN<input name="customIsbn" /></label>
-                <label>Anno<input name="customPublicationYear" type="number" min="1000" max="9999" /></label>
+                <label>
+                  Nome / etichetta
+                  <input
+                    name="customName"
+                    placeholder="Es. Variant Lucca Comics"
+                  />
+                </label>
+                <label>
+                  Editore
+                  <input
+                    name="customPublisher"
+                    placeholder="J-Pop, Panini, Star Comics…"
+                  />
+                </label>
+                <label>
+                  Lingua
+                  <input name="customLanguage" defaultValue="Italiano" />
+                </label>
+                <label>
+                  ISBN / EAN
+                  <input name="customIsbn" />
+                </label>
+                <label>
+                  Anno
+                  <input
+                    name="customPublicationYear"
+                    type="number"
+                    min="1000"
+                    max="9999"
+                  />
+                </label>
               </div>
             </details>
 
@@ -194,20 +310,35 @@ export async function MangaCollectorPanel({ workId }: { workId: string }) {
                 <article key={edition.id} className="manga-special-card">
                   <div className="manga-special-cover">
                     {edition.custom_cover_url ? (
-                      <img src={edition.custom_cover_url} alt={`Copertina ${name}`} />
+                      <img
+                        src={edition.custom_cover_url}
+                        alt={`Copertina ${name}`}
+                      />
                     ) : (
                       <Gem size={28} />
                     )}
                   </div>
                   <div className="manga-special-copy">
                     <div className="edition-badge-row">
-                      <span className="edition-badge">{edition.custom_format || "Speciale"}</span>
-                      {edition.volume_number ? <span className="edition-badge subtle">Vol. {Number(edition.volume_number)}</span> : null}
+                      <span className="edition-badge">
+                        {edition.custom_format || "Speciale"}
+                      </span>
+                      {edition.volume_number ? (
+                        <span className="edition-badge subtle">
+                          Vol. {Number(edition.volume_number)}
+                        </span>
+                      ) : null}
                     </div>
                     <h3>{name}</h3>
-                    <p>{[edition.custom_publisher, edition.custom_language].filter(Boolean).join(" · ") || "Dati da completare"}</p>
+                    <p>
+                      {[edition.custom_publisher, edition.custom_language]
+                        .filter(Boolean)
+                        .join(" · ") || "Dati da completare"}
+                    </p>
                     <small>
-                      {[edition.custom_isbn, edition.custom_publication_year].filter(Boolean).join(" · ") || "Puoi completare i dati in seguito"}
+                      {[edition.custom_isbn, edition.custom_publication_year]
+                        .filter(Boolean)
+                        .join(" · ") || "Puoi completare i dati in seguito"}
                     </small>
                   </div>
                 </article>
