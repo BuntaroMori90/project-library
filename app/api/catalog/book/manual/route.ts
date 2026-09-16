@@ -15,9 +15,11 @@ export async function POST(request: Request) {
   try {
     const body = (await request.json()) as {
       title?: string;
+      author?: string;
       destination?: CatalogDestination;
     };
     const title = body.title?.trim() ?? "";
+    const author = body.author?.trim() || null;
     if (!title) {
       return NextResponse.json(
         { error: "Inserisci almeno il titolo del libro." },
@@ -25,7 +27,7 @@ export async function POST(request: Request) {
       );
     }
 
-    const created = await createManualBook(title);
+    const created = await createManualBook(title, author);
     const destination =
       body.destination === "wishlist" ? "wishlist" : "library";
     const placement = await saveCatalogDestination(
