@@ -167,15 +167,26 @@ export async function createPersonalMangaEdition(
         );
       }
     } else if (values.volumeNumber && values.volumeNumber > 0) {
-      await client.query(
+      const unitResult = await client.query<{ id: string }>(
         `insert into content_units
            (work_id,edition_id,unit_type,unit_number,sort_order,cover_url)
          values ($1,$2,'VOLUME',$3,$3,$4)
          on conflict (edition_id,unit_type,unit_number)
            where edition_id is not null and unit_number is not null
-         do update set cover_url=coalesce(excluded.cover_url,content_units.cover_url)`,
+         do update set cover_url=coalesce(excluded.cover_url,content_units.cover_url)
+         returning id`,
         [workId, editionId, values.volumeNumber, values.coverUrl],
       );
+
+      const unitId = unitResult.rows[0]?.id;
+      if (!isStandard && unitId) {
+        await client.query(
+          `insert into owned_units (profile_id,edition_id,unit_id)
+           values ($1,$2,$3)
+           on conflict (profile_id,edition_id,unit_id) do nothing`,
+          [profileId, editionId, unitId],
+        );
+      }
     }
 
     if (isStandard && work.manual) {
