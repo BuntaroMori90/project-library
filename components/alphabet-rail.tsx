@@ -11,6 +11,7 @@ const letters = ["#", ..."ABCDEFGHIJKLMNOPQRSTUVWXYZ"];
 const PAGE_SCROLL_OFFSET = 104;
 const DRAG_THRESHOLD = 4;
 const TRIGGER_SCRUB_TRAVEL = 200;
+const RAIL_SCRUB_TRAVEL = 200;
 const LAST_INDEX = letters.length - 1;
 
 type ScrollStop = {
@@ -193,14 +194,26 @@ export function AlphabetRail({
     event: ReactPointerEvent<HTMLElement>,
   ) {
     const stops = getScrollStops();
+    const railRect = railRef.current?.getBoundingClientRect() ?? null;
+
     scrollStopsRef.current = stops;
     gestureSource.current = source;
     gesturePointerId.current = event.pointerId;
     gestureStartY.current = event.clientY;
-    gestureStartIndex.current = indexForScroll(window.scrollY, stops);
     gestureStartOpen.current = openRef.current;
     gestureMoved.current = false;
-    railRectRef.current = railRef.current?.getBoundingClientRect() ?? null;
+    railRectRef.current = railRect;
+
+    if (source === "rail" && railRect) {
+      const touchedProgress = clamp(
+        (event.clientY - railRect.top) / Math.max(1, railRect.height),
+        0,
+        1,
+      );
+      gestureStartIndex.current = touchedProgress * LAST_INDEX;
+    } else {
+      gestureStartIndex.current = indexForScroll(window.scrollY, stops);
+    }
 
     updateOpen(true);
     event.currentTarget.setPointerCapture(event.pointerId);
@@ -279,26 +292,19 @@ export function AlphabetRail({
         setDragging(true);
       }
 
-      let index = gestureStartIndex.current;
+      const startIndex = gestureStartIndex.current;
+      const travel =
+        gestureSource.current === "rail"
+          ? RAIL_SCRUB_TRAVEL
+          : TRIGGER_SCRUB_TRAVEL;
 
-      if (gestureSource.current === "rail") {
-        const rect = railRectRef.current ?? railRef.current?.getBoundingClientRect();
-        if (rect) {
-          const progress = clamp(
-            (event.clientY - rect.top) / Math.max(1, rect.height),
-            0,
-            1,
-          );
-          index = progress * LAST_INDEX;
-        }
-      } else if (deltaY >= 0) {
-        const progress = clamp(deltaY / TRIGGER_SCRUB_TRAVEL, 0, 1);
-        index =
-          gestureStartIndex.current +
-          (LAST_INDEX - gestureStartIndex.current) * progress;
+      let index = startIndex;
+      if (deltaY >= 0) {
+        const progress = clamp(deltaY / travel, 0, 1);
+        index = startIndex + (LAST_INDEX - startIndex) * progress;
       } else {
-        const progress = clamp(-deltaY / TRIGGER_SCRUB_TRAVEL, 0, 1);
-        index = gestureStartIndex.current * (1 - progress);
+        const progress = clamp(-deltaY / travel, 0, 1);
+        index = startIndex * (1 - progress);
       }
 
       scheduleIndex(index);
