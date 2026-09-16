@@ -14,13 +14,13 @@ export const metadata: Metadata = {
     statusBarStyle: "black-translucent",
   },
   icons: {
-    icon: "/api/pwa-icon/192",
-    apple: "/api/pwa-icon/192",
+    icon: "/library-stories-v2-32.png",
+    apple: "/library-stories-v2-180.png",
   },
 };
 
 export const viewport: Viewport = {
-  themeColor: "#0b0a09",
+  themeColor: "#0c0438",
   colorScheme: "dark",
 };
 
