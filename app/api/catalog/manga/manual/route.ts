@@ -6,6 +6,13 @@ import {
   type CatalogDestination,
 } from "@/lib/repositories/catalog-destination";
 
+function asPositiveInteger(value: unknown) {
+  if (typeof value !== "number" && typeof value !== "string") return null;
+  const parsed = Number(value);
+  if (!Number.isFinite(parsed) || parsed <= 0) return null;
+  return Math.floor(parsed);
+}
+
 export async function POST(request: Request) {
   const authContext = await getApiProfile();
   if (!authContext) {
@@ -15,6 +22,7 @@ export async function POST(request: Request) {
   try {
     const body = (await request.json()) as {
       title?: string;
+      totalVolumes?: number | string;
       destination?: CatalogDestination;
     };
     const title = body.title?.trim() ?? "";
@@ -25,7 +33,10 @@ export async function POST(request: Request) {
       );
     }
 
-    const created = await createManualManga(title);
+    const created = await createManualManga(
+      title,
+      asPositiveInteger(body.totalVolumes),
+    );
     const destination =
       body.destination === "wishlist" ? "wishlist" : "library";
     const placement = await saveCatalogDestination(
