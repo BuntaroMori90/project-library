@@ -40,6 +40,205 @@
   font-weight: 700;
 }
 
+/*
+ * Physical shelf system.
+ * Books and Manga stay in separate sections, but share the same visual rules.
+ */
+.shelf-browser.book .wood-section,
+.shelf-browser.manga .wood-section {
+  position: relative;
+  margin-bottom: 38px;
+  overflow: visible;
+}
+
+.shelf-browser.book .shelf-heading,
+.shelf-browser.manga .shelf-heading {
+  margin-bottom: 12px;
+  padding-inline: 10px 8px;
+}
+
+.shelf-browser.book .shelf-letter,
+.shelf-browser.manga .shelf-letter {
+  text-shadow: 0 8px 28px rgba(216, 170, 109, .12);
+}
+
+.shelf-browser.book .shelf-grid,
+.shelf-browser.manga .shelf-grid {
+  position: relative;
+  display: flex;
+  grid-template-columns: none;
+  grid-auto-rows: unset;
+  align-items: flex-start;
+  gap: 18px;
+  min-height: 336px;
+  padding: 28px 24px 54px;
+  overflow-x: auto;
+  overflow-y: hidden;
+  border-top: 12px solid color-mix(in srgb, var(--wood-light) 72%, #d9a875 28%);
+  border-right: 14px solid var(--wood-dark);
+  border-bottom: 0;
+  border-left: 14px solid var(--wood-dark);
+  border-radius: 14px 14px 8px 8px;
+  background:
+    linear-gradient(
+      to bottom,
+      transparent 0 calc(100% - 43px),
+      rgba(25, 12, 6, .30) calc(100% - 43px) calc(100% - 39px),
+      color-mix(in srgb, var(--wood-light) 88%, #d7a16d 12%) calc(100% - 39px) calc(100% - 27px),
+      var(--wood-mid) calc(100% - 27px) calc(100% - 11px),
+      var(--wood-dark) calc(100% - 11px) 100%
+    ),
+    radial-gradient(ellipse at 50% -8%, rgba(255,255,255,.10), transparent 38%),
+    repeating-linear-gradient(1deg, rgba(255,255,255,.018) 0 1px, transparent 1px 8px),
+    repeating-linear-gradient(89deg, rgba(32,16,8,.035) 0 2px, transparent 2px 64px),
+    linear-gradient(90deg, var(--wood-back), var(--wood-mid) 19%, var(--wood-back) 51%, var(--wood-mid) 82%, var(--wood-back));
+  box-shadow:
+    inset 0 10px 22px rgba(255,255,255,.045),
+    inset 0 -44px 22px rgba(22,10,5,.24),
+    inset 18px 0 26px rgba(0,0,0,.16),
+    inset -18px 0 26px rgba(0,0,0,.16),
+    0 24px 34px -26px rgba(0,0,0,.88);
+  overscroll-behavior-inline: contain;
+  scroll-snap-type: x proximity;
+  scroll-padding-inline: 24px;
+  scrollbar-width: thin;
+  scrollbar-color: rgba(216,170,109,.30) transparent;
+}
+
+.shelf-browser.book .shelf-grid::before,
+.shelf-browser.manga .shelf-grid::before {
+  content: "";
+  position: absolute;
+  z-index: 0;
+  inset: 7px 7px 45px;
+  border: 1px solid rgba(54, 29, 15, .22);
+  border-radius: 7px 7px 3px 3px;
+  box-shadow:
+    inset 0 0 38px rgba(0,0,0,.14),
+    inset 0 1px rgba(255,255,255,.035);
+  pointer-events: none;
+}
+
+.shelf-browser.book .shelf-grid::-webkit-scrollbar,
+.shelf-browser.manga .shelf-grid::-webkit-scrollbar {
+  height: 5px;
+}
+
+.shelf-browser.book .shelf-grid::-webkit-scrollbar-track,
+.shelf-browser.manga .shelf-grid::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.shelf-browser.book .shelf-grid::-webkit-scrollbar-thumb,
+.shelf-browser.manga .shelf-grid::-webkit-scrollbar-thumb {
+  border-radius: 999px;
+  background: rgba(216,170,109,.28);
+}
+
+.shelf-browser.book .shelf-grid > .cover-link,
+.shelf-browser.manga .shelf-grid > .cover-link {
+  position: relative;
+  z-index: 1;
+  flex: 0 0 var(--shelf-card-width);
+  width: var(--shelf-card-width);
+  height: auto;
+  min-height: 0;
+  align-self: flex-start;
+  scroll-snap-align: start;
+}
+
+.shelf-browser.book {
+  --shelf-card-width: 154px;
+  --shelf-cover-height: 231px;
+}
+
+.shelf-browser.manga {
+  --shelf-card-width: 134px;
+  --shelf-cover-height: 196px;
+}
+
+.shelf-browser.book .cover-card,
+.shelf-browser.manga .cover-card {
+  height: auto;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-start;
+  padding: 0;
+}
+
+.shelf-browser.book.view-cover .cover-art,
+.shelf-browser.manga.view-cover .cover-art {
+  width: var(--shelf-card-width) !important;
+  max-width: none !important;
+  height: var(--shelf-cover-height) !important;
+  min-height: var(--shelf-cover-height) !important;
+  flex: 0 0 var(--shelf-cover-height);
+  aspect-ratio: auto !important;
+  border-radius: 5px 10px 10px 5px;
+  box-shadow:
+    -5px 7px 0 rgba(0,0,0,.16),
+    0 16px 28px rgba(0,0,0,.42),
+    inset 1px 0 rgba(255,255,255,.12);
+}
+
+.shelf-browser.book.view-cover .cover-image,
+.shelf-browser.manga.view-cover .cover-image {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.shelf-browser.book .cover-meta,
+.shelf-browser.manga .cover-meta {
+  min-height: 74px;
+  padding: 11px 2px 0;
+  overflow: hidden;
+}
+
+.shelf-browser.book .cover-meta strong,
+.shelf-browser.manga .cover-meta strong {
+  min-height: 31px;
+  display: -webkit-box;
+  overflow: hidden;
+  font-size: 12px;
+  line-height: 1.28;
+  text-overflow: ellipsis;
+  white-space: normal;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+}
+
+.shelf-browser.book .cover-meta span,
+.shelf-browser.manga .cover-meta span {
+  display: block;
+  margin-top: 4px;
+  overflow: hidden;
+  color: #b9b0a6;
+  font-size: 10px;
+  line-height: 1.25;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.shelf-browser.manga .cover-meta span + span {
+  width: max-content;
+  max-width: 100%;
+  margin-top: 6px;
+  padding: 3px 7px;
+  border: 1px solid rgba(216,170,109,.18);
+  border-radius: 999px;
+  background: rgba(12,10,9,.26);
+  color: #dbc19e;
+  font-size: 9px;
+  font-weight: 700;
+}
+
+.shelf-browser.book .cover-card:hover .cover-art,
+.shelf-browser.manga .cover-card:hover .cover-art {
+  transform: perspective(900px) rotateY(0deg) translateY(-4px);
+}
+
 @media (max-width: 760px) {
   .cover-collection-badge {
     top: 6px;
@@ -47,5 +246,50 @@
     max-width: calc(100% - 12px);
     padding: 4px 6px;
     font-size: 8px;
+  }
+
+  .shelf-browser.book,
+  .shelf-browser.manga {
+    --shelf-card-width: 122px;
+    --shelf-cover-height: 183px;
+  }
+
+  .shelf-browser.manga {
+    --shelf-card-width: 126px;
+    --shelf-cover-height: 184px;
+  }
+
+  .shelf-browser.book .wood-section,
+  .shelf-browser.manga .wood-section {
+    margin-bottom: 34px;
+  }
+
+  .shelf-browser.book .shelf-grid,
+  .shelf-browser.manga .shelf-grid {
+    gap: 14px;
+    min-height: 302px;
+    padding: 22px 20px 50px;
+    border-top-width: 10px;
+    border-right-width: 10px;
+    border-left-width: 10px;
+    border-radius: 12px 12px 7px 7px;
+    scroll-padding-inline: 20px;
+  }
+
+  .shelf-browser.book .cover-meta,
+  .shelf-browser.manga .cover-meta {
+    min-height: 68px;
+    padding-top: 9px;
+  }
+
+  .shelf-browser.book .cover-meta strong,
+  .shelf-browser.manga .cover-meta strong {
+    min-height: 30px;
+    font-size: 11px;
+  }
+
+  .shelf-browser.book .cover-meta span,
+  .shelf-browser.manga .cover-meta span {
+    font-size: 9.5px;
   }
 }
