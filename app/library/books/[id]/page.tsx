@@ -2,6 +2,7 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { CheckCircle2, Heart, RefreshCw, Search, Star, StickyNote } from "lucide-react";
+import { query } from "@/lib/db";
 import { requireProfile } from "@/lib/profile";
 import {
   getBookDetail,
@@ -109,10 +110,14 @@ function EditionFields({
   workId,
   edition,
   personal,
+  author,
+  canEditAuthor,
 }: {
   workId: string;
   edition: EditionRow;
   personal?: OwnershipEditionRow;
+  author: string;
+  canEditAuthor: boolean;
 }) {
   const current = editionView(edition, personal);
   return (
@@ -123,7 +128,8 @@ function EditionFields({
       <details className="optional-edition-fields">
         <summary>Modifica altri dati <span>facoltativo</span></summary>
         <div className="edition-personal-grid">
-          <label>Nome edizione<input name="customName" defaultValue={personal?.custom_name ?? ""} placeholder={current.name ?? "Nome edizione"} /></label>
+          <label>Nome / tipo edizione<input name="customName" defaultValue={personal?.custom_name ?? ""} placeholder={current.name ?? "Es. Oscar, illustrata, prima edizione…"} /></label>
+          {canEditAuthor ? <label>Autore<input name="customAuthor" defaultValue={author} placeholder="Es. Mark Z. Danielewski" /></label> : null}
           <label>Editore<input name="customPublisher" defaultValue={personal?.custom_publisher ?? ""} placeholder={current.publisher ?? "Editore"} /></label>
           <label>Lingua<input name="customLanguage" defaultValue={personal?.custom_language ?? ""} placeholder={current.language ?? "Lingua"} /></label>
           <label>Formato<input name="customFormat" defaultValue={personal?.custom_format ?? ""} placeholder={current.format ?? "Brossura, rilegato, eBook…"} /></label>
@@ -153,11 +159,19 @@ export default async function BookDetailPage({
   searchParams: Promise<{ saved?: string; chooseEdition?: string; editionQ?: string }>;
 }) {
   const { id } = await params;
-  const query = await searchParams;
+  const queryParams = await searchParams;
   if (!UUID.test(id)) return <DemoBookDetail id={id} />;
 
   const { profile } = await requireProfile();
-  const detail = await getBookDetail(profile.id, id);
+  const [detail, sourceResult] = await Promise.all([
+    getBookDetail(profile.id, id),
+    query<{ manual: boolean; catalog: boolean }>(
+      `select
+         exists(select 1 from external_ids where work_id=$1 and provider='MANUAL') as manual,
+         exists(select 1 from external_ids where work_id=$1 and provider='OPEN_LIBRARY') as catalog`,
+      [id],
+    ),
+  ]);
   const {
     work,
     creators,
@@ -168,6 +182,11 @@ export default async function BookDetailPage({
     ownershipByEdition,
   } = detail;
   if (!work) notFound();
+
+  const canEditManualAuthor = Boolean(
+    sourceResult.rows[0]?.manual && !sourceResult.rows[0]?.catalog,
+  );
+  const authorValue = creators.join(", ");
 
   const selectedEdition =
     editions.find((edition) => edition.id === progress?.edition_id) ??
@@ -186,7 +205,7 @@ export default async function BookDetailPage({
   const status = libraryEntry?.status ?? "PLANNED";
   const statusText = statusLabels[status] ?? "Da iniziare";
   const heroCover = selectedView?.coverUrl ?? work.cover_url;
-  const savedMessage = query.saved ? savedLabels[query.saved] : null;
+  const savedMessage = queryParams.saved ? savedLabels[queryParams.saved] : null;
 
   const sortedEditions = [...editions].sort((a, b) => {
     const score = (edition: EditionRow) =>
@@ -199,7 +218,7 @@ export default async function BookDetailPage({
     return score(b) - score(a);
   });
 
-  const editionQuery = normalizeEditionSearch(query.editionQ ?? "");
+  const editionQuery = normalizeEditionSearch(queryParams.editionQ ?? "");
   const visibleEditions = editionQuery
     ? sortedEditions.filter((edition) => {
         const personal = ownershipByEdition.get(edition.id);
@@ -231,7 +250,7 @@ export default async function BookDetailPage({
           <CheckCircle2 size={20} />
           <div>
             <strong>{savedMessage}</strong>
-            {query.saved === "edition" || query.saved === "personalEdition" ? (
+            {queryParams.saved === "edition" || queryParams.saved === "personalEdition" ? (
               <Link className="saved-add-another" href="/library/add?type=book">Aggiungi un altro libro →</Link>
             ) : null}
           </div>
@@ -320,7 +339,7 @@ export default async function BookDetailPage({
           <span>{visibleEditions.length}{editionQuery ? ` di ${sortedEditions.length}` : ""} edizioni</span>
         </div>
 
-        {query.chooseEdition === "1" || !selectedEdition ? (
+        {queryParams.chooseEdition === "1" || !selectedEdition ? (
           <div className="catalog-notice"><div><strong>Scegli l'edizione che possiedi.</strong><p>Se la trovi, basta un tocco. Se non la trovi, puoi creare la tua copia anche inserendo soltanto la copertina e completare i dati più tardi.</p></div></div>
         ) : null}
 
@@ -331,7 +350,7 @@ export default async function BookDetailPage({
           </form>
           <form method="get" className="edition-search-form">
             <Search size={17} />
-            <input name="editionQ" defaultValue={query.editionQ ?? ""} placeholder="Editore, ISBN, anno…" />
+            <input name="editionQ" defaultValue={queryParams.editionQ ?? ""} placeholder="Editore, ISBN, anno…" />
             <button type="submit" className="soft-action">Cerca</button>
             {editionQuery ? <Link href={`/library/books/${work.id}#edizioni`} className="edition-clear-link">Azzera</Link> : null}
           </form>
@@ -343,13 +362,14 @@ export default async function BookDetailPage({
             <input type="hidden" name="workId" value={work.id} />
             <div className="manual-edition-intro">
               <strong>Puoi salvare anche solo la copertina.</strong>
-              <p>Editore, pagine, ISBN e gli altri dettagli sono tutti facoltativi e potrai aggiungerli in seguito.</p>
+              <p>{canEditManualAuthor ? "Autore, editore, pagine, ISBN e gli altri dettagli sono facoltativi e potrai aggiungerli in seguito." : "Editore, pagine, ISBN e gli altri dettagli sono tutti facoltativi e potrai aggiungerli in seguito."}</p>
             </div>
             <BookCoverField />
             <details className="optional-edition-fields">
               <summary>Aggiungi dettagli <span>facoltativo</span></summary>
               <div className="edition-personal-grid">
-                <label>Nome edizione<input name="customName" placeholder="Es. Super ET, Oscar, Vintage…" /></label>
+                <label>Nome / tipo edizione<input name="customName" placeholder="Es. Oscar, illustrata, prima edizione…" /></label>
+                {canEditManualAuthor ? <label>Autore<input name="customAuthor" defaultValue={authorValue} placeholder="Es. Mark Z. Danielewski" /></label> : null}
                 <label>Editore<input name="customPublisher" placeholder="Es. Einaudi" /></label>
                 <label>Lingua<input name="customLanguage" placeholder="Es. Italiano" /></label>
                 <label>Formato<input name="customFormat" placeholder="Brossura, rilegato, eBook…" /></label>
@@ -396,7 +416,13 @@ export default async function BookDetailPage({
                     {owned || selected ? (
                       <details className="edition-edit-details">
                         <summary>Correggi copertina o dati</summary>
-                        <EditionFields workId={work.id} edition={edition} personal={personal} />
+                        <EditionFields
+                          workId={work.id}
+                          edition={edition}
+                          personal={personal}
+                          author={authorValue}
+                          canEditAuthor={canEditManualAuthor}
+                        />
                       </details>
                     ) : null}
                   </div>
