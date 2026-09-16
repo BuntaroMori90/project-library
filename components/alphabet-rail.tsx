@@ -10,8 +10,10 @@ import {
 const letters = ["#", ..."ABCDEFGHIJKLMNOPQRSTUVWXYZ"];
 const PAGE_SCROLL_OFFSET = 104;
 const DRAG_THRESHOLD = 4;
-const TRIGGER_SCRUB_TRAVEL = 200;
-const RAIL_SCRUB_TRAVEL = 200;
+const PIXELS_PER_LETTER = 16;
+const EDGE_ZONE = 42;
+const EDGE_SPEED = 8;
+const MAX_INDEX_SPEED = 32;
 const LAST_INDEX = letters.length - 1;
 
 type ScrollStop = {
@@ -20,6 +22,11 @@ type ScrollStop = {
 };
 
 type GestureSource = "trigger" | "rail" | null;
+
+type GestureBounds = {
+  top: number;
+  bottom: number;
+};
 
 function clamp(value: number, min: number, max: number) {
   return Math.min(max, Math.max(min, value));
@@ -37,8 +44,6 @@ export function AlphabetRail({
   const railRef = useRef<HTMLElement>(null);
   const openRef = useRef(false);
   const activeLetterRef = useRef("#");
-  const animationFrame = useRef<number | null>(null);
-  const pendingIndex = useRef<number | null>(null);
   const scrollStopsRef = useRef<ScrollStop[]>([]);
 
   const gestureSource = useRef<GestureSource>(null);
@@ -47,7 +52,15 @@ export function AlphabetRail({
   const gestureStartIndex = useRef(0);
   const gestureStartOpen = useRef(false);
   const gestureMoved = useRef(false);
-  const railRectRef = useRef<DOMRect | null>(null);
+  const gestureTapLetter = useRef<string | null>(null);
+  const gestureBounds = useRef<GestureBounds>({ top: 72, bottom: 640 });
+  const lastPointerY = useRef(0);
+  const edgeOffset = useRef(0);
+  const renderedIndex = useRef(0);
+
+  const scrubFrame = useRef<number | null>(null);
+  const syncFrame = useRef<number | null>(null);
+  const lastScrubTime = useRef<number | null>(null);
 
   function updateOpen(value: boolean) {
     openRef.current = value;
@@ -163,20 +176,17 @@ export function AlphabetRail({
     const stops = scrollStopsRef.current.length
       ? scrollStopsRef.current
       : getScrollStops();
+    const top = topForIndex(index, stops);
 
+    renderedIndex.current = index;
     updateActiveLetter(letterForIndex(index));
-    window.scrollTo(0, topForIndex(index, stops));
-  }
 
-  function scheduleIndex(rawIndex: number) {
-    pendingIndex.current = clamp(rawIndex, 0, LAST_INDEX);
-    if (animationFrame.current !== null) return;
-
-    animationFrame.current = requestAnimationFrame(() => {
-      animationFrame.current = null;
-      const next = pendingIndex.current;
-      if (next !== null) applyIndex(next);
-    });
+    const scroller = document.scrollingElement;
+    if (scroller) {
+      scroller.scrollTop = top;
+    } else {
+      window.scrollTo(0, top);
+    }
   }
 
   function jumpToLetter(letter: string) {
@@ -185,8 +195,82 @@ export function AlphabetRail({
 
     const stops = getScrollStops();
     scrollStopsRef.current = stops;
+    renderedIndex.current = index;
     updateActiveLetter(letter);
     window.scrollTo({ top: topForIndex(index, stops), behavior: "smooth" });
+  }
+
+  function currentEdgeVelocity(pointerY: number) {
+    const bounds = gestureBounds.current;
+
+    if (pointerY <= bounds.top + EDGE_ZONE) {
+      const strength = clamp(
+        (bounds.top + EDGE_ZONE - pointerY) / EDGE_ZONE,
+        0,
+        1,
+      );
+      return -EDGE_SPEED * strength * strength;
+    }
+
+    if (pointerY >= bounds.bottom - EDGE_ZONE) {
+      const strength = clamp(
+        (pointerY - (bounds.bottom - EDGE_ZONE)) / EDGE_ZONE,
+        0,
+        1,
+      );
+      return EDGE_SPEED * strength * strength;
+    }
+
+    return 0;
+  }
+
+  function desiredIndex() {
+    const pointerDelta = lastPointerY.current - gestureStartY.current;
+    return clamp(
+      gestureStartIndex.current +
+        pointerDelta / PIXELS_PER_LETTER +
+        edgeOffset.current,
+      0,
+      LAST_INDEX,
+    );
+  }
+
+  function runScrubFrame(time: number) {
+    if (gestureSource.current === null || !gestureMoved.current) {
+      scrubFrame.current = null;
+      lastScrubTime.current = null;
+      return;
+    }
+
+    const previousTime = lastScrubTime.current ?? time;
+    const deltaSeconds = Math.min(0.05, Math.max(0, (time - previousTime) / 1000));
+    lastScrubTime.current = time;
+
+    const edgeVelocity = currentEdgeVelocity(lastPointerY.current);
+    if (edgeVelocity !== 0 && deltaSeconds > 0) {
+      edgeOffset.current += edgeVelocity * deltaSeconds;
+    }
+
+    const target = desiredIndex();
+    const current = renderedIndex.current;
+    const difference = target - current;
+
+    if (Math.abs(difference) > 0.002) {
+      const maxStep = Math.max(0.12, MAX_INDEX_SPEED * Math.max(deltaSeconds, 1 / 120));
+      const next =
+        Math.abs(difference) <= maxStep
+          ? target
+          : current + Math.sign(difference) * maxStep;
+      applyIndex(next);
+    }
+
+    scrubFrame.current = requestAnimationFrame(runScrubFrame);
+  }
+
+  function ensureScrubLoop() {
+    if (scrubFrame.current !== null) return;
+    lastScrubTime.current = null;
+    scrubFrame.current = requestAnimationFrame(runScrubFrame);
   }
 
   function startGesture(
@@ -194,25 +278,34 @@ export function AlphabetRail({
     event: ReactPointerEvent<HTMLElement>,
   ) {
     const stops = getScrollStops();
+    const currentIndex = indexForScroll(window.scrollY, stops);
     const railRect = railRef.current?.getBoundingClientRect() ?? null;
 
     scrollStopsRef.current = stops;
     gestureSource.current = source;
     gesturePointerId.current = event.pointerId;
     gestureStartY.current = event.clientY;
+    gestureStartIndex.current = currentIndex;
     gestureStartOpen.current = openRef.current;
     gestureMoved.current = false;
-    railRectRef.current = railRect;
+    gestureTapLetter.current =
+      (event.target as HTMLElement)
+        .closest<HTMLElement>("[data-alphabet-letter]")
+        ?.dataset.alphabetLetter ?? null;
+    lastPointerY.current = event.clientY;
+    edgeOffset.current = 0;
+    renderedIndex.current = currentIndex;
 
     if (source === "rail" && railRect) {
-      const touchedProgress = clamp(
-        (event.clientY - railRect.top) / Math.max(1, railRect.height),
-        0,
-        1,
-      );
-      gestureStartIndex.current = touchedProgress * LAST_INDEX;
+      gestureBounds.current = {
+        top: railRect.top,
+        bottom: railRect.bottom,
+      };
     } else {
-      gestureStartIndex.current = indexForScroll(window.scrollY, stops);
+      gestureBounds.current = {
+        top: 72,
+        bottom: Math.max(192, window.innerHeight - 84),
+      };
     }
 
     updateOpen(true);
@@ -223,26 +316,28 @@ export function AlphabetRail({
   function finishGesture(pointerId: number) {
     if (gesturePointerId.current !== pointerId) return;
 
-    if (animationFrame.current !== null) {
-      cancelAnimationFrame(animationFrame.current);
-      animationFrame.current = null;
-    }
-    if (pendingIndex.current !== null && gestureMoved.current) {
-      applyIndex(pendingIndex.current);
-    }
-
     const source = gestureSource.current;
     const moved = gestureMoved.current;
+    const tapLetter = gestureTapLetter.current;
+
+    if (scrubFrame.current !== null) {
+      cancelAnimationFrame(scrubFrame.current);
+      scrubFrame.current = null;
+    }
 
     setDragging(false);
     gestureSource.current = null;
     gesturePointerId.current = null;
-    railRectRef.current = null;
-    pendingIndex.current = null;
+    gestureTapLetter.current = null;
+    edgeOffset.current = 0;
+    lastScrubTime.current = null;
     scrollStopsRef.current = [];
 
     if (source === "trigger" && !moved) {
       updateOpen(!gestureStartOpen.current);
+    } else if (source === "rail" && !moved && tapLetter) {
+      updateOpen(true);
+      jumpToLetter(tapLetter);
     } else if (moved) {
       updateOpen(true);
     }
@@ -255,12 +350,14 @@ export function AlphabetRail({
   useEffect(() => {
     const syncFromPage = () => {
       if (gestureSource.current) return;
-      if (animationFrame.current !== null) return;
+      if (syncFrame.current !== null) return;
 
-      animationFrame.current = requestAnimationFrame(() => {
-        animationFrame.current = null;
+      syncFrame.current = requestAnimationFrame(() => {
+        syncFrame.current = null;
         const stops = getScrollStops();
-        updateActiveLetter(letterForIndex(indexForScroll(window.scrollY, stops)));
+        const index = indexForScroll(window.scrollY, stops);
+        renderedIndex.current = index;
+        updateActiveLetter(letterForIndex(index));
       });
     };
 
@@ -271,6 +368,9 @@ export function AlphabetRail({
     return () => {
       window.removeEventListener("scroll", syncFromPage);
       window.removeEventListener("resize", syncFromPage);
+      if (syncFrame.current !== null) {
+        cancelAnimationFrame(syncFrame.current);
+      }
     };
   }, [availableLetters.join("|")]);
 
@@ -283,31 +383,20 @@ export function AlphabetRail({
         return;
       }
 
-      const deltaY = event.clientY - gestureStartY.current;
-      const distance = Math.abs(deltaY);
-      if (!gestureMoved.current && distance < DRAG_THRESHOLD) return;
+      lastPointerY.current = event.clientY;
+      const distance = Math.abs(event.clientY - gestureStartY.current);
+
+      if (!gestureMoved.current && distance < DRAG_THRESHOLD) {
+        event.preventDefault();
+        return;
+      }
 
       if (!gestureMoved.current) {
         gestureMoved.current = true;
         setDragging(true);
+        ensureScrubLoop();
       }
 
-      const startIndex = gestureStartIndex.current;
-      const travel =
-        gestureSource.current === "rail"
-          ? RAIL_SCRUB_TRAVEL
-          : TRIGGER_SCRUB_TRAVEL;
-
-      let index = startIndex;
-      if (deltaY >= 0) {
-        const progress = clamp(deltaY / travel, 0, 1);
-        index = startIndex + (LAST_INDEX - startIndex) * progress;
-      } else {
-        const progress = clamp(-deltaY / travel, 0, 1);
-        index = startIndex * (1 - progress);
-      }
-
-      scheduleIndex(index);
       event.preventDefault();
     };
 
@@ -323,8 +412,8 @@ export function AlphabetRail({
       window.removeEventListener("pointermove", handlePointerMove);
       window.removeEventListener("pointerup", handlePointerEnd);
       window.removeEventListener("pointercancel", handlePointerEnd);
-      if (animationFrame.current !== null) {
-        cancelAnimationFrame(animationFrame.current);
+      if (scrubFrame.current !== null) {
+        cancelAnimationFrame(scrubFrame.current);
       }
     };
   }, [availableLetters.join("|")]);
@@ -362,11 +451,7 @@ export function AlphabetRail({
             className={activeLetter === letter ? "active" : undefined}
             data-alphabet-letter={letter}
             aria-current={activeLetter === letter ? "location" : undefined}
-            onClick={(event) => {
-              event.preventDefault();
-              if (gestureMoved.current) return;
-              jumpToLetter(letter);
-            }}
+            onClick={(event) => event.preventDefault()}
           >
             {letter}
           </a>
