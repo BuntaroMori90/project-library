@@ -2,7 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
-import { query } from "@/lib/db";
+import { query, withTransaction } from "@/lib/db";
 import { OpenLibraryProvider } from "@/lib/catalog/providers/openlibrary";
 import { importBookToCatalog } from "@/lib/catalog/import-book";
 import { requireProfile } from "@/lib/profile";
@@ -49,6 +49,59 @@ function editionValues(formData: FormData): BookEditionOverrides {
     isbn: asText(formData.get("customIsbn")),
     publicationYear: asNumber(formData.get("customPublicationYear")),
   };
+}
+
+async function saveManualBookAuthors(workId: string, rawAuthors: string | null) {
+  if (!rawAuthors) return;
+
+  const authors = Array.from(
+    new Set(
+      rawAuthors
+        .split(/[;,]+/)
+        .map((author) => author.trim())
+        .filter(Boolean),
+    ),
+  );
+  if (!authors.length) return;
+
+  await withTransaction(async (client) => {
+    const source = await client.query<{ manual: boolean; catalog: boolean }>(
+      `select
+         exists(select 1 from external_ids where work_id=$1 and provider='MANUAL') as manual,
+         exists(select 1 from external_ids where work_id=$1 and provider='OPEN_LIBRARY') as catalog`,
+      [workId],
+    );
+    const canEdit = Boolean(source.rows[0]?.manual && !source.rows[0]?.catalog);
+    if (!canEdit) return;
+
+    await client.query(
+      "delete from work_creators where work_id=$1 and role='AUTHOR'",
+      [workId],
+    );
+
+    for (const name of authors) {
+      const existing = await client.query<{ id: string }>(
+        "select id from creators where lower(name)=lower($1) limit 1",
+        [name],
+      );
+      const creatorId =
+        existing.rows[0]?.id ??
+        (
+          await client.query<{ id: string }>(
+            "insert into creators (name) values ($1) returning id",
+            [name],
+          )
+        ).rows[0]?.id;
+
+      if (!creatorId) continue;
+      await client.query(
+        `insert into work_creators (work_id,creator_id,role)
+         values ($1,$2,'AUTHOR')
+         on conflict (work_id,creator_id,role) do nothing`,
+        [workId, creatorId],
+      );
+    }
+  });
 }
 
 function refreshBook(workId: string) {
@@ -135,6 +188,7 @@ export async function updateBookEditionDetails(formData: FormData) {
     editionId,
     editionValues(formData),
   );
+  await saveManualBookAuthors(workId, asText(formData.get("customAuthor")));
   refreshBook(workId);
   redirect(`/library/books/${workId}?saved=editionDetails#edizioni`);
 }
@@ -145,6 +199,7 @@ export async function addPersonalBookEdition(formData: FormData) {
 
   const { profile } = await requireProfile();
   await createPersonalBookEdition(profile.id, workId, editionValues(formData));
+  await saveManualBookAuthors(workId, asText(formData.get("customAuthor")));
   refreshBook(workId);
   redirect(`/library/books/${workId}?saved=personalEdition#edizioni`);
 }
