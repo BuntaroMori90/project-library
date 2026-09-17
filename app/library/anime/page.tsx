@@ -14,11 +14,13 @@ const statusLabels: Record<string, string> = {
   DROPPED: "Abbandonato",
 };
 
+type AnimeShelfItem = DemoItem & { favorite?: boolean };
+
 export default async function AnimePage() {
   const { profile } = await requireProfile();
   const preferences = normalizePreferences(profile.preferences);
   const rows = (await listLibraryWorks(profile.id, "ANIME")).rows;
-  const items: DemoItem[] = rows.map((row) => ({
+  const items: AnimeShelfItem[] = rows.map((row) => ({
     id: row.id,
     title: row.title,
     creator: row.creators?.join(" · ") || "Studio non disponibile",
@@ -26,6 +28,7 @@ export default async function AnimePage() {
     meta: row.total_episodes ? `${row.total_episodes} episodi` : undefined,
     coverUrl: row.cover_url ?? undefined,
     coverClass: "poster-blue",
+    favorite: row.favorite,
   }));
 
   return (
