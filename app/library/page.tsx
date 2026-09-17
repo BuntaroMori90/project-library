@@ -1,7 +1,7 @@
 import Image from "next/image";
 import Link from "next/link";
 import { BookOpen, Clapperboard, LibraryBig } from "lucide-react";
-import { DemoCover } from "@/components/demo-cover";
+import { DemoCover, canOptimizeCover } from "@/components/demo-cover";
 import type { DemoItem } from "@/lib/demo-data";
 import { requireProfile } from "@/lib/profile";
 import { listLibraryWorks } from "@/lib/repositories/library";
@@ -139,7 +139,8 @@ export default async function LibraryHomePage() {
                     width={400}
                     height={600}
                     sizes="(max-width: 640px) 42vw, 180px"
-                    unoptimized={item.coverUrl.startsWith("/api/")}
+                    unoptimized={!canOptimizeCover(item.coverUrl)}
+                    preload={index === 0}
                   />
                 ) : (
                   <>
