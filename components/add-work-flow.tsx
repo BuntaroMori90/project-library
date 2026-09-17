@@ -6,6 +6,7 @@ import { useState } from "react";
 import {
   BookOpen,
   Bookmark,
+  ChevronDown,
   Film,
   LibraryBig,
   LoaderCircle,
@@ -19,10 +20,10 @@ import type {
   BookCatalogResult,
   MangaCatalogResult,
 } from "@/lib/catalog/types";
+import { ManualWorkCover } from "@/components/manual-work-cover";
 
 export type AddWorkType = "book" | "manga" | "anime";
 type EntryMode = "catalog" | "manual";
-
 type Result = BookCatalogResult | MangaCatalogResult | AnimeCatalogResult;
 
 const typeMeta = {
@@ -30,7 +31,7 @@ const typeMeta = {
     label: "Libro",
     icon: BookOpen,
     placeholder: "Titolo, autore o ISBN…",
-    hint: "Cerchiamo anche tra le edizioni e diamo priorità a quelle italiane. Se il libro non compare, puoi inserirlo manualmente con il solo titolo.",
+    hint: "Cerchiamo tra le edizioni e diamo priorità a quelle italiane. La copertina mostrata è quella reale restituita dal catalogo.",
     provider: "Open Library · ricerca edizioni italiane",
   },
   manga: {
@@ -44,7 +45,7 @@ const typeMeta = {
     label: "Anime",
     icon: Film,
     placeholder: "Cerca Vinland Saga, Monster, Pluto…",
-    hint: "Recuperiamo serie, stagioni ed episodi; il tuo progresso resta invece personale.",
+    hint: "Recuperiamo serie, stagioni ed episodi; il tuo progresso resta personale.",
     provider: "TVmaze",
   },
 } as const;
@@ -59,22 +60,14 @@ function statusLabel(status: Result["publicationStatus"]) {
 function resultSubtitle(result: Result, type: AddWorkType) {
   if (type === "book") {
     const book = result as BookCatalogResult;
-    return (
-      book.creators.map((creator) => creator.name).join(" · ") ||
-      "Autore non disponibile"
-    );
+    return book.creators.map((creator) => creator.name).join(" · ") || "Autore non disponibile";
   }
   if (type === "manga") {
     const manga = result as MangaCatalogResult;
-    return (
-      manga.creators.map((creator) => creator.name).join(" · ") ||
-      "Autore non disponibile"
-    );
+    return manga.creators.map((creator) => creator.name).join(" · ") || "Autore non disponibile";
   }
   const anime = result as AnimeCatalogResult;
-  return (
-    [anime.network, anime.language].filter(Boolean).join(" · ") || "Serie anime"
-  );
+  return [anime.network, anime.language].filter(Boolean).join(" · ") || "Serie anime";
 }
 
 function facts(result: Result, type: AddWorkType) {
@@ -98,9 +91,7 @@ function facts(result: Result, type: AddWorkType) {
   if (type === "manga") {
     const manga = result as MangaCatalogResult;
     return [
-      manga.volumeCount
-        ? `${manga.volumeCount} volumi`
-        : "Volumi da verificare",
+      manga.volumeCount ? `${manga.volumeCount} volumi` : "Volumi da verificare",
       manga.chapterCount ? `${manga.chapterCount} capitoli` : null,
       manga.releaseYear,
     ]
@@ -109,11 +100,7 @@ function facts(result: Result, type: AddWorkType) {
   }
 
   const anime = result as AnimeCatalogResult;
-  return [
-    anime.releaseYear,
-    anime.genres.slice(0, 2).join(" · ") || null,
-    anime.network,
-  ]
+  return [anime.releaseYear, anime.genres.slice(0, 2).join(" · ") || null, anime.network]
     .filter(Boolean)
     .map(String);
 }
@@ -135,9 +122,16 @@ export function AddWorkFlow({
   const [manualTitle, setManualTitle] = useState("");
   const [manualAuthor, setManualAuthor] = useState("");
   const [manualTotalVolumes, setManualTotalVolumes] = useState("");
-  const [manualSaving, setManualSaving] = useState<
-    "library" | "wishlist" | null
-  >(null);
+  const [manualCoverUrl, setManualCoverUrl] = useState("");
+  const [manualSaving, setManualSaving] = useState<"library" | "wishlist" | null>(null);
+
+  function resetManual() {
+    setManualTitle("");
+    setManualAuthor("");
+    setManualTotalVolumes("");
+    setManualCoverUrl("");
+    setManualSaving(null);
+  }
 
   function switchType(next: AddWorkType) {
     setType(next);
@@ -147,10 +141,7 @@ export function AddWorkFlow({
     setError(null);
     setSearched(false);
     setImporting(null);
-    setManualTitle("");
-    setManualAuthor("");
-    setManualTotalVolumes("");
-    setManualSaving(null);
+    resetManual();
   }
 
   function switchEntryMode(next: EntryMode) {
@@ -192,9 +183,7 @@ export function AddWorkFlow({
       }
     } catch (err) {
       if (err instanceof DOMException && err.name === "AbortError") {
-        setError(
-          "La ricerca sta impiegando troppo tempo. Puoi riprovare o usare l'inserimento manuale.",
-        );
+        setError("La ricerca sta impiegando troppo tempo. Puoi riprovare o usare l'inserimento manuale.");
       } else {
         setError(err instanceof Error ? err.message : "Ricerca non disponibile.");
       }
@@ -274,8 +263,9 @@ export function AddWorkFlow({
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           title,
-          author: type === "book" ? manualAuthor.trim() || undefined : undefined,
+          author: manualAuthor.trim() || undefined,
           totalVolumes: type === "manga" ? totalVolumes : undefined,
+          coverUrl: manualCoverUrl.trim() || undefined,
           destination,
         }),
       });
@@ -298,9 +288,7 @@ export function AddWorkFlow({
       }
       router.refresh();
     } catch (err) {
-      setError(
-        err instanceof Error ? err.message : "Inserimento manuale non riuscito.",
-      );
+      setError(err instanceof Error ? err.message : "Inserimento manuale non riuscito.");
     } finally {
       setManualSaving(null);
     }
@@ -313,15 +301,9 @@ export function AddWorkFlow({
   return (
     <section className="add-work-flow">
       <div className="add-steps" aria-label="Flusso di aggiunta">
-        <span className="active">
-          <b>1</b> Tipologia
-        </span>
-        <span className="active">
-          <b>2</b> Metodo
-        </span>
-        <span className={results.length || manualTitle.trim() ? "active" : ""}>
-          <b>3</b> Salva
-        </span>
+        <span className="active"><b>1</b> Tipologia</span>
+        <span className="active"><b>2</b> Metodo</span>
+        <span className={results.length || manualTitle.trim() ? "active" : ""}><b>3</b> Salva</span>
       </div>
 
       <div className="add-type-grid">
@@ -337,13 +319,7 @@ export function AddWorkFlow({
             >
               <ItemIcon size={22} />
               <span>{item.label}</span>
-              <small>
-                {key === "book"
-                  ? "Libreria"
-                  : key === "manga"
-                    ? "Scaffali"
-                    : "Videoteca"}
-              </small>
+              <small>{key === "book" ? "Libreria" : key === "manga" ? "Scaffali" : "Videoteca"}</small>
             </button>
           );
         })}
@@ -359,7 +335,7 @@ export function AddWorkFlow({
             <Search size={19} />
             <span>
               <strong>Cerca nei cataloghi</strong>
-              <small>Trova dati, copertina ed edizioni automaticamente.</small>
+              <small>Copertine reali e dati recuperati automaticamente.</small>
             </span>
           </button>
           <button
@@ -370,7 +346,7 @@ export function AddWorkFlow({
             <PenLine size={19} />
             <span>
               <strong>Inserisci manualmente</strong>
-              <small>Basta il titolo. Completi il resto quando vuoi.</small>
+              <small>Per edizioni, variant o titoli non trovati.</small>
             </span>
           </button>
         </div>
@@ -379,12 +355,10 @@ export function AddWorkFlow({
       {entryMode === "catalog" ? (
         <div className="add-search-stage">
           <div className="add-search-copy">
-            <div className="add-search-icon">
-              <Icon size={20} />
-            </div>
+            <div className="add-search-icon"><Icon size={20} /></div>
             <div>
               <span className="eyebrow">Aggiungi {meta.label.toLowerCase()}</span>
-              <h2>Trova l'opera giusta.</h2>
+              <h2>Trova l&apos;opera giusta.</h2>
               <p>{meta.hint}</p>
             </div>
           </div>
@@ -406,28 +380,22 @@ export function AddWorkFlow({
             </button>
           </form>
 
-          <div className="provider-note">
+          <div className="provider-note add-provider-note">
             <Sparkles size={16} />
             <span>
-              Fonte catalogo: {meta.provider}. Dati personali e catalogo restano
-              separati.
+              Fonte: {meta.provider}. Le copertine del catalogo restano quelle reali.
             </span>
           </div>
         </div>
       ) : canInsertManually ? (
         <section className="manual-work-entry open">
           <div className="manual-work-entry-head">
-            <div className="manual-work-icon">
-              <PenLine size={20} />
-            </div>
+            <div className="manual-work-icon"><PenLine size={20} /></div>
             <div>
               <span className="eyebrow">Inserimento manuale</span>
-              <strong>Parti dal minimo indispensabile.</strong>
+              <strong>Aggiungi solo quello che conosci.</strong>
               <p>
-                Il titolo è l&apos;unico dato obbligatorio.
-                {type === "manga"
-                  ? " Se conosci quanti volumi vuoi gestire, inserisci il totale e li prepariamo subito; altrimenti puoi farlo più tardi dalla scheda."
-                  : " Se conosci già l'autore puoi salvarlo subito; copertina, edizione e altri dettagli restano completabili dalla scheda."}
+                Il titolo è l&apos;unico dato obbligatorio. Copertina e dettagli possono essere completati anche dopo.
               </p>
             </div>
           </div>
@@ -439,53 +407,70 @@ export function AddWorkFlow({
               void addManualWork("library");
             }}
           >
-            <label>
-              <span>Titolo {type === "book" ? "libro" : "manga"}</span>
-              <input
-                value={manualTitle}
-                onChange={(event) => setManualTitle(event.target.value)}
-                placeholder={
-                  type === "book"
-                    ? "Inserisci il titolo del libro"
-                    : "Titolo italiano, originale o quello che conosci"
-                }
-                autoFocus
+            <div className="manual-work-editor">
+              <ManualWorkCover
+                value={manualCoverUrl}
+                onChange={setManualCoverUrl}
+                title={manualTitle}
               />
-            </label>
 
-            {type === "book" ? (
-              <label>
-                <span>
-                  Autore <small>facoltativo</small>
-                </span>
-                <input
-                  value={manualAuthor}
-                  onChange={(event) => setManualAuthor(event.target.value)}
-                  placeholder="Es. Mark Z. Danielewski"
-                />
-              </label>
-            ) : null}
+              <div className="manual-work-fields">
+                <label className="manual-primary-field">
+                  <span>Titolo {type === "book" ? "libro" : "manga"} <b>obbligatorio</b></span>
+                  <input
+                    value={manualTitle}
+                    onChange={(event) => setManualTitle(event.target.value)}
+                    placeholder={type === "book" ? "Inserisci il titolo del libro" : "Titolo italiano, originale o quello che conosci"}
+                    autoFocus
+                  />
+                </label>
 
-            {type === "manga" ? (
-              <label>
-                <span>
-                  Volumi totali <small>facoltativo</small>
-                </span>
-                <input
-                  value={manualTotalVolumes}
-                  onChange={(event) => setManualTotalVolumes(event.target.value)}
-                  type="number"
-                  inputMode="numeric"
-                  min="1"
-                  step="1"
-                  placeholder="Es. 8"
-                />
-                <small>
-                  Se lo inserisci, creeremo subito Vol. 1…N e potrai selezionare
-                  quelli posseduti.
-                </small>
-              </label>
-            ) : null}
+                <details className="manual-work-more">
+                  <summary>
+                    <span>
+                      <strong>Altri dettagli</strong>
+                      <small>Facoltativi, modificabili in seguito</small>
+                    </span>
+                    <ChevronDown size={18} />
+                  </summary>
+                  <div className="manual-work-optional-grid">
+                    <label>
+                      <span>Autore <small>facoltativo</small></span>
+                      <input
+                        value={manualAuthor}
+                        onChange={(event) => setManualAuthor(event.target.value)}
+                        placeholder={type === "book" ? "Es. Haruki Murakami" : "Es. Takehiko Inoue"}
+                      />
+                    </label>
+
+                    {type === "manga" ? (
+                      <label>
+                        <span>Volumi totali <small>facoltativo</small></span>
+                        <input
+                          value={manualTotalVolumes}
+                          onChange={(event) => setManualTotalVolumes(event.target.value)}
+                          type="number"
+                          inputMode="numeric"
+                          min="1"
+                          step="1"
+                          placeholder="Es. 37"
+                        />
+                        <small>Se lo conosci, prepariamo subito Vol. 1…N.</small>
+                      </label>
+                    ) : null}
+                  </div>
+                </details>
+
+                <div className="manual-work-tip">
+                  <Sparkles size={16} />
+                  <span>
+                    {manualCoverUrl
+                      ? "La copertina scelta verrà salvata con l'opera."
+                      : "Senza copertina l'opera viene salvata comunque e potrai aggiungerla dopo."}
+                  </span>
+                </div>
+              </div>
+            </div>
 
             <div className="manual-work-actions">
               <button
@@ -494,11 +479,7 @@ export function AddWorkFlow({
                 onClick={() => void addManualWork("wishlist")}
                 disabled={Boolean(manualSaving) || !manualTitle.trim()}
               >
-                {manualSaving === "wishlist" ? (
-                  <LoaderCircle className="spin" size={18} />
-                ) : (
-                  <Bookmark size={18} />
-                )}
+                {manualSaving === "wishlist" ? <LoaderCircle className="spin" size={18} /> : <Bookmark size={18} />}
                 Wishlist
               </button>
               <button
@@ -506,14 +487,8 @@ export function AddWorkFlow({
                 type="submit"
                 disabled={Boolean(manualSaving) || !manualTitle.trim()}
               >
-                {manualSaving === "library" ? (
-                  <LoaderCircle className="spin" size={18} />
-                ) : (
-                  <Plus size={18} />
-                )}
-                {manualSaving === "library"
-                  ? "Aggiungo…"
-                  : "Aggiungi alla libreria"}
+                {manualSaving === "library" ? <LoaderCircle className="spin" size={18} /> : <Plus size={18} />}
+                {manualSaving === "library" ? "Aggiungo…" : "Aggiungi alla libreria"}
               </button>
             </div>
           </form>
@@ -522,14 +497,11 @@ export function AddWorkFlow({
 
       {error ? <p className="catalog-error">{error}</p> : null}
 
-      {searched &&
-      !loading &&
-      results.length === 0 &&
-      !error &&
-      entryMode === "catalog" ? (
-        <p className="catalog-empty">
-          Nessun risultato. Prova una variante più breve del titolo.
-        </p>
+      {searched && !loading && results.length === 0 && !error && entryMode === "catalog" ? (
+        <div className="catalog-empty add-empty-state">
+          <strong>Nessun risultato preciso.</strong>
+          <span>Prova un titolo più breve oppure passa all&apos;inserimento manuale.</span>
+        </div>
       ) : null}
 
       {entryMode === "catalog" ? (
@@ -559,15 +531,11 @@ export function AddWorkFlow({
                 </div>
 
                 <div className="catalog-result-copy">
-                  <span className="eyebrow">
-                    {statusLabel(result.publicationStatus)}
-                  </span>
+                  <span className="eyebrow">{statusLabel(result.publicationStatus)}</span>
                   <h2>{result.title}</h2>
                   <p>{resultSubtitle(result, type)}</p>
                   <div className="catalog-facts">
-                    {facts(result, type).map((fact) => (
-                      <span key={fact}>{fact}</span>
-                    ))}
+                    {facts(result, type).map((fact) => <span key={fact}>{fact}</span>)}
                   </div>
                 </div>
 
@@ -578,11 +546,7 @@ export function AddWorkFlow({
                     onClick={() => importWork(result, "wishlist")}
                     disabled={Boolean(importing)}
                   >
-                    {importing === wishlistKey ? (
-                      <LoaderCircle className="spin" size={18} />
-                    ) : (
-                      <Bookmark size={18} />
-                    )}
+                    {importing === wishlistKey ? <LoaderCircle className="spin" size={18} /> : <Bookmark size={18} />}
                     <span>{importing === wishlistKey ? "Salvo" : "Wishlist"}</span>
                   </button>
                   <button
@@ -591,17 +555,9 @@ export function AddWorkFlow({
                     onClick={() => importWork(result, "library")}
                     disabled={Boolean(importing)}
                   >
-                    {importing === libraryKey ? (
-                      <LoaderCircle className="spin" size={18} />
-                    ) : (
-                      <Plus size={18} />
-                    )}
+                    {importing === libraryKey ? <LoaderCircle className="spin" size={18} /> : <Plus size={18} />}
                     <span>
-                      {importing === libraryKey
-                        ? "Importo"
-                        : type === "book"
-                          ? "Scegli edizione"
-                          : "Libreria"}
+                      {importing === libraryKey ? "Importo" : type === "book" ? "Scegli edizione" : "Libreria"}
                     </span>
                   </button>
                 </div>
@@ -612,8 +568,8 @@ export function AddWorkFlow({
       ) : null}
 
       <p className="catalog-attribution">
-        Manga: ricerca combinata MyAnimeList/Jikan e Kitsu. Libri: Open Library.
-        Anime: TVmaze. Le fonti restano separate dai tuoi dati personali.
+        Manga: MyAnimeList/Jikan e Kitsu. Libri: Open Library. Anime: TVmaze.
+        Le fonti restano separate dai tuoi dati personali.
       </p>
     </section>
   );
