@@ -2,8 +2,10 @@ import { revalidatePath } from "next/cache";
 import { NextResponse } from "next/server";
 import { getApiProfile } from "@/lib/profile";
 import { addOwnedVolumes } from "@/lib/repositories/bulk-owned-volumes";
-import { listOwnedMangaShelfVolumes } from "@/lib/repositories/manga-owned-shelf";
-import { toggleOwnedUnit } from "@/lib/repositories/personal";
+import {
+  listOwnedMangaShelfVolumes,
+  removeOwnedMangaShelfVolume,
+} from "@/lib/repositories/manga-owned-shelf";
 
 const uuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 
@@ -80,7 +82,20 @@ export async function DELETE(request: Request) {
     return NextResponse.json({ error: "Dati non validi." }, { status: 400 });
   }
 
-  await toggleOwnedUnit(identity.profile.id, body.editionId, body.unitId);
+  const removed = await removeOwnedMangaShelfVolume(
+    identity.profile.id,
+    body.workId,
+    body.editionId,
+    body.unitId,
+  );
+
+  if (!removed) {
+    return NextResponse.json(
+      { error: "Il volume non risulta più tra i posseduti." },
+      { status: 404 },
+    );
+  }
+
   refreshManga(body.workId);
   return NextResponse.json({ ok: true });
 }
