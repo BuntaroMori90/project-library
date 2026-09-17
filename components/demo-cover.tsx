@@ -1,5 +1,6 @@
 import Image from "next/image";
 import Link from "next/link";
+import { Star } from "lucide-react";
 import type { DemoItem } from "@/lib/demo-data";
 
 const optimizedCoverHosts = new Set([
@@ -27,10 +28,12 @@ export function DemoCover({
   item,
   href,
   badge,
+  favorite = false,
 }: {
   item: DemoItem;
   href?: string;
   badge?: string;
+  favorite?: boolean;
 }) {
   const content = (
     <article className="cover-card">
@@ -62,19 +65,18 @@ export function DemoCover({
             />
           )
         ) : null}
-        {!item.coverUrl ? (
-          <span className="cover-flare" aria-hidden="true" />
-        ) : null}
-        {!item.coverUrl ? (
-          <span className="cover-title">{item.title}</span>
-        ) : null}
-        {!item.coverUrl ? (
-          <span className="cover-author">{item.creator}</span>
-        ) : null}
+        {!item.coverUrl ? <span className="cover-flare" aria-hidden="true" /> : null}
+        {!item.coverUrl ? <span className="cover-title">{item.title}</span> : null}
+        {!item.coverUrl ? <span className="cover-author">{item.creator}</span> : null}
         {badge ? <span className="cover-collection-badge">{badge}</span> : null}
       </div>
       <div className="cover-meta">
-        <strong>{item.title}</strong>
+        <div className="cover-meta-title">
+          <strong>{item.title}</strong>
+          {favorite ? (
+            <Star className="cover-favorite" size={13} fill="currentColor" aria-label="Preferito" />
+          ) : null}
+        </div>
         <span>{item.progress ?? item.status ?? item.creator}</span>
         {item.meta ? <span>{item.meta}</span> : null}
       </div>
