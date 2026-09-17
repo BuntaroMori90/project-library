@@ -54,8 +54,38 @@ export function BulkOwnedVolumes({
   }, [workId]);
 
   useEffect(() => {
-    void loadShelf();
-  }, [loadShelf]);
+    const controller = new AbortController();
+
+    fetch(`/api/manga/owned-volumes?workId=${encodeURIComponent(workId)}`, {
+      cache: "no-store",
+      signal: controller.signal,
+    })
+      .then(async (response) => {
+        const result = await response.json();
+        if (!response.ok) {
+          throw new Error(result.error ?? "Impossibile caricare i volumi.");
+        }
+        return result;
+      })
+      .then((result) => {
+        if (controller.signal.aborted) return;
+        setOwnedVolumes(Array.isArray(result.volumes) ? result.volumes : []);
+        setShelfError("");
+      })
+      .catch((caught) => {
+        if (controller.signal.aborted) return;
+        setShelfError(
+          caught instanceof Error
+            ? caught.message
+            : "Impossibile caricare i volumi posseduti.",
+        );
+      })
+      .finally(() => {
+        if (!controller.signal.aborted) setShelfLoading(false);
+      });
+
+    return () => controller.abort();
+  }, [workId]);
 
   let numbers: number[] = [];
   let invalid = "";
