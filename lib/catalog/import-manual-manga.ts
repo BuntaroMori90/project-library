@@ -7,19 +7,35 @@ function normalizeTotalVolumes(value: number | null | undefined) {
   return total > 0 ? total : null;
 }
 
+function parseAuthors(rawAuthors?: string | null) {
+  if (!rawAuthors) return [];
+  return Array.from(
+    new Set(
+      rawAuthors
+        .split(/[;,]+/)
+        .map((author) => author.trim())
+        .filter(Boolean),
+    ),
+  );
+}
+
 export async function createManualManga(
   title: string,
   totalVolumes: number | null = null,
+  coverUrl: string | null = null,
+  rawAuthors: string | null = null,
 ) {
   const cleanTitle = title.trim();
   if (!cleanTitle) throw new Error("Inserisci almeno il titolo del manga.");
   const total = normalizeTotalVolumes(totalVolumes);
+  const authors = parseAuthors(rawAuthors);
 
   return withTransaction(async (client) => {
     const created = await client.query<{ id: string }>(
-      `insert into works (media_type,title,publication_status,total_volumes)
-       values ('MANGA',$1,'UNKNOWN',$2) returning id`,
-      [cleanTitle, total],
+      `insert into works
+         (media_type,title,publication_status,total_volumes,cover_url)
+       values ('MANGA',$1,'UNKNOWN',$2,$3) returning id`,
+      [cleanTitle, total, coverUrl],
     );
     const workId = created.rows[0].id;
 
@@ -29,12 +45,35 @@ export async function createManualManga(
       [workId, workId],
     );
 
+    for (const name of authors) {
+      const existing = await client.query<{ id: string }>(
+        "select id from creators where lower(name)=lower($1) limit 1",
+        [name],
+      );
+      const creatorId =
+        existing.rows[0]?.id ??
+        (
+          await client.query<{ id: string }>(
+            "insert into creators (name) values ($1) returning id",
+            [name],
+          )
+        ).rows[0]?.id;
+
+      if (!creatorId) continue;
+      await client.query(
+        `insert into work_creators (work_id,creator_id,role)
+         values ($1,$2,'AUTHOR')
+         on conflict (work_id,creator_id,role) do nothing`,
+        [workId, creatorId],
+      );
+    }
+
     const edition = await client.query<{ id: string }>(
       `insert into editions
-         (work_id,name,total_units,source_provider,source_external_id,is_canonical)
-       values ($1,'Edizione da completare',$2,'MANUAL',$3,true)
+         (work_id,name,total_units,cover_url,source_provider,source_external_id,is_canonical)
+       values ($1,'Edizione da completare',$2,$3,'MANUAL',$4,true)
        returning id`,
-      [workId, total, workId],
+      [workId, total, coverUrl, workId],
     );
     const editionId = edition.rows[0].id;
 
