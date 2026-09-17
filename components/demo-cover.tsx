@@ -14,7 +14,7 @@ const optimizedCoverHosts = new Set([
 export function canOptimizeCover(src: string) {
   // Le copertine personali passano da un endpoint autenticato: devono essere
   // richieste direttamente dal browser per mantenere la sessione utente.
-  if (src.startsWith("/api/library/cover/")) return false;
+  if (src.startsWith("/api/library/cover/") || src.startsWith("/api/manga/volume-cover/")) return false;
   if (src.startsWith("/")) return true;
   try {
     return optimizedCoverHosts.has(new URL(src).hostname);

@@ -63,11 +63,13 @@ export function ManualWorkCover({
   value,
   title,
   onChange,
+  onBusyChange,
   disabled = false,
 }: {
   value: string;
   title: string;
   onChange: (value: string) => void;
+  onBusyChange?: (busy: boolean) => void;
   disabled?: boolean;
 }) {
   const [busy, setBusy] = useState(false);
@@ -75,8 +77,13 @@ export function ManualWorkCover({
   const locked = busy || disabled;
 
   async function onFile(file: File | undefined) {
-    if (!file || disabled) return;
+    if (!file || locked) return;
+    if (file.size > 10_000_000 || !["image/jpeg", "image/png", "image/webp"].includes(file.type)) {
+      setError("Scegli un file JPG, PNG o WebP di massimo 10 MB.");
+      return;
+    }
     setBusy(true);
+    onBusyChange?.(true);
     setError(null);
     try {
       onChange(await resizeImage(file));
@@ -84,6 +91,7 @@ export function ManualWorkCover({
       setError(err instanceof Error ? err.message : "Errore durante il caricamento");
     } finally {
       setBusy(false);
+      onBusyChange?.(false);
     }
   }
 
@@ -131,6 +139,7 @@ export function ManualWorkCover({
           <input
             type="url"
             placeholder="Oppure incolla URL"
+            aria-label="Indirizzo della copertina"
             value={value.startsWith("data:") ? "" : value}
             disabled={value.startsWith("data:") || locked}
             onChange={(event) => onChange(event.target.value)}
@@ -141,7 +150,7 @@ export function ManualWorkCover({
       <small className="manual-cover-note">
         Usa la copertina reale dell&apos;edizione. Puoi cambiarla in seguito.
       </small>
-      {error ? <small className="catalog-error">{error}</small> : null}
+      {error ? <small role="alert" className="catalog-error">{error}</small> : null}
     </aside>
   );
 }

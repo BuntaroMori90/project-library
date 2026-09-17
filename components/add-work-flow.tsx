@@ -127,6 +127,7 @@ export function AddWorkFlow({
   const [manualAuthor, setManualAuthor] = useState("");
   const [manualTotalVolumes, setManualTotalVolumes] = useState("");
   const [manualCoverUrl, setManualCoverUrl] = useState("");
+  const [coverProcessing, setCoverProcessing] = useState(false);
   const [manualSaving, setManualSaving] = useState<"library" | "wishlist" | null>(null);
   const [keepAdding, setKeepAdding] = useState(false);
   const [saved, setSaved] = useState<{ title: string; href: string } | null>(null);
@@ -176,7 +177,7 @@ export function AddWorkFlow({
   }
 
   function switchType(next: AddWorkType) {
-    if (saving.current || next === type) return;
+    if (saving.current || coverProcessing || next === type) return;
     if (
       hasManualDraft() &&
       !window.confirm(
@@ -202,7 +203,7 @@ export function AddWorkFlow({
   }
 
   function switchEntryMode(next: EntryMode) {
-    if (saving.current) return;
+    if (saving.current || coverProcessing) return;
     searchRequest.current?.abort();
     searchRequest.current = null;
     setLoading(false);
@@ -215,7 +216,7 @@ export function AddWorkFlow({
 
   async function search(event: React.FormEvent) {
     event.preventDefault();
-    if (saving.current) return;
+    if (saving.current || coverProcessing) return;
 
     const normalized = query.trim();
     if (normalized.length < 2) return;
@@ -269,7 +270,7 @@ export function AddWorkFlow({
     result: Result,
     destination: "library" | "wishlist",
   ) {
-    if (saving.current) return;
+    if (saving.current || coverProcessing) return;
     saving.current = true;
     setSaved(null);
 
@@ -320,7 +321,7 @@ export function AddWorkFlow({
       return;
     }
 
-    if (saving.current) return;
+    if (saving.current || coverProcessing) return;
     saving.current = true;
     setSaved(null);
     setManualSaving(destination);
@@ -357,7 +358,7 @@ export function AddWorkFlow({
   const meta = typeMeta[type];
   const Icon = meta.icon;
   const canInsertManually = type === "book" || type === "manga";
-  const isSaving = Boolean(importing || manualSaving);
+  const isSaving = Boolean(importing || manualSaving || coverProcessing);
 
   return (
     <section className="add-work-flow">
@@ -476,6 +477,7 @@ export function AddWorkFlow({
               <ManualWorkCover
                 value={manualCoverUrl}
                 onChange={setManualCoverUrl}
+                onBusyChange={setCoverProcessing}
                 title={manualTitle}
                 disabled={Boolean(manualSaving)}
               />
@@ -546,7 +548,7 @@ export function AddWorkFlow({
                 className="secondary-btn"
                 type="button"
                 onClick={() => void addManualWork("wishlist")}
-                disabled={Boolean(manualSaving) || !manualTitle.trim()}
+                disabled={Boolean(manualSaving) || coverProcessing || !manualTitle.trim()}
               >
                 {manualSaving === "wishlist" ? <LoaderCircle className="spin" size={18} /> : <Bookmark size={18} />}
                 Wishlist
@@ -554,7 +556,7 @@ export function AddWorkFlow({
               <button
                 className="primary-btn"
                 type="submit"
-                disabled={Boolean(manualSaving) || !manualTitle.trim()}
+                disabled={Boolean(manualSaving) || coverProcessing || !manualTitle.trim()}
               >
                 {manualSaving === "library" ? <LoaderCircle className="spin" size={18} /> : <Plus size={18} />}
                 {manualSaving === "library" ? "Aggiungo…" : "Aggiungi alla libreria"}

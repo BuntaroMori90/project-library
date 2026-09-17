@@ -18,6 +18,9 @@ export async function createPersonalMangaEdition(
   workId: string,
   values: PersonalMangaEditionInput,
 ) {
+  if (values.totalVolumes != null && (!Number.isInteger(values.totalVolumes) || values.totalVolumes < 1 || values.totalVolumes > 10_000)) {
+    throw new Error("Il totale deve essere un numero intero tra 1 e 10000.");
+  }
   return withTransaction(async (client) => {
     const workResult = await client.query<{
       id: string;
@@ -155,17 +158,16 @@ export async function createPersonalMangaEdition(
     }
 
     if (values.totalVolumes && values.totalVolumes > 0) {
-      for (let number = 1; number <= values.totalVolumes; number += 1) {
-        await client.query(
-          `insert into content_units
-             (work_id,edition_id,unit_type,unit_number,sort_order)
-           values ($1,$2,'VOLUME',$3,$3)
-           on conflict (edition_id,unit_type,unit_number)
-             where edition_id is not null and unit_number is not null
-           do nothing`,
-          [workId, editionId, number],
-        );
-      }
+      await client.query(
+        `insert into content_units
+           (work_id,edition_id,unit_type,unit_number,sort_order)
+         select $1,$2,'VOLUME',number,number
+           from generate_series(1,$3::integer) as number
+         on conflict (edition_id,unit_type,unit_number)
+           where edition_id is not null and unit_number is not null
+         do nothing`,
+        [workId, editionId, values.totalVolumes],
+      );
     } else if (values.volumeNumber && values.volumeNumber > 0) {
       const unitResult = await client.query<{ id: string }>(
         `insert into content_units

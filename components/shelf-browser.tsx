@@ -62,7 +62,9 @@ export function ShelfBrowser({
     const map = new Map<string, ShelfItem[]>();
     filtered.forEach((item) => {
       const letter = initialLetter(groupKey(item, groupBy));
-      map.set(letter, [...(map.get(letter) ?? []), item]);
+      const group = map.get(letter);
+      if (group) group.push(item);
+      else map.set(letter, [item]);
     });
     return [...map.entries()].sort(([a], [b]) => a.localeCompare(b));
   }, [filtered, groupBy]);
