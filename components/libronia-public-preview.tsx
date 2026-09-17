@@ -16,6 +16,32 @@ const mangaPreview: DemoItem[] = [
   { ...demoManga[10], meta: "30 volumi", progress: undefined },
 ];
 
+const animePreview = demoAnime
+  .slice()
+  .sort((a, b) => a.title.localeCompare(b.title, "it", { sensitivity: "base" }));
+
+const animePreviewGroups = animePreview.reduce<Array<{ initial: string; items: Array<{ item: DemoItem; index: number }> }>>(
+  (groups, item, index) => {
+    const normalized = item.title
+      .normalize("NFD")
+      .replace(/[\u0300-\u036f]/g, "")
+      .trim()
+      .toUpperCase();
+    const first = normalized.charAt(0);
+    const initial = /^[A-Z]$/.test(first) ? first : "#";
+    const existing = groups.at(-1);
+
+    if (existing?.initial === initial) {
+      existing.items.push({ item, index });
+    } else {
+      groups.push({ initial, items: [{ item, index }] });
+    }
+
+    return groups;
+  },
+  [],
+);
+
 const dockItems: Array<[PreviewSection, string, typeof Home]> = [
   ["home", "Home", Home],
   ["books", "Libri", BookOpen],
@@ -40,9 +66,9 @@ function PreviewShelf({ items, kind }: { items: DemoItem[]; kind: "book" | "mang
 
 function AnimeTvPreview() {
   const [index, setIndex] = useState(0);
-  const selected = demoAnime[index];
-  const prev = () => setIndex((value) => (value <= 0 ? demoAnime.length - 1 : value - 1));
-  const next = () => setIndex((value) => (value >= demoAnime.length - 1 ? 0 : value + 1));
+  const selected = animePreview[index];
+  const prev = () => setIndex((value) => (value <= 0 ? animePreview.length - 1 : value - 1));
+  const next = () => setIndex((value) => (value >= animePreview.length - 1 ? 0 : value + 1));
 
   return (
     <section className="preview-anime-room">
@@ -63,27 +89,37 @@ function AnimeTvPreview() {
           </div>
           <div className="preview-tv-controls">
             <button type="button" onClick={prev} aria-label="Anime precedente"><ChevronLeft size={20} /></button>
-            <div><small>LIBRONIA TV</small><strong>{index + 1} / {demoAnime.length}</strong></div>
+            <div><small>LIBRONIA TV</small><strong>{index + 1} / {animePreview.length}</strong></div>
             <button type="button" onClick={next} aria-label="Anime successivo"><ChevronRight size={20} /></button>
           </div>
         </div>
         <div className="preview-tv-stand" aria-hidden="true" />
       </div>
 
-      <div className="preview-video-library" aria-label="Titoli anime">
-        {demoAnime.slice(0, 8).map((item, itemIndex) => (
-          <button
-            type="button"
-            key={item.id}
-            onClick={() => setIndex(itemIndex)}
-            className={itemIndex === index ? "active" : ""}
-            aria-pressed={itemIndex === index}
-          >
-            <span className={`preview-anime-case ${item.coverClass ?? "poster-blue"}`}>
-              <i>{item.title.slice(0, 1)}</i>
-            </span>
-            <strong>{item.title}</strong>
-          </button>
+      <div className="preview-video-library-alpha" aria-label="Titoli anime in ordine alfabetico">
+        {animePreviewGroups.map((group) => (
+          <section className="preview-video-library-group" key={group.initial}>
+            <div className="preview-video-library-letter">
+              <strong>{group.initial}</strong>
+              <span>{group.items.length} {group.items.length === 1 ? "titolo" : "titoli"}</span>
+            </div>
+            <div className="preview-video-library">
+              {group.items.map(({ item, index: itemIndex }) => (
+                <button
+                  type="button"
+                  key={item.id}
+                  onClick={() => setIndex(itemIndex)}
+                  className={itemIndex === index ? "active" : ""}
+                  aria-pressed={itemIndex === index}
+                >
+                  <span className={`preview-anime-case ${item.coverClass ?? "poster-blue"}`}>
+                    <i>{item.title.slice(0, 1)}</i>
+                  </span>
+                  <strong>{item.title}</strong>
+                </button>
+              ))}
+            </div>
+          </section>
         ))}
       </div>
     </section>
