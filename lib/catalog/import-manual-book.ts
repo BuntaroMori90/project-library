@@ -13,16 +13,20 @@ function parseAuthors(rawAuthors?: string | null) {
   );
 }
 
-export async function createManualBook(title: string, rawAuthors?: string | null) {
+export async function createManualBook(
+  title: string,
+  rawAuthors?: string | null,
+  coverUrl?: string | null,
+) {
   const cleanTitle = title.trim();
   if (!cleanTitle) throw new Error("Inserisci almeno il titolo del libro.");
   const authors = parseAuthors(rawAuthors);
 
   return withTransaction(async (client) => {
     const created = await client.query<{ id: string }>(
-      `insert into works (media_type,title,publication_status)
-       values ('BOOK',$1,'UNKNOWN') returning id`,
-      [cleanTitle],
+      `insert into works (media_type,title,publication_status,cover_url)
+       values ('BOOK',$1,'UNKNOWN',$2) returning id`,
+      [cleanTitle, coverUrl ?? null],
     );
     const workId = created.rows[0].id;
 
@@ -56,9 +60,11 @@ export async function createManualBook(title: string, rawAuthors?: string | null
     }
 
     const edition = await client.query<{ id: string }>(
-      `insert into editions (work_id,name,is_canonical)
-       values ($1,'Edizione da completare',true) returning id`,
-      [workId],
+      `insert into editions
+         (work_id,name,cover_url,source_provider,source_external_id,is_canonical)
+       values ($1,'Edizione da completare',$2,'MANUAL',$3,true)
+       returning id`,
+      [workId, coverUrl ?? null, workId],
     );
 
     return { workId, editionId: edition.rows[0].id };
