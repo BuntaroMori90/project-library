@@ -1,0 +1,403 @@
+/* Public redesign preview + TV-style anime refinement. */
+
+.libronia-preview-shell {
+  --wood-back: #24150e;
+  --wood-dark: #2f1a10;
+  --wood-mid: #55331f;
+  --wood-light: #7a5030;
+  --text: #f4eadc;
+  --muted: #c1b4a4;
+  --muted-2: #8e8175;
+  --accent-2: #d3a46e;
+  min-height: 100svh;
+  padding-bottom: calc(86px + env(safe-area-inset-bottom));
+  background:
+    radial-gradient(circle at 50% -10%, rgba(140,91,48,.13), transparent 36rem),
+    linear-gradient(180deg, #17100c, #0f0b09 58%, #0a0807);
+  color: var(--text);
+}
+
+.preview-notice {
+  position: sticky;
+  z-index: 60;
+  top: 0;
+  padding: 7px 12px;
+  border-bottom: 1px solid rgba(230,205,172,.08);
+  background: rgba(11,8,7,.96);
+  color: #cdbb9f;
+  font-size: .68rem;
+  line-height: 1.25;
+  text-align: center;
+  backdrop-filter: blur(12px);
+}
+
+.preview-topbar {
+  position: sticky;
+  z-index: 55;
+  top: 29px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+  min-height: 58px;
+  padding: 9px max(14px, calc((100vw - 1180px) / 2));
+  border-bottom: 1px solid rgba(230,205,172,.08);
+  background: rgba(17,12,10,.91);
+  backdrop-filter: blur(18px);
+}
+
+.preview-brand,
+.preview-brand > div,
+.preview-top-actions {
+  display: flex;
+  align-items: center;
+}
+.preview-brand { gap: 10px; }
+.preview-brand > div { align-items: flex-start; flex-direction: column; line-height: 1; }
+.preview-brand strong { font-size: .95rem; }
+.preview-brand small { margin-top: 4px; color: var(--muted-2); font-size: .61rem; }
+.preview-top-actions { gap: 7px; }
+.preview-top-actions > span {
+  width: 38px;
+  height: 38px;
+  display: grid;
+  place-items: center;
+  border: 1px solid rgba(230,205,172,.09);
+  border-radius: 50%;
+  background: rgba(255,255,255,.025);
+  color: #d8c8b3;
+}
+
+.preview-main {
+  width: min(1180px, 100%);
+  margin: 0 auto;
+  padding: 22px 18px 40px;
+}
+
+.preview-collection-intro { margin-top: 0; }
+.preview-page-section { display: grid; gap: 24px; }
+.preview-section-head {
+  display: flex;
+  align-items: end;
+  justify-content: space-between;
+  gap: 18px;
+  padding: 10px 4px 2px;
+}
+.preview-section-head h1 { margin: 3px 0 7px; font-size: clamp(1.65rem, 5vw, 2.5rem); letter-spacing: -.035em; }
+.preview-section-head p { max-width: 620px; margin: 0; color: var(--muted); line-height: 1.5; }
+
+.preview-real-shelf {
+  position: relative;
+  overflow: visible;
+  border-radius: 12px 12px 7px 7px;
+  background:
+    linear-gradient(to bottom,
+      transparent 0 calc(100% - 42px),
+      rgba(20,10,5,.32) calc(100% - 42px) calc(100% - 38px),
+      #865b38 calc(100% - 38px) calc(100% - 25px),
+      #56351f calc(100% - 25px) calc(100% - 10px),
+      #2f1a10 calc(100% - 10px) 100%),
+    linear-gradient(90deg, #24150e, #342017 50%, #24150e);
+  box-shadow:
+    inset 0 18px 34px rgba(255,255,255,.025),
+    inset 18px 0 28px rgba(0,0,0,.16),
+    inset -18px 0 28px rgba(0,0,0,.16),
+    0 25px 34px -30px rgba(0,0,0,.94);
+}
+.preview-real-shelf::after {
+  content: "";
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: -8px;
+  height: 9px;
+  border-radius: 0 0 7px 7px;
+  background: linear-gradient(180deg, #321b11, #160b07);
+  box-shadow: 0 7px 12px rgba(0,0,0,.32);
+}
+.preview-shelf-back {
+  display: flex;
+  align-items: flex-end;
+  gap: 16px;
+  min-height: 290px;
+  padding: 24px 20px 49px;
+  overflow-x: auto;
+  overflow-y: hidden;
+  scroll-snap-type: x proximity;
+  scrollbar-width: thin;
+}
+.preview-shelf-item {
+  flex: 0 0 132px;
+  width: 132px;
+  scroll-snap-align: start;
+}
+.preview-shelf-item .cover-card { min-height: 0; }
+.preview-shelf-item .cover-art {
+  width: 132px;
+  height: 196px;
+  min-height: 196px;
+  aspect-ratio: auto;
+  border-radius: 4px 8px 8px 4px;
+  box-shadow: 0 13px 22px rgba(0,0,0,.39), 0 3px 0 rgba(0,0,0,.19);
+}
+.preview-shelf-item .cover-image { object-fit: contain; object-position: center bottom; }
+.preview-shelf-item .cover-meta { min-height: 65px; padding: 10px 2px 0; }
+.preview-shelf-item .cover-meta strong {
+  display: -webkit-box;
+  overflow: hidden;
+  font-size: 11px;
+  line-height: 1.25;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+}
+.preview-shelf-item .cover-meta span { display: block; margin-top: 4px; color: var(--muted-2); font-size: 9px; }
+
+.preview-owned-volumes {
+  display: grid;
+  gap: 12px;
+  padding-top: 8px;
+}
+.preview-owned-volumes h2 { margin: 2px 0 3px; }
+.preview-owned-volumes > div:first-child > span { color: var(--muted-2); font-size: .78rem; }
+.preview-volume-row {
+  display: flex;
+  align-items: flex-end;
+  gap: 10px;
+  min-height: 170px;
+  padding: 20px 16px 36px;
+  overflow-x: auto;
+  border-radius: 10px 10px 6px 6px;
+  background:
+    linear-gradient(to bottom, transparent 0 calc(100% - 31px), #835936 calc(100% - 31px) calc(100% - 19px), #53321e calc(100% - 19px) calc(100% - 7px), #2b180f calc(100% - 7px)),
+    #21140e;
+  box-shadow: inset 0 -24px 20px rgba(0,0,0,.17), 0 18px 26px -25px rgba(0,0,0,.9);
+}
+.preview-volume {
+  flex: 0 0 70px;
+  width: 70px;
+  height: 128px;
+  display: grid;
+  place-items: center;
+  border: 1px solid rgba(240,224,202,.12);
+  border-radius: 3px 7px 7px 3px;
+  background: linear-gradient(155deg, #57504b, #23201f 70%);
+  box-shadow: 0 9px 17px rgba(0,0,0,.36), inset 2px 0 rgba(255,255,255,.055);
+  color: #efe3d3;
+  font-weight: 850;
+}
+
+.preview-anime-room {
+  display: grid;
+  gap: 24px;
+  padding: 22px;
+  border: 1px solid rgba(220,191,154,.08);
+  border-radius: 18px;
+  background:
+    linear-gradient(180deg, rgba(255,255,255,.018), rgba(0,0,0,.08)),
+    linear-gradient(90deg, #20140e, #291910 50%, #20140e);
+  box-shadow: inset 0 -34px 42px rgba(0,0,0,.17);
+}
+.preview-tv-cabinet { width: min(760px, 100%); margin: 0 auto; }
+.preview-tv-bezel {
+  position: relative;
+  padding: 16px 16px 12px;
+  border: 1px solid rgba(228,201,168,.15);
+  border-radius: 22px 22px 17px 17px;
+  background:
+    linear-gradient(145deg, rgba(255,255,255,.06), transparent 24%),
+    linear-gradient(155deg, #51301e, #2e1a11 68%, #1d100b);
+  box-shadow: 0 26px 44px rgba(0,0,0,.42), inset 0 0 0 2px rgba(0,0,0,.18);
+}
+.preview-tv-screen {
+  min-height: 330px;
+  display: grid;
+  grid-template-columns: minmax(135px, 34%) 1fr;
+  gap: 24px;
+  align-items: center;
+  padding: 24px;
+  overflow: hidden;
+  border: 8px solid #151210;
+  border-radius: 20px;
+  background:
+    radial-gradient(circle at 25% 35%, rgba(92,96,132,.24), transparent 42%),
+    linear-gradient(145deg, #25262b, #111216 70%);
+  box-shadow: inset 0 0 34px rgba(0,0,0,.75), inset 0 0 0 1px rgba(255,255,255,.025);
+}
+.preview-tv-poster {
+  aspect-ratio: 2 / 3;
+  display: flex;
+  flex-direction: column;
+  justify-content: end;
+  gap: 5px;
+  padding: 16px 13px;
+  border-radius: 7px;
+  background: linear-gradient(160deg, rgba(82,92,125,.88), rgba(28,29,38,.95));
+  box-shadow: 0 14px 26px rgba(0,0,0,.38);
+}
+.preview-tv-poster span { font-size: 1.05rem; font-weight: 850; }
+.preview-tv-poster small { color: rgba(255,255,255,.68); }
+.preview-tv-copy { display: grid; align-content: center; gap: 7px; min-width: 0; }
+.preview-tv-copy h2 { margin: 3px 0 0; font-size: clamp(1.55rem, 5vw, 2.55rem); line-height: 1; }
+.preview-tv-copy p { margin: 0; color: #c7c2bd; }
+.preview-tv-copy > strong { width: fit-content; margin-top: 10px; padding: 6px 9px; border-radius: 999px; background: rgba(255,255,255,.075); font-size: .72rem; }
+.preview-tv-note { color: #8e8882; font-size: .69rem; }
+.preview-tv-controls {
+  display: grid;
+  grid-template-columns: 44px 1fr 44px;
+  align-items: center;
+  gap: 10px;
+  padding: 12px 5px 0;
+}
+.preview-tv-controls button {
+  width: 42px;
+  height: 38px;
+  display: grid;
+  place-items: center;
+  border: 1px solid rgba(230,205,172,.13);
+  border-radius: 999px;
+  background: rgba(0,0,0,.23);
+  color: #ddcdb9;
+}
+.preview-tv-controls > div { display: flex; align-items: center; justify-content: center; gap: 10px; }
+.preview-tv-controls small { color: #b29370; font-size: .58rem; letter-spacing: .14em; }
+.preview-tv-controls strong { font-size: .72rem; }
+.preview-tv-stand {
+  width: 42%;
+  height: 14px;
+  margin: 0 auto;
+  clip-path: polygon(18% 0, 82% 0, 100% 100%, 0 100%);
+  background: linear-gradient(180deg, #3c2518, #1c100a);
+  box-shadow: 0 9px 12px rgba(0,0,0,.28);
+}
+.preview-video-library {
+  display: flex;
+  gap: 12px;
+  padding: 12px 4px 4px;
+  overflow-x: auto;
+  scroll-snap-type: x proximity;
+}
+.preview-video-library > button {
+  flex: 0 0 94px;
+  display: grid;
+  gap: 7px;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--text);
+  text-align: left;
+  scroll-snap-align: start;
+}
+.preview-anime-case {
+  width: 94px;
+  height: 137px;
+  display: grid;
+  place-items: center;
+  border: 1px solid rgba(239,224,205,.11);
+  border-radius: 4px 8px 8px 4px;
+  background: linear-gradient(150deg, #333b4d, #151821);
+  box-shadow: 0 9px 17px rgba(0,0,0,.34), inset 3px 0 rgba(255,255,255,.04);
+}
+.preview-anime-case i { font-size: 1.25rem; font-style: normal; font-weight: 900; opacity: .76; }
+.preview-video-library button strong { font-size: .68rem; line-height: 1.2; }
+.preview-video-library button.active .preview-anime-case { outline: 2px solid rgba(211,164,110,.72); outline-offset: 2px; }
+
+.preview-bottom-dock {
+  position: fixed;
+  z-index: 70;
+  left: 50%;
+  bottom: max(8px, env(safe-area-inset-bottom));
+  width: min(620px, calc(100% - 16px));
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: 2px;
+  padding: 6px;
+  transform: translateX(-50%);
+  border: 1px solid rgba(232,207,176,.11);
+  border-radius: 18px;
+  background: rgba(20,14,11,.94);
+  box-shadow: 0 18px 38px rgba(0,0,0,.48);
+  backdrop-filter: blur(18px);
+}
+.preview-bottom-dock button {
+  min-width: 44px;
+  min-height: 51px;
+  display: grid;
+  place-items: center;
+  align-content: center;
+  gap: 3px;
+  padding: 4px;
+  border: 0;
+  border-radius: 13px;
+  background: transparent;
+  color: #8f8378;
+}
+.preview-bottom-dock button span { font-size: .62rem; }
+.preview-bottom-dock button.active { background: rgba(211,164,110,.10); color: #ead8c0; }
+
+/* Keep the real Anime area unmistakably TV-inspired, but catalog-first. */
+.anime-browser-tv-only .media-room {
+  border-color: rgba(218,184,143,.10);
+  background:
+    linear-gradient(180deg, rgba(255,255,255,.018), rgba(0,0,0,.10)),
+    color-mix(in srgb, var(--wood-back) 92%, #18181c 8%);
+  box-shadow: inset 0 -34px 44px rgba(0,0,0,.17);
+}
+.anime-browser-tv-only .tv-frame {
+  border-radius: 22px;
+  background:
+    linear-gradient(145deg, rgba(255,255,255,.055), transparent 25%),
+    linear-gradient(155deg, color-mix(in srgb, var(--wood-mid) 86%, #633d27 14%), var(--wood-dark) 74%);
+  box-shadow: 0 26px 44px rgba(0,0,0,.38), inset 0 0 0 1px rgba(255,255,255,.035);
+}
+.anime-browser-tv-only .tv-screen {
+  border-color: #151210;
+  border-radius: 18px;
+  background: linear-gradient(145deg, #24252a, #111216 72%);
+  box-shadow: inset 0 0 34px rgba(0,0,0,.72);
+}
+.anime-browser-tv-only .watch-button {
+  border: 1px solid rgba(211,164,110,.26);
+  background: rgba(211,164,110,.10);
+  color: #ead7bd;
+}
+.anime-browser-tv-only .tv-library-poster-art {
+  border-radius: 4px 8px 8px 4px;
+  box-shadow: 0 9px 18px rgba(0,0,0,.33), inset 3px 0 rgba(255,255,255,.035);
+}
+.anime-browser-tv-only .tv-library-poster.active .tv-library-poster-art {
+  outline: 2px solid rgba(211,164,110,.58);
+  outline-offset: 2px;
+}
+
+@media (max-width: 640px) {
+  .preview-notice { font-size: .62rem; }
+  .preview-topbar { top: 27px; padding-inline: 12px; }
+  .preview-top-actions > span:first-child { display: none; }
+  .preview-main { padding: 16px 12px 32px; }
+  .preview-section-head { align-items: stretch; flex-direction: column; }
+  .preview-section-head .primary-btn { width: 100%; justify-content: center; }
+  .preview-shelf-back { min-height: 263px; gap: 13px; padding: 20px 15px 45px; }
+  .preview-shelf-item { flex-basis: 120px; width: 120px; }
+  .preview-shelf-item .cover-art { width: 120px; height: 180px; min-height: 180px; }
+  .preview-anime-room { padding: 14px; border-radius: 14px; }
+  .preview-tv-bezel { padding: 10px 10px 8px; border-radius: 18px; }
+  .preview-tv-screen {
+    min-height: 360px;
+    grid-template-columns: 112px 1fr;
+    gap: 15px;
+    padding: 16px;
+    border-width: 6px;
+  }
+  .preview-tv-copy h2 { font-size: 1.45rem; }
+  .preview-tv-copy .eyebrow { font-size: .58rem; }
+  .preview-tv-note { font-size: .61rem; }
+  .preview-video-library > button { flex-basis: 82px; }
+  .preview-anime-case { width: 82px; height: 122px; }
+}
+
+@media (max-width: 380px) {
+  .preview-brand small { display: none; }
+  .preview-tv-screen { min-height: 332px; grid-template-columns: 98px 1fr; gap: 12px; padding: 13px; }
+  .preview-tv-copy h2 { font-size: 1.25rem; }
+  .preview-tv-copy > strong { font-size: .64rem; }
+}
