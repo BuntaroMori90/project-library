@@ -2,9 +2,6 @@
 
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
-import { query } from "@/lib/db";
-import { importMangaToCatalog } from "@/lib/catalog/import-manga";
-import { KitsuProvider } from "@/lib/catalog/providers/kitsu";
 import { requireProfile } from "@/lib/profile";
 import { createPersonalMangaEdition } from "@/lib/repositories/manga-editions";
 import {
@@ -41,40 +38,12 @@ function refreshManga(workId: string) {
   revalidatePath("/library");
 }
 
-async function refreshMissingMangaCounts(workId: string) {
-  const work = await query<{ total_volumes: number | null; total_chapters: number | null }>(
-    "select total_volumes,total_chapters from works where id=$1 and media_type='MANGA' limit 1",
-    [workId],
-  );
-  const current = work.rows[0];
-  if (!current || (current.total_volumes !== null && current.total_chapters !== null)) {
-    return;
-  }
-
-  const source = await query<{ provider: string; external_id: string }>(
-    `select provider,external_id from external_ids
-      where work_id=$1 and provider='KITSU'
-      limit 1`,
-    [workId],
-  );
-  const external = source.rows[0];
-  if (!external) return;
-
-  try {
-    const manga = await new KitsuProvider().getById(external.external_id);
-    await importMangaToCatalog(manga);
-  } catch {
-    // Il salvataggio personale non deve fallire se il catalogo esterno è offline.
-  }
-}
-
 export async function updateMangaState(formData: FormData) {
   const workId = String(formData.get("workId") ?? "");
   const status = String(formData.get("status") ?? "") as LibraryStatus;
   if (!workId || !statuses.has(status)) return;
   const { profile } = await requireProfile();
   await setLibraryStatus(profile.id, workId, status);
-  await refreshMissingMangaCounts(workId);
   refreshManga(workId);
   redirect(`/library/manga/${workId}?saved=state#personale`);
 }
@@ -86,7 +55,6 @@ export async function updateMangaProgress(formData: FormData) {
   if (!workId) return;
   const { profile } = await requireProfile();
   await setMangaProgress(profile.id, workId, currentVolume, currentChapter);
-  await refreshMissingMangaCounts(workId);
   refreshManga(workId);
   redirect(`/library/manga/${workId}?saved=progress#personale`);
 }

@@ -16,7 +16,7 @@ const destinations: Record<RemovableMediaType, string> = {
 export async function removeWorkFromLibraryAction(formData: FormData) {
   const workId = String(formData.get("workId") ?? "").trim();
   const mediaType = String(formData.get("mediaType") ?? "") as RemovableMediaType;
-  if (!workId || !(mediaType in destinations)) return;
+  if (!/^[0-9a-f-]{36}$/i.test(workId) || !Object.hasOwn(destinations, mediaType)) return { error: "Opera non valida." };
 
   const { profile } = await requireProfile();
   await removeWorkFromLibrary(profile.id, workId, mediaType);
