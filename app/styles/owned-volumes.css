@@ -95,6 +95,42 @@
 .owned-volume-form p {
   font-size: 0.8rem;
 }
+.owned-volume-auto-cover {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  margin: 18px 0 8px;
+  padding: 13px 14px;
+  border: 1px solid rgba(202, 165, 112, 0.2);
+  border-radius: 14px;
+  background: linear-gradient(135deg, rgba(139, 100, 62, 0.11), rgba(255, 255, 255, 0.025));
+}
+.owned-volume-auto-cover > div {
+  display: grid;
+  gap: 4px;
+  min-width: 0;
+}
+.owned-volume-auto-cover strong {
+  color: var(--text, #f3eadf);
+}
+.owned-volume-auto-cover small,
+.owned-volume-auto-status {
+  color: var(--muted, #b9ab9c);
+  line-height: 1.45;
+}
+.owned-volume-auto-cover .soft-action {
+  flex: 0 0 auto;
+  min-height: 44px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+}
+.owned-volume-auto-status {
+  margin: 7px 0 0;
+  font-size: 0.84rem;
+}
 @media (max-width: 520px) {
   .owned-volume-grid {
     grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -114,6 +150,13 @@
     grid-template-columns: 1fr;
   }
   .owned-volume-remove {
+    width: 100%;
+  }
+  .owned-volume-auto-cover {
+    align-items: stretch;
+    flex-direction: column;
+  }
+  .owned-volume-auto-cover .soft-action {
     width: 100%;
   }
 }
