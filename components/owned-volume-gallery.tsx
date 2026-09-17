@@ -1,7 +1,7 @@
 "use client";
 /* eslint-disable @next/next/no-img-element */
-import { Trash2 } from "lucide-react";
-import { useRef, useState } from "react";
+import { Sparkles, Trash2 } from "lucide-react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { ManualWorkCover } from "@/components/manual-work-cover";
 import { ThemedConfirmDialog } from "@/components/themed-confirm-dialog";
@@ -184,12 +184,100 @@ function VolumeCard({ volume }: { volume: OwnedMangaVolume }) {
     </article>
   );
 }
+
+function isAutomaticCoverEligible(volume: OwnedMangaVolume) {
+  const format = volume.edition_format?.trim().toLowerCase();
+  return (
+    !volume.cover_url &&
+    volume.unit_number != null &&
+    (!format || format === "standard" || format === "edizione standard")
+  );
+}
+
 export function OwnedVolumeGallery({
   volumes,
 }: {
   volumes: OwnedMangaVolume[];
 }) {
+  const router = useRouter();
   const [visible, setVisible] = useState(24);
+  const [autoLoading, setAutoLoading] = useState(false);
+  const [autoMessage, setAutoMessage] = useState("");
+  const [autoError, setAutoError] = useState("");
+  const [autoOffset, setAutoOffset] = useState(0);
+  const workId = volumes[0]?.work_id ?? null;
+  const missingAutomatic = volumes.filter(isAutomaticCoverEligible).length;
+
+  const recoverAutomaticCovers = useCallback(
+    async (silent = false, requestedOffset?: number) => {
+      if (!workId || autoLoading) return;
+      setAutoLoading(true);
+      setAutoError("");
+      if (!silent) setAutoMessage("");
+
+      try {
+        const response = await fetch("/api/manga/volume-cover/auto", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            workId,
+            offset: requestedOffset ?? autoOffset,
+          }),
+        });
+        const result = (await response.json()) as {
+          error?: string;
+          checked?: number;
+          updated?: number;
+          hasMore?: boolean;
+          nextOffset?: number;
+        };
+        if (!response.ok) {
+          throw new Error(result.error ?? "Ricerca automatica non disponibile.");
+        }
+
+        const updated = result.updated ?? 0;
+        const checked = result.checked ?? 0;
+        setAutoOffset(result.nextOffset ?? 0);
+
+        if (updated > 0) {
+          setAutoMessage(
+            `${updated} ${updated === 1 ? "copertina recuperata" : "copertine recuperate"} automaticamente.`,
+          );
+          router.refresh();
+        } else if (!silent) {
+          setAutoMessage(
+            checked > 0
+              ? "Nessuna copertina abbastanza affidabile in questo gruppo. Puoi continuare la ricerca o inserirla manualmente."
+              : "Non ci sono altri volumi standard da controllare in questo punto della serie.",
+          );
+        }
+      } catch (caught) {
+        if (!silent) {
+          setAutoError(
+            caught instanceof Error
+              ? caught.message
+              : "Ricerca automatica non disponibile.",
+          );
+        }
+      } finally {
+        setAutoLoading(false);
+      }
+    },
+    [autoLoading, autoOffset, router, workId],
+  );
+
+  useEffect(() => {
+    if (!workId || missingAutomatic === 0) return;
+    const key = `libronia:auto-manga-covers:${workId}:${volumes.length}`;
+    try {
+      if (window.sessionStorage.getItem(key)) return;
+      window.sessionStorage.setItem(key, "1");
+    } catch {
+      // La ricerca automatica può comunque partire senza sessionStorage.
+    }
+    void recoverAutomaticCovers(true, 0);
+  }, [missingAutomatic, recoverAutomaticCovers, volumes.length, workId]);
+
   return (
     <section className="detail-section owned-volume-gallery" id="i-miei-volumi">
       <div className="section-heading">
@@ -200,6 +288,28 @@ export function OwnedVolumeGallery({
         Ogni volume può avere la propria copertina. Sono incluse le edizioni
         personali e le variant.
       </p>
+      {missingAutomatic > 0 ? (
+        <div className="owned-volume-auto-cover" aria-busy={autoLoading}>
+          <div>
+            <strong>Copertine automatiche</strong>
+            <small>
+              Libronia prova titolo, numero, editore e ISBN quando disponibili.
+              Variant e speciali restano manuali per evitare abbinamenti errati.
+            </small>
+          </div>
+          <button
+            type="button"
+            className="soft-action"
+            disabled={autoLoading}
+            onClick={() => void recoverAutomaticCovers(false)}
+          >
+            <Sparkles size={16} aria-hidden="true" />
+            {autoLoading ? "Cerco…" : "Recupera copertine"}
+          </button>
+        </div>
+      ) : null}
+      {autoMessage ? <p className="owned-volume-auto-status" role="status">{autoMessage}</p> : null}
+      {autoError ? <p className="catalog-error" role="alert">{autoError}</p> : null}
       {volumes.length ? (
         <div className="owned-volume-grid">
           {volumes.slice(0, visible).map((v) => (
