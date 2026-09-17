@@ -30,9 +30,10 @@ export async function POST(request: Request) {
   const body = await request.json().catch(() => null);
   const workId = typeof body?.workId === "string" ? body.workId : "";
   const requestedOffset = Number(body?.offset ?? 0);
-  const offset = Number.isInteger(requestedOffset) && requestedOffset >= 0
-    ? Math.min(requestedOffset, 5000)
-    : 0;
+  const offset =
+    Number.isInteger(requestedOffset) && requestedOffset >= 0
+      ? Math.min(requestedOffset, 5000)
+      : 0;
 
   if (!UUID.test(workId)) {
     return NextResponse.json({ error: "Manga non valido." }, { status: 400 });
@@ -98,7 +99,7 @@ export async function POST(request: Request) {
       updated,
       unresolved: checked - updated,
       hasMore,
-      nextOffset: updated > 0 ? 0 : offset + checked,
+      nextOffset: checked === 0 ? 0 : updated > 0 ? 0 : offset + checked,
       sources: {
         googleBooks: outcomes.filter(
           (item) => item.saved && item.source === "GOOGLE_BOOKS",
