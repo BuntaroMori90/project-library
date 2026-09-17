@@ -96,7 +96,9 @@ function hasVolumeEvidence(candidateTitle: string, workTitle: string, volume: nu
   const candidate = normalize(candidateTitle);
   const work = normalize(workTitle);
   const escaped = String(volume).replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
-  const explicit = new RegExp(`(?:^|\\s)(?:vol|volume|n|numero|num|tomo)\\s*${escaped}(?:\\s|$)`);
+  const explicit = new RegExp(
+    `(?:^|\\s)(?:vol|volume|n|numero|num|tomo)\\s*${escaped}(?:\\s|$)`,
+  );
   if (explicit.test(candidate)) return true;
 
   if (candidate.includes(work)) {
@@ -135,7 +137,13 @@ function scoreCandidate(params: {
 
   const titleScore = baseTitleScore(params.candidateTitle, params.input.workTitle);
   if (!titleScore) return 0;
-  if (!hasVolumeEvidence(params.candidateTitle, params.input.workTitle, params.input.unitNumber)) {
+  if (
+    !hasVolumeEvidence(
+      params.candidateTitle,
+      params.input.workTitle,
+      params.input.unitNumber,
+    )
+  ) {
     return 0;
   }
 
@@ -186,8 +194,7 @@ async function searchGoogleBooks(
   const url = new URL("https://www.googleapis.com/books/v1/volumes");
   const exactIsbn = compactIsbn(input.isbn);
   const titleQuery = `intitle:"${input.workTitle}" ${input.unitNumber}`;
-  const publisherQuery = input.publisher ? ` inpublisher:"${input.publisher}"` : "";
-  url.searchParams.set("q", exactIsbn ? `isbn:${exactIsbn}` : `${titleQuery}${publisherQuery}`);
+  url.searchParams.set("q", exactIsbn ? `isbn:${exactIsbn}` : titleQuery);
   url.searchParams.set("printType", "books");
   url.searchParams.set("projection", "lite");
   url.searchParams.set("maxResults", "16");
@@ -267,10 +274,27 @@ async function searchOpenLibrary(
   }
 }
 
+function sameBibliographicCandidate(
+  first: MangaVolumeCoverMatch,
+  second: MangaVolumeCoverMatch,
+) {
+  if (normalize(first.title) === normalize(second.title)) return true;
+  return Boolean(
+    first.publisher &&
+      second.publisher &&
+      publisherMatches(first.publisher, second.publisher) &&
+      normalize(first.title).includes(normalize(second.title)),
+  );
+}
+
 export async function findAutomaticMangaVolumeCover(
   input: MangaVolumeCoverLookupInput,
 ): Promise<MangaVolumeCoverMatch | null> {
-  if (!Number.isInteger(input.unitNumber) || input.unitNumber < 1 || input.unitNumber > 10000) {
+  if (
+    !Number.isInteger(input.unitNumber) ||
+    input.unitNumber < 1 ||
+    input.unitNumber > 10000
+  ) {
     return null;
   }
 
@@ -284,7 +308,12 @@ export async function findAutomaticMangaVolumeCover(
   if (!best || best.score < 100) return null;
 
   const runnerUp = candidates[1];
-  if (runnerUp && runnerUp.coverUrl !== best.coverUrl && best.score - runnerUp.score < 8) {
+  if (
+    runnerUp &&
+    runnerUp.coverUrl !== best.coverUrl &&
+    best.score - runnerUp.score < 8 &&
+    !sameBibliographicCandidate(best, runnerUp)
+  ) {
     return null;
   }
   return best;
