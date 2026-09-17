@@ -39,7 +39,7 @@ export function AlphabetRail({
 }) {
   const displayLetters = useMemo(
     () => normalizeLetters(availableLetters),
-    [availableLetters.join("|")],
+    [availableLetters],
   );
 
   const [dragging, setDragging] = useState(false);
@@ -211,7 +211,7 @@ export function AlphabetRail({
     if (!displayLetters.includes(activeLetterRef.current)) {
       updateActiveLetter(displayLetters[0]);
     }
-  }, [displayLetters.join("|")]);
+  }, [displayLetters]);
 
   useEffect(() => {
     const handleScroll = () => {
@@ -236,7 +236,7 @@ export function AlphabetRail({
       window.removeEventListener("scroll", handleScroll);
       window.removeEventListener("resize", handleScroll);
     };
-  }, [displayLetters.join("|")]);
+  }, [displayLetters]);
 
   useEffect(() => {
     const handlePointerMove = (event: PointerEvent) => {
@@ -269,7 +269,7 @@ export function AlphabetRail({
         cancelAnimationFrame(animationFrameRef.current);
       }
     };
-  }, [displayLetters.join("|")]);
+  }, [displayLetters]);
 
   if (displayLetters.length < 2) return null;
 
