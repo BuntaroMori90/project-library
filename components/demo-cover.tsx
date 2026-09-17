@@ -29,11 +29,13 @@ export function DemoCover({
   href,
   badge,
   favorite = false,
+  preload = false,
 }: {
   item: DemoItem;
   href?: string;
   badge?: string;
   favorite?: boolean;
+  preload?: boolean;
 }) {
   const content = (
     <article className="cover-card">
@@ -50,7 +52,8 @@ export function DemoCover({
               height={450}
               sizes="(max-width: 520px) 38vw, (max-width: 900px) 24vw, 180px"
               quality={72}
-              loading="lazy"
+              loading={preload ? "eager" : "lazy"}
+              preload={preload}
             />
           ) : (
             // URL personali o host esterni non configurati in Next Image.
@@ -60,7 +63,8 @@ export function DemoCover({
               className="cover-image"
               src={item.coverUrl}
               alt={`Copertina di ${item.title}`}
-              loading="lazy"
+              loading={preload ? "eager" : "lazy"}
+              fetchPriority={preload ? "high" : "auto"}
               decoding="async"
             />
           )
