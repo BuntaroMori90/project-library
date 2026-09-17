@@ -48,6 +48,41 @@
   white-space: normal;
   min-height: 44px;
 }
+.owned-volume-actions {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 7px;
+  margin-top: 2px;
+}
+.owned-volume-actions .soft-action {
+  min-width: 0;
+  font-size: 0.78rem;
+}
+.owned-volume-remove {
+  min-width: 44px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 0 10px;
+  border: 1px solid rgba(209, 100, 88, 0.22);
+  border-radius: 10px;
+  background: rgba(133, 48, 41, 0.08);
+  color: #d9a09a;
+  font: inherit;
+  font-size: 0.76rem;
+  font-weight: 750;
+  cursor: pointer;
+}
+.owned-volume-remove:hover:not(:disabled) {
+  border-color: rgba(209, 100, 88, 0.42);
+  background: rgba(133, 48, 41, 0.14);
+  color: #f0b3ac;
+}
+.owned-volume-remove:disabled {
+  opacity: 0.55;
+  cursor: default;
+}
 .owned-volume-form {
   display: grid;
   gap: 10px;
@@ -75,6 +110,12 @@
     max-width: 150px;
     align-self: center;
   }
+  .owned-volume-actions {
+    grid-template-columns: 1fr;
+  }
+  .owned-volume-remove {
+    width: 100%;
+  }
 }
 
 /* Keep horizontal movement inside the book/manga shelf, not the whole page. */
@@ -89,9 +130,6 @@
   display: flex;
 }
 
-.owned-volume-card > .soft-action {
-  font-size: 0.78rem;
-}
 .owned-catalog-tools > summary {
   cursor: pointer;
   padding: 16px 0;
