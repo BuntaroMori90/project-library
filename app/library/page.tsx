@@ -60,7 +60,8 @@ function toItem(row: LibraryRow, mangaOwned: number): DemoItem {
   return {
     id: row.id,
     title: row.title,
-    creator: row.creators?.join(" · ") ||
+    creator:
+      row.creators?.join(" · ") ||
       (row.mediaType === "ANIME" ? "Studio non disponibile" : "Autore non disponibile"),
     status: inventoryLabel,
     coverUrl,
@@ -124,7 +125,7 @@ export default async function LibraryHomePage() {
             <LibraryBig size={18} />
             <strong>{mangaOwnedTotal}</strong>
             <span>Volumi manga</span>
-            <small>{manga.length} {manga.length === 1 ? "serie" : "serie"}</small>
+            <small>{manga.length} serie</small>
           </Link>
           <Link href="/library/anime" className="collection-stat">
             <Clapperboard size={18} />
@@ -140,17 +141,20 @@ export default async function LibraryHomePage() {
             <p className="eyebrow">Ultimi aggiunti</p>
             <h2 id="recent-title">Sul ripiano da poco</h2>
           </div>
-          <span>{recent.length} {recent.length === 1 ? "opera" : "opere"}</span>
+          <span>
+            {recent.length} {recent.length === 1 ? "opera" : "opere"}
+          </span>
         </div>
 
         {recent.length ? (
           <div className="collection-shelf collection-shelf-summary">
             <div className="collection-shelf-items">
-              {recent.map((row) => (
+              {recent.map((row, index) => (
                 <DemoCover
                   key={row.id}
                   item={toItem(row, mangaOwnedCounts.get(row.id) ?? 0)}
                   href={itemHref(row)}
+                  preload={index === 0}
                 />
               ))}
             </div>
@@ -174,7 +178,9 @@ export default async function LibraryHomePage() {
             <p className="eyebrow">Preferiti</p>
             <h2 id="favorites-title">I tuoi punti fermi</h2>
           </div>
-          <span>{favorites.length} {favorites.length === 1 ? "preferito" : "preferiti"}</span>
+          <span>
+            {favorites.length} {favorites.length === 1 ? "preferito" : "preferiti"}
+          </span>
         </div>
 
         {favorites.length ? (
