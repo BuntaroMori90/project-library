@@ -87,10 +87,19 @@ function cleanupSpecialVolumes() {
     });
 }
 
+type EditState = {
+  pathname: string;
+  editing: boolean;
+};
+
 export function DetailAppMode() {
   const pathname = usePathname();
   const [active, setActive] = useState(false);
-  const [editing, setEditing] = useState(false);
+  const [editState, setEditState] = useState<EditState>({
+    pathname,
+    editing: false,
+  });
+  const editing = editState.pathname === pathname && editState.editing;
 
   useEffect(() => {
     const body = document.body;
@@ -106,7 +115,6 @@ export function DetailAppMode() {
       });
     };
 
-    setEditing(false);
     body.classList.remove("detail-edit-mode");
     sync();
 
@@ -124,11 +132,9 @@ export function DetailAppMode() {
   if (!active) return null;
 
   const toggleEditing = () => {
-    setEditing((current) => {
-      const next = !current;
-      document.body.classList.toggle("detail-edit-mode", next);
-      return next;
-    });
+    const next = !editing;
+    document.body.classList.toggle("detail-edit-mode", next);
+    setEditState({ pathname, editing: next });
   };
 
   return (
