@@ -11,7 +11,7 @@ const optimizedCoverHosts = new Set([
   "media.kitsu.io",
 ]);
 
-function canOptimizeCover(src: string) {
+export function canOptimizeCover(src: string) {
   // Le copertine personali passano da un endpoint autenticato: devono essere
   // richieste direttamente dal browser per mantenere la sessione utente.
   if (src.startsWith("/api/library/cover/")) return false;
