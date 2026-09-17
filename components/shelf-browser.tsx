@@ -6,9 +6,11 @@ import type { CoverView, Density, GroupBy } from "@/lib/preferences";
 import { DemoCover } from "@/components/demo-cover";
 import { AlphabetRail } from "@/components/alphabet-rail";
 
+type ShelfKind = "book" | "manga" | "anime";
 type ShelfItem = DemoItem & {
   href?: string;
   badge?: string;
+  favorite?: boolean;
 };
 
 function creatorSortKey(creator: string) {
@@ -26,18 +28,30 @@ function initialLetter(value: string) {
   return /[A-Z]/.test(first) ? first : "#";
 }
 
+function itemHref(kind: ShelfKind, item: ShelfItem) {
+  if (item.href) return item.href;
+  const section = kind === "book" ? "books" : kind === "manga" ? "manga" : "anime";
+  return `/library/${section}/${item.id}`;
+}
+
+function countLabel(kind: ShelfKind, count: number) {
+  if (kind === "manga") return count === 1 ? "serie" : "serie";
+  if (kind === "anime") return count === 1 ? "titolo" : "titoli";
+  return count === 1 ? "opera" : "opere";
+}
+
 export function ShelfBrowser({
   items,
   kind,
   defaultGroupBy,
   density,
-  coverView,
+  coverView = "cover",
 }: {
   items: ShelfItem[];
-  kind: "book" | "manga";
+  kind: ShelfKind;
   defaultGroupBy: GroupBy;
   density: Density;
-  coverView: CoverView;
+  coverView?: CoverView;
 }) {
   const [query, setQuery] = useState("");
   const [groupBy, setGroupBy] = useState<GroupBy>(defaultGroupBy);
@@ -67,19 +81,22 @@ export function ShelfBrowser({
     return [...map.entries()].sort(([a], [b]) => a.localeCompare(b));
   }, [filtered, groupBy]);
 
+  const searchPlaceholder =
+    kind === "manga"
+      ? "Cerca serie o autore…"
+      : kind === "anime"
+        ? "Cerca anime o studio…"
+        : "Cerca libro o autore…";
+
   return (
-    <section
-      className={`shelf-browser ${kind} density-${density} view-${coverView}`}
-    >
+    <section className={`shelf-browser ${kind} density-${density} view-${coverView}`}>
       <div className="library-toolbar">
         <label className="search-control">
           <span className="sr-only">Cerca</span>
           <input
             value={query}
             onChange={(event) => setQuery(event.target.value)}
-            placeholder={
-              kind === "manga" ? "Cerca serie o autore…" : "Cerca libro o autore…"
-            }
+            placeholder={searchPlaceholder}
           />
         </label>
         <div className="segmented" aria-label="Raggruppamento">
@@ -95,7 +112,7 @@ export function ShelfBrowser({
             onClick={() => setGroupBy("creator")}
             type="button"
           >
-            Autore
+            {kind === "anime" ? "Studio" : "Autore"}
           </button>
         </div>
       </div>
@@ -110,18 +127,11 @@ export function ShelfBrowser({
                 <div>
                   <span className="shelf-letter">{letter}</span>
                   <span className="shelf-mode">
-                    {groupBy === "title" ? "Titoli" : "Autori"}
+                    {groupBy === "title" ? "Titoli" : kind === "anime" ? "Studi" : "Autori"}
                   </span>
                 </div>
                 <span>
-                  {group.length}{" "}
-                  {kind === "manga"
-                    ? group.length === 1
-                      ? "copertina"
-                      : "copertine"
-                    : group.length === 1
-                      ? "opera"
-                      : "opere"}
+                  {group.length} {countLabel(kind, group.length)}
                 </span>
               </header>
               <div className="shelf-grid">
@@ -130,12 +140,8 @@ export function ShelfBrowser({
                     key={item.id}
                     item={item}
                     badge={item.badge}
-                    href={
-                      item.href ??
-                      (kind === "manga"
-                        ? `/library/manga/${item.id}`
-                        : `/library/books/${item.id}`)
-                    }
+                    favorite={item.favorite}
+                    href={itemHref(kind, item)}
                   />
                 ))}
               </div>
