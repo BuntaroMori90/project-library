@@ -136,7 +136,6 @@ export async function getMangaDetail(profileId: string, workId: string) {
     entryResult,
     progressResult,
     editionsResult,
-    ownershipResult,
     ownedVolumeNumbers,
   ] = await Promise.all([
     query<WorkRow>(
@@ -174,15 +173,6 @@ export async function getMangaDetail(profileId: string, workId: string) {
         order by e.is_canonical desc,e.publication_year desc nulls last,e.name`,
       [workId, profileId],
     ),
-    query<OwnershipEditionRow>(
-      `select o.edition_id,o.custom_name,o.custom_publisher,o.custom_language,
-              o.custom_format,o.custom_cover_url,o.custom_page_count,
-              o.custom_isbn,o.custom_publication_year
-         from ownership o
-         join editions e on e.id=o.edition_id
-        where o.profile_id=$1 and e.work_id=$2`,
-      [profileId, workId],
-    ),
     getMangaOwnedVolumeNumbers(profileId, workId),
   ]);
 
@@ -193,21 +183,16 @@ export async function getMangaDetail(profileId: string, workId: string) {
   let ownedIds = new Set<string>();
 
   if (canonicalEdition) {
-    const [unitResult, ownedResult] = await Promise.all([
-      query<{ id: string; unit_number: string | number }>(
-        "select id,unit_number from content_units where work_id=$1 and edition_id=$2 and unit_type='VOLUME' order by unit_number",
-        [workId, canonicalEdition.id],
-      ),
-      query<{ unit_id: string }>(
-        "select unit_id from owned_units where profile_id=$1 and edition_id=$2",
-        [profileId, canonicalEdition.id],
-      ),
-    ]);
-    volumes = unitResult.rows.map((row) => ({
-      id: row.id,
-      unit_number: Number(row.unit_number),
-    }));
-    ownedIds = new Set(ownedResult.rows.map((row) => row.unit_id));
+    const unitResult = await query<{id:string; unit_number:string|number; owned:boolean}>(
+      `select cu.id,cu.unit_number,(ou.id is not null) as owned
+       from content_units cu
+       left join owned_units ou on ou.unit_id=cu.id and ou.edition_id=cu.edition_id and ou.profile_id=$3
+       where cu.work_id=$1 and cu.edition_id=$2 and cu.unit_type='VOLUME'
+       order by cu.unit_number`,
+      [workId, canonicalEdition.id, profileId],
+    );
+    volumes = unitResult.rows.map(row => ({id:row.id, unit_number:Number(row.unit_number)}));
+    ownedIds = new Set(unitResult.rows.filter(row => row.owned).map(row => row.id));
   }
 
   return {
@@ -220,10 +205,6 @@ export async function getMangaDetail(profileId: string, workId: string) {
     volumes,
     ownedIds,
     ownedVolumeNumbers,
-    ownedEditionIds: new Set(ownershipResult.rows.map((row) => row.edition_id)),
-    ownershipByEdition: new Map(
-      ownershipResult.rows.map((row) => [row.edition_id, row] as const),
-    ),
   };
 }
 

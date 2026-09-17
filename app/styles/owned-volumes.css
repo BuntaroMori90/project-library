@@ -89,5 +89,53 @@
   display: flex;
 }
 
-.owned-volume-card > .soft-action { font-size: .78rem; }
-.owned-catalog-tools > summary { cursor: pointer; padding: 16px 0; line-height: 1.5; }
+.owned-volume-card > .soft-action {
+  font-size: 0.78rem;
+}
+.owned-catalog-tools > summary {
+  cursor: pointer;
+  padding: 16px 0;
+  line-height: 1.5;
+}
+
+/* Transparent index: movement belongs to the page, not a second scrollbar. */
+.alphabet-rail-shell.alphabet-rail-persistent .alphabet-rail,
+.alphabet-rail-shell.alphabet-rail-persistent.scrubbing .alphabet-rail {
+  background: transparent;
+  border-color: transparent;
+  box-shadow: none;
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
+  min-height: 0;
+  max-height: 100%;
+}
+.alphabet-rail-shell.alphabet-rail-persistent .alphabet-rail button {
+  color: var(--muted, #c1b4a4);
+  text-shadow: 0 1px 3px var(--bg, #100c09);
+}
+.alphabet-rail-shell.alphabet-rail-persistent .alphabet-rail button.active {
+  color: var(--accent-2, #d8aa6d);
+  background: rgba(216, 170, 109, 0.16);
+}
+
+.isbn-photo-search {
+  display: grid;
+  gap: 10px;
+  margin: 14px 0;
+}
+.isbn-photo-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.isbn-photo-actions button {
+  min-height: 44px;
+  display: inline-flex;
+  gap: 7px;
+  align-items: center;
+}
+.isbn-photo-search small,
+.isbn-photo-search p {
+  color: var(--muted);
+  line-height: 1.5;
+}

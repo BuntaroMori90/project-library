@@ -21,6 +21,7 @@ import type {
   BookCatalogResult,
   MangaCatalogResult,
 } from "@/lib/catalog/types";
+import { IsbnPhotoSearch } from "@/components/isbn-photo-search";
 import { ManualWorkCover } from "@/components/manual-work-cover";
 
 export type AddWorkType = "book" | "manga" | "anime";
@@ -127,6 +128,7 @@ export function AddWorkFlow({
   const [manualAuthor, setManualAuthor] = useState("");
   const [manualTotalVolumes, setManualTotalVolumes] = useState("");
   const [manualCoverUrl, setManualCoverUrl] = useState("");
+  const [photoProcessing, setPhotoProcessing] = useState(false);
   const [coverProcessing, setCoverProcessing] = useState(false);
   const [manualSaving, setManualSaving] = useState<"library" | "wishlist" | null>(null);
   const [keepAdding, setKeepAdding] = useState(false);
@@ -177,7 +179,7 @@ export function AddWorkFlow({
   }
 
   function switchType(next: AddWorkType) {
-    if (saving.current || coverProcessing || next === type) return;
+    if (saving.current || coverProcessing || photoProcessing || next === type) return;
     if (
       hasManualDraft() &&
       !window.confirm(
@@ -203,7 +205,7 @@ export function AddWorkFlow({
   }
 
   function switchEntryMode(next: EntryMode) {
-    if (saving.current || coverProcessing) return;
+    if (saving.current || coverProcessing || photoProcessing) return;
     searchRequest.current?.abort();
     searchRequest.current = null;
     setLoading(false);
@@ -216,7 +218,7 @@ export function AddWorkFlow({
 
   async function search(event: React.FormEvent) {
     event.preventDefault();
-    if (saving.current || coverProcessing) return;
+    if (saving.current || coverProcessing || photoProcessing) return;
 
     const normalized = query.trim();
     if (normalized.length < 2) return;
@@ -270,7 +272,7 @@ export function AddWorkFlow({
     result: Result,
     destination: "library" | "wishlist",
   ) {
-    if (saving.current || coverProcessing) return;
+    if (saving.current || coverProcessing || photoProcessing) return;
     saving.current = true;
     setSaved(null);
 
@@ -321,7 +323,7 @@ export function AddWorkFlow({
       return;
     }
 
-    if (saving.current || coverProcessing) return;
+    if (saving.current || coverProcessing || photoProcessing) return;
     saving.current = true;
     setSaved(null);
     setManualSaving(destination);
@@ -358,7 +360,7 @@ export function AddWorkFlow({
   const meta = typeMeta[type];
   const Icon = meta.icon;
   const canInsertManually = type === "book" || type === "manga";
-  const isSaving = Boolean(importing || manualSaving || coverProcessing);
+  const isSaving = Boolean(importing || manualSaving || coverProcessing || photoProcessing);
 
   return (
     <section className="add-work-flow">
@@ -446,6 +448,11 @@ export function AddWorkFlow({
             </button>
           </form>
 
+          {type === "book" ? <IsbnPhotoSearch
+            disabled={isSaving || loading}
+            onBusyChange={setPhotoProcessing}
+            onDetected={isbn => { setQuery(isbn); setResults([]); setSearched(false); setError(null); setSaved(null); }}
+          /> : null}
           <div className="provider-note add-provider-note">
             <Sparkles size={16} />
             <span>

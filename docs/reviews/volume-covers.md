@@ -23,3 +23,16 @@ Le unita' di una nuova edizione vengono inserite con generate_series in una quer
 
 ## Rilascio
 Applicare migrations/20260917_owned_volume_covers.sql prima di abilitare i salvataggi. Migrazione additiva, gia' applicata solo al branch di test. Produzione non modificata. Le letture restano compatibili con lo schema precedente, le scritture senza colonna restituiscono un messaggio 503 comprensibile. Completare la revisione e la verifica autenticata dal browser prima del merge/deploy di produzione.
+
+
+## Feedback successivo: indice trasparente, variant precedenti e ISBN
+- Indice alfabetico trasparente anche senza filtro di sfocatura, lettera attiva evidenziata. Il trascinamento usa scroll istantaneo e un frame separato dal monitoraggio dello scroll della pagina: nessun clic di attivazione e nessuna coda di animazioni smooth. Restano il click da tastiera e la preferenza di movimento ridotto.
+- Browser a 390x844: 16 campioni di trascinamento hanno mostrato la pagina avanzare da 222px a 5189px mentre il puntatore era ancora premuto; scorrimento normale fino a H ha aggiornato l'indice a H. Verificati background trasparente e backdrop-filter none.
+- Query variant compatibile con edizioni speciali possedute importate e precedenti al tracciamento per singolo volume. Test SQL di sola lettura con CTE sintetiche: restituisce sia variant precedente sia recente, esclude lo standard e conserva i rispettivi endpoint privati delle immagini. Nessuna modifica a dati o schema.
+- Dettaglio manga: rimossa lettura ownership inutilizzata; numeri e possesso dell'edizione principale letti insieme. Due query in meno, struttura e stato restituiti verificati da tests/shelf-interactions.cjs. Nessuna misura percentuale sul telefono reale.
+- Libri: Fotografa ISBN e Scegli foto leggono un codice a barre EAN-13 (978/979 con checksum), compilano il campo e chiedono di premere Cerca. Immagine elaborata localmente; decoder caricato dinamicamente solo quando si sceglie la foto. Limitazione intenzionale: ricerca fotografica dei codici ISBN dei libri, non riconoscimento delle copertine o ricerca manga tramite ISBN.
+- Test browser con PNG sintetico: letto 9780306406157, campo compilato, zero richieste API durante l'elaborazione, nessun overflow. Una foto senza barcode restituisce indicazioni di riprova e sblocca i comandi. La fotocamera fisica del telefono non e' stata testata.
+- Decoder: [ZXing browser, API ufficiale](https://github.com/zxing-js/browser). Versione @zxing/browser 0.1.5, senza altre variazioni delle dipendenze dichiarate.
+- tests/shelf-interactions.cjs aggiunge i controlli di ISBN e regressione del dettaglio manga. Home e schede Anime restano invariate.
+
+Verifica finale del feedback: build Next (auth fittizia locale), TypeScript, lint completo senza avvisi e tutte e tre le suite di regressione passano. Nessuna migrazione aggiuntiva o scrittura su dati reali in questo passaggio.
