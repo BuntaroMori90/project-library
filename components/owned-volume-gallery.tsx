@@ -1,5 +1,6 @@
 "use client";
 /* eslint-disable @next/next/no-img-element */
+import { Trash2 } from "lucide-react";
 import { useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { ManualWorkCover } from "@/components/manual-work-cover";
@@ -13,10 +14,13 @@ function VolumeCard({ volume }: { volume: OwnedMangaVolume }) {
   const [cover, setCover] = useState("");
   const [pending, setPending] = useState(false);
   const [processing, setProcessing] = useState(false);
+  const [removing, setRemoving] = useState(false);
   const [error, setError] = useState("");
   const [saved, setSaved] = useState(false);
+  const busy = pending || processing || removing;
+
   async function save(value: string | null) {
-    if (lock.current || processing) return;
+    if (lock.current || processing || removing) return;
     lock.current = true;
     setPending(true);
     setError("");
@@ -42,6 +46,37 @@ function VolumeCard({ volume }: { volume: OwnedMangaVolume }) {
       setPending(false);
     }
   }
+
+  async function removeVolume() {
+    if (lock.current || pending || processing) return;
+    const label = volume.unit_number ?? "speciale";
+    if (!window.confirm(`Rimuovere il volume ${label} dalla tua collezione?`)) {
+      return;
+    }
+
+    lock.current = true;
+    setRemoving(true);
+    setError("");
+    setSaved(false);
+    try {
+      const response = await fetch("/api/manga/owned-volumes", {
+        method: "DELETE",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ ownedId: volume.owned_id }),
+      });
+      const result = await response.json();
+      if (!response.ok) throw new Error(result.error);
+      router.refresh();
+    } catch (e) {
+      setError(
+        e instanceof Error ? e.message : "Rimozione non confermata. Riprova.",
+      );
+    } finally {
+      lock.current = false;
+      setRemoving(false);
+    }
+  }
+
   return (
     <article className="owned-volume-card" id={`owned-${volume.owned_id}`}>
       <div className="owned-volume-cover">
@@ -63,20 +98,31 @@ function VolumeCard({ volume }: { volume: OwnedMangaVolume }) {
       volume.edition_format.toLowerCase() !== "standard" ? (
         <span className="edition-badge">{volume.edition_format}</span>
       ) : null}
-      <button
-        className="soft-action"
-        type="button"
-        aria-expanded={editing}
-        disabled={pending || processing}
-        onClick={() => {
-          setEditing(!editing);
-          setError("");
-          setSaved(false);
-        }}
-      >
-        {" "}
-        {editing ? "Chiudi" : "Cambia copertina"}
-      </button>
+      <div className="owned-volume-actions">
+        <button
+          className="soft-action"
+          type="button"
+          aria-expanded={editing}
+          disabled={busy}
+          onClick={() => {
+            setEditing(!editing);
+            setError("");
+            setSaved(false);
+          }}
+        >
+          {editing ? "Chiudi" : "Cambia copertina"}
+        </button>
+        <button
+          className="owned-volume-remove"
+          type="button"
+          disabled={busy}
+          onClick={() => void removeVolume()}
+          aria-label={`Rimuovi volume ${volume.unit_number ?? "speciale"} dalla collezione`}
+        >
+          <Trash2 size={15} />
+          {removing ? "Rimuovo…" : "Rimuovi"}
+        </button>
+      </div>
       {editing ? (
         <form
           className="owned-volume-form"
@@ -90,12 +136,12 @@ function VolumeCard({ volume }: { volume: OwnedMangaVolume }) {
             title={`Volume ${volume.unit_number ?? "speciale"}`}
             onChange={setCover}
             onBusyChange={setProcessing}
-            disabled={pending}
+            disabled={pending || removing}
           />
           <p>Questa immagine appartiene solo al tuo volume.</p>
           <button
             className="primary-btn"
-            disabled={!cover.trim() || pending || processing}
+            disabled={!cover.trim() || pending || processing || removing}
           >
             {pending ? "Salvo…" : "Salva copertina"}
           </button>
@@ -103,7 +149,7 @@ function VolumeCard({ volume }: { volume: OwnedMangaVolume }) {
             <button
               className="secondary-btn"
               type="button"
-              disabled={pending || processing}
+              disabled={pending || processing || removing}
               onClick={() => void save(null)}
             >
               Ripristina copertina del catalogo
