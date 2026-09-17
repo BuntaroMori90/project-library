@@ -1,0 +1,936 @@
+/* Libronia v2 — collection-first visual system.
+   This layer intentionally owns Home, bottom navigation, compact library headers
+   and the owned-volume presentation in manga detail pages. */
+
+.app-shell {
+  overflow-x: clip;
+}
+
+/* -------------------------------------------------------------------------- */
+/* Header                                                                     */
+/* -------------------------------------------------------------------------- */
+
+.topbar {
+  border-bottom-color: rgba(239, 222, 200, .07);
+  background: color-mix(in srgb, var(--bg) 92%, transparent);
+}
+
+.topbar-inner {
+  width: min(1380px, calc(100% - 32px));
+}
+
+.brand-mark {
+  border-color: rgba(216, 170, 109, .20);
+  background: rgba(255, 255, 255, .018);
+}
+
+.quick-search,
+.section-quick-add {
+  min-height: 44px;
+  border-color: rgba(239, 222, 200, .08);
+  background: rgba(255, 255, 255, .025);
+  box-shadow: none;
+}
+
+.profile-link {
+  min-height: 44px;
+  border-radius: 999px;
+}
+
+/* -------------------------------------------------------------------------- */
+/* Bottom navigation                                                          */
+/* -------------------------------------------------------------------------- */
+
+.bottom-dock {
+  left: 50%;
+  bottom: max(10px, env(safe-area-inset-bottom));
+  width: min(620px, calc(100% - 20px));
+  min-height: 68px;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: 3px;
+  padding: 7px 8px;
+  border-color: rgba(239, 222, 200, .09);
+  border-radius: 21px;
+  background: rgba(15, 13, 11, .92);
+  box-shadow: 0 14px 40px rgba(0,0,0,.38);
+}
+
+.bottom-dock a {
+  min-width: 0;
+  min-height: 52px;
+  padding: 7px 3px 6px;
+  border-radius: 14px;
+  color: #9e9488;
+  font-size: 9.5px;
+}
+
+.bottom-dock a.active {
+  color: #e9c68e;
+  background: rgba(216,170,109,.075);
+}
+
+.bottom-dock a.active::after {
+  top: 4px;
+  height: 2px;
+  background: #d8aa6d;
+}
+
+.page,
+.app-page {
+  padding-bottom: calc(112px + env(safe-area-inset-bottom));
+}
+
+/* -------------------------------------------------------------------------- */
+/* Home                                                                       */
+/* -------------------------------------------------------------------------- */
+
+.collection-home {
+  width: min(1240px, calc(100% - 36px));
+  padding-top: 30px;
+}
+
+.collection-overview {
+  display: grid;
+  grid-template-columns: minmax(0, 1.2fr) minmax(380px, .8fr);
+  gap: clamp(24px, 5vw, 64px);
+  align-items: end;
+  padding: clamp(24px, 4vw, 42px) 0 34px;
+  border-bottom: 1px solid rgba(239,222,200,.075);
+}
+
+.collection-overview-copy {
+  max-width: 650px;
+}
+
+.collection-overview h1 {
+  max-width: 780px;
+  margin: 6px 0 10px;
+  color: #f3eadf;
+  font-size: clamp(2.35rem, 5vw, 4.7rem);
+  line-height: .95;
+  letter-spacing: -.052em;
+}
+
+.collection-overview-copy > p:not(.eyebrow) {
+  max-width: 600px;
+  margin: 0;
+  color: var(--muted);
+  font-size: .98rem;
+  line-height: 1.6;
+}
+
+.collection-add {
+  width: max-content;
+  margin-top: 20px;
+  gap: 8px;
+  border-radius: 13px;
+}
+
+.collection-stats {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  overflow: hidden;
+  border: 1px solid rgba(239,222,200,.08);
+  border-radius: 16px;
+  background: rgba(255,255,255,.012);
+}
+
+.collection-stat {
+  min-width: 0;
+  min-height: 116px;
+  display: grid;
+  grid-template-columns: auto 1fr;
+  grid-template-rows: auto auto auto;
+  align-content: center;
+  gap: 1px 8px;
+  padding: 17px 15px;
+  border-right: 1px solid rgba(239,222,200,.065);
+}
+
+.collection-stat:last-child {
+  border-right: 0;
+}
+
+.collection-stat > svg {
+  grid-row: 1 / 4;
+  align-self: start;
+  margin-top: 5px;
+  color: #d8aa6d;
+}
+
+.collection-stat strong {
+  font-size: clamp(1.55rem, 3vw, 2.2rem);
+  line-height: 1;
+  letter-spacing: -.04em;
+}
+
+.collection-stat span {
+  color: #d8cec2;
+  font-size: .72rem;
+  font-weight: 760;
+}
+
+.collection-stat small {
+  color: var(--muted-2);
+  font-size: .65rem;
+}
+
+.collection-home-section {
+  margin-top: 34px;
+}
+
+.collection-section-heading {
+  display: flex;
+  align-items: end;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 11px;
+  padding-inline: 3px;
+}
+
+.collection-section-heading h2 {
+  margin: 3px 0 0;
+  color: #f0e6d9;
+  font-size: clamp(1.35rem, 2.5vw, 1.9rem);
+  letter-spacing: -.035em;
+}
+
+.collection-section-heading > span {
+  color: var(--muted-2);
+  font-size: .72rem;
+}
+
+.collection-shelf {
+  position: relative;
+  isolation: isolate;
+  overflow: hidden;
+  border-top: 9px solid color-mix(in srgb, var(--wood-mid) 86%, #a87951 14%);
+  border-right: 11px solid var(--wood-dark);
+  border-left: 11px solid var(--wood-dark);
+  border-radius: 12px 12px 7px 7px;
+  background:
+    radial-gradient(ellipse at 50% -10%, rgba(255,240,213,.07), transparent 46%),
+    repeating-linear-gradient(1deg, rgba(255,255,255,.012) 0 1px, transparent 1px 9px),
+    linear-gradient(90deg, var(--wood-back), color-mix(in srgb, var(--wood-back) 82%, #1e100a 18%) 50%, var(--wood-back));
+  box-shadow:
+    inset 16px 0 24px rgba(0,0,0,.16),
+    inset -16px 0 24px rgba(0,0,0,.16),
+    0 24px 34px -30px rgba(0,0,0,.85);
+}
+
+.collection-shelf::after,
+.empty-wood-shelf::after {
+  content: "";
+  position: absolute;
+  z-index: 2;
+  left: 0;
+  right: 0;
+  bottom: 70px;
+  height: 20px;
+  background:
+    linear-gradient(to bottom,
+      color-mix(in srgb, var(--wood-light) 86%, #bc875d 14%) 0 5px,
+      var(--wood-mid) 5px 14px,
+      var(--wood-dark) 14px 20px);
+  box-shadow: 0 8px 12px rgba(0,0,0,.34), inset 0 1px rgba(255,255,255,.07);
+  pointer-events: none;
+}
+
+.collection-shelf-items {
+  display: flex;
+  align-items: flex-end;
+  gap: 17px;
+  min-height: 326px;
+  overflow-x: auto;
+  overflow-y: hidden;
+  padding: 22px 20px 17px;
+  scroll-snap-type: x proximity;
+  scroll-padding-inline: 20px;
+  overscroll-behavior-inline: contain;
+  scrollbar-width: thin;
+  scrollbar-color: rgba(216,170,109,.25) transparent;
+}
+
+.collection-shelf-items > .cover-link {
+  position: relative;
+  z-index: 3;
+  flex: 0 0 132px;
+  width: 132px;
+  height: 286px;
+  scroll-snap-align: start;
+}
+
+.collection-shelf .cover-card {
+  position: relative;
+  width: 100%;
+  height: 286px;
+  padding: 0;
+}
+
+.collection-shelf .cover-art {
+  width: 132px;
+  height: 198px;
+  max-width: 132px;
+  display: flex;
+  overflow: hidden;
+  padding: 0;
+  border-radius: 4px 8px 8px 4px;
+  background: rgba(12,10,9,.82);
+  box-shadow: -4px 6px 0 rgba(0,0,0,.15), 0 15px 25px rgba(0,0,0,.40);
+  transform: none;
+}
+
+.collection-shelf .cover-art:not(.cover-has-image) {
+  padding: 13px 10px;
+}
+
+.collection-shelf .cover-art.cover-has-image::before,
+.collection-shelf .cover-art.cover-has-image::after {
+  display: none;
+}
+
+.collection-shelf .cover-image {
+  width: 100%;
+  height: 100%;
+  display: block;
+  object-fit: contain;
+  object-position: center bottom;
+  background: rgba(8,7,6,.75);
+}
+
+.collection-shelf .cover-meta {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  height: 64px;
+  padding: 8px;
+  overflow: hidden;
+  border: 1px solid rgba(239,222,200,.075);
+  border-radius: 8px;
+  background: rgba(25,20,16,.64);
+}
+
+.collection-shelf .cover-meta-title strong {
+  flex: 1;
+  display: -webkit-box;
+  overflow: hidden;
+  color: #f0e7dc;
+  font-size: 10.5px;
+  line-height: 1.25;
+  white-space: normal;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+}
+
+.collection-shelf .cover-meta > span {
+  display: block;
+  margin-top: 4px;
+  overflow: hidden;
+  color: #b8ada0;
+  font-size: 9px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.collection-empty-copy {
+  padding: 20px 3px;
+  color: var(--muted);
+}
+
+.collection-empty-copy strong {
+  display: block;
+  color: var(--text);
+  margin-bottom: 5px;
+}
+
+.collection-empty-copy p {
+  margin: 0;
+}
+
+.empty-wood-shelf {
+  position: relative;
+  isolation: isolate;
+  min-height: 210px;
+  display: grid;
+  place-items: center;
+  padding: 28px 24px 86px;
+  overflow: hidden;
+  border-top: 9px solid color-mix(in srgb, var(--wood-mid) 86%, #a87951 14%);
+  border-right: 11px solid var(--wood-dark);
+  border-left: 11px solid var(--wood-dark);
+  border-radius: 12px 12px 7px 7px;
+  background:
+    radial-gradient(ellipse at 50% -10%, rgba(255,240,213,.065), transparent 48%),
+    linear-gradient(90deg, var(--wood-back), color-mix(in srgb, var(--wood-back) 82%, #1e100a 18%) 50%, var(--wood-back));
+  text-align: center;
+}
+
+.empty-wood-shelf > div {
+  position: relative;
+  z-index: 3;
+  max-width: 420px;
+}
+
+.empty-wood-shelf strong {
+  display: block;
+  font-size: 1.05rem;
+}
+
+.empty-wood-shelf p {
+  margin: 6px 0 15px;
+  color: #b7ada2;
+  line-height: 1.5;
+}
+
+/* -------------------------------------------------------------------------- */
+/* Compact section headers and browsing tools                                 */
+/* -------------------------------------------------------------------------- */
+
+.compact-library-head {
+  max-width: none;
+  margin-bottom: 24px;
+}
+
+.compact-library-head .title {
+  margin: 4px 0 6px;
+  font-size: clamp(2.25rem, 5vw, 4.2rem);
+}
+
+.compact-library-head .subtitle {
+  max-width: 680px;
+  font-size: .92rem;
+}
+
+.page-library .library-toolbar {
+  margin-bottom: 18px;
+  border-color: rgba(239,222,200,.07);
+  background: rgba(255,255,255,.012);
+}
+
+.page-library .library-toolbar .search-control input {
+  border-color: rgba(239,222,200,.075);
+  background: rgba(8,7,6,.48);
+}
+
+/* -------------------------------------------------------------------------- */
+/* Manga owned volumes                                                        */
+/* -------------------------------------------------------------------------- */
+
+.manga-detail-page #volumi > .section-heading,
+.manga-detail-page #volumi > .detail-explainer,
+.manga-detail-page #volumi > .volume-legend,
+.manga-detail-page #volumi > .volume-grid-visual {
+  display: none;
+}
+
+/* The owned shelf itself gives the useful count, so we do not repeat an
+   owned/total ratio in the personal dashboard. */
+.manga-detail-page .personal-metrics > div:nth-child(3) {
+  display: none;
+}
+
+.manga-detail-page .personal-metrics {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.owned-manga-collection {
+  display: grid;
+  gap: 15px;
+}
+
+.owned-manga-heading {
+  display: flex;
+  align-items: end;
+  justify-content: space-between;
+  gap: 14px;
+  padding-inline: 3px;
+}
+
+.owned-manga-heading h2 {
+  margin: 3px 0 0;
+  font-size: clamp(1.45rem, 3vw, 2rem);
+  letter-spacing: -.035em;
+}
+
+.owned-manga-heading > span {
+  color: var(--muted);
+  font-size: .76rem;
+  font-weight: 760;
+}
+
+.owned-volume-track {
+  position: relative;
+  isolation: isolate;
+  display: flex;
+  align-items: flex-end;
+  gap: 13px;
+  min-height: 292px;
+  overflow-x: auto;
+  overflow-y: hidden;
+  padding: 20px 17px 84px;
+  border-top: 8px solid color-mix(in srgb, var(--wood-mid) 86%, #a87951 14%);
+  border-right: 9px solid var(--wood-dark);
+  border-left: 9px solid var(--wood-dark);
+  border-radius: 11px 11px 7px 7px;
+  background:
+    radial-gradient(ellipse at 50% -12%, rgba(255,240,213,.07), transparent 44%),
+    linear-gradient(90deg, var(--wood-back), color-mix(in srgb, var(--wood-back) 84%, #1d100a 16%) 50%, var(--wood-back));
+  box-shadow: inset 14px 0 23px rgba(0,0,0,.16), inset -14px 0 23px rgba(0,0,0,.16);
+  scroll-snap-type: x proximity;
+  scroll-padding-inline: 17px;
+  overscroll-behavior-inline: contain;
+  scrollbar-width: thin;
+  scrollbar-color: rgba(216,170,109,.24) transparent;
+}
+
+.owned-volume-track::after {
+  content: "";
+  position: absolute;
+  z-index: 2;
+  left: 0;
+  right: 0;
+  bottom: 59px;
+  height: 19px;
+  background:
+    linear-gradient(to bottom,
+      color-mix(in srgb, var(--wood-light) 86%, #bd875d 14%) 0 5px,
+      var(--wood-mid) 5px 13px,
+      var(--wood-dark) 13px 19px);
+  box-shadow: 0 8px 12px rgba(0,0,0,.34), inset 0 1px rgba(255,255,255,.07);
+  pointer-events: none;
+}
+
+.owned-volume-book {
+  position: relative;
+  z-index: 3;
+  flex: 0 0 124px;
+  width: 124px;
+  min-width: 0;
+  scroll-snap-align: start;
+}
+
+.owned-volume-cover {
+  width: 124px;
+  height: 186px;
+  display: grid;
+  place-items: center;
+  overflow: hidden;
+  border-radius: 4px 7px 7px 4px;
+  background: rgba(10,9,8,.76);
+  box-shadow: -4px 6px 0 rgba(0,0,0,.16), 0 14px 25px rgba(0,0,0,.38);
+}
+
+.owned-volume-cover img {
+  width: 100%;
+  height: 100%;
+  display: block;
+  object-fit: contain;
+  object-position: center bottom;
+  background: rgba(8,7,6,.78);
+}
+
+.owned-volume-placeholder {
+  width: 100%;
+  height: 100%;
+  display: grid;
+  place-content: center;
+  gap: 5px;
+  background:
+    linear-gradient(90deg, rgba(0,0,0,.26), transparent 10%),
+    linear-gradient(155deg, #4c4237, #201b17 72%);
+  color: #dfc39a;
+  text-align: center;
+}
+
+.owned-volume-placeholder span {
+  font-size: .56rem;
+  font-weight: 900;
+  letter-spacing: .18em;
+}
+
+.owned-volume-placeholder strong {
+  font-family: Georgia, "Times New Roman", serif;
+  font-size: 2.15rem;
+  line-height: 1;
+}
+
+.owned-volume-caption {
+  min-height: 48px;
+  padding: 8px 2px 0;
+}
+
+.owned-volume-caption strong,
+.owned-volume-caption span {
+  display: block;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.owned-volume-caption strong {
+  color: #f0e6d9;
+  font-size: .72rem;
+}
+
+.owned-volume-caption span {
+  margin-top: 3px;
+  color: #a99e91;
+  font-size: .61rem;
+}
+
+.owned-volume-remove {
+  display: none;
+  width: 100%;
+  min-height: 34px;
+  margin-top: 5px;
+  border: 1px solid rgba(231,103,103,.22);
+  border-radius: 9px;
+  background: rgba(231,103,103,.055);
+  color: #dfaaaa;
+  font: inherit;
+  font-size: .62rem;
+  font-weight: 780;
+}
+
+body.detail-edit-mode .owned-volume-remove {
+  display: block;
+}
+
+.owned-volume-empty {
+  min-height: 128px;
+  display: grid;
+  place-content: center;
+  padding: 22px;
+  border: 1px solid rgba(216,170,109,.11);
+  border-radius: 14px;
+  background: rgba(255,255,255,.012);
+  text-align: center;
+}
+
+.owned-volume-empty p {
+  margin: 5px 0 0;
+  color: var(--muted);
+  font-size: .8rem;
+}
+
+.owned-volume-compact-view {
+  border: 1px solid rgba(239,222,200,.07);
+  border-radius: 12px;
+  background: rgba(255,255,255,.012);
+}
+
+.owned-volume-compact-view > summary {
+  min-height: 44px;
+  display: flex;
+  align-items: center;
+  padding: 0 13px;
+  list-style: none;
+  cursor: pointer;
+  color: #d5c8b8;
+  font-size: .72rem;
+  font-weight: 760;
+}
+
+.owned-volume-compact-view > summary::-webkit-details-marker {
+  display: none;
+}
+
+.owned-volume-compact-view > div {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  padding: 0 13px 13px;
+}
+
+.owned-volume-compact-view span {
+  min-width: 32px;
+  min-height: 30px;
+  display: grid;
+  place-items: center;
+  border: 1px solid rgba(216,170,109,.14);
+  border-radius: 8px;
+  background: rgba(216,170,109,.04);
+  color: #dbc19e;
+  font-size: .68rem;
+  font-weight: 800;
+}
+
+.owned-manga-collection .bulk-owned-volumes {
+  margin-top: 1px;
+}
+
+/* -------------------------------------------------------------------------- */
+/* Responsive                                                                 */
+/* -------------------------------------------------------------------------- */
+
+@media (max-width: 900px) {
+  .collection-overview {
+    grid-template-columns: 1fr;
+    gap: 24px;
+  }
+
+  .collection-stats {
+    max-width: 650px;
+  }
+}
+
+@media (max-width: 760px) {
+  .topbar {
+    height: 64px;
+  }
+
+  .topbar-inner {
+    width: calc(100% - 20px);
+    grid-template-columns: auto minmax(0, 1fr) auto auto;
+    gap: 7px;
+  }
+
+  .brand {
+    gap: 7px;
+  }
+
+  .brand-mark {
+    width: 34px;
+    height: 34px;
+  }
+
+  .brand-copy small,
+  .quick-search span,
+  .section-quick-add span,
+  .profile-name {
+    display: none;
+  }
+
+  .quick-search,
+  .section-quick-add {
+    width: 42px;
+    min-width: 42px;
+    height: 42px;
+    padding: 0;
+    justify-content: center;
+    border-radius: 13px;
+  }
+
+  .profile-orb {
+    width: 38px;
+    height: 38px;
+  }
+
+  .bottom-dock {
+    bottom: max(7px, env(safe-area-inset-bottom));
+    width: calc(100% - 12px);
+    min-height: 64px;
+    padding: 6px;
+    border-radius: 19px;
+  }
+
+  .bottom-dock a {
+    min-height: 50px;
+    font-size: 8.5px;
+  }
+
+  .page,
+  .app-page {
+    width: calc(100% - 22px);
+    padding-top: 30px;
+    padding-bottom: calc(104px + env(safe-area-inset-bottom));
+  }
+
+  .collection-home {
+    width: calc(100% - 22px);
+    padding-top: 18px;
+  }
+
+  .collection-overview {
+    padding: 20px 0 27px;
+  }
+
+  .collection-overview h1 {
+    font-size: clamp(2.3rem, 12vw, 3.65rem);
+  }
+
+  .collection-overview-copy > p:not(.eyebrow) {
+    font-size: .88rem;
+  }
+
+  .collection-add {
+    width: 100%;
+    min-height: 48px;
+  }
+
+  .collection-stats {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    width: 100%;
+  }
+
+  .collection-stat {
+    min-height: 96px;
+    grid-template-columns: 1fr;
+    grid-template-rows: auto auto auto;
+    gap: 3px;
+    padding: 12px 8px;
+    text-align: center;
+  }
+
+  .collection-stat > svg {
+    grid-row: auto;
+    justify-self: center;
+    margin: 0 0 3px;
+  }
+
+  .collection-stat strong {
+    font-size: 1.5rem;
+  }
+
+  .collection-stat span {
+    font-size: .63rem;
+  }
+
+  .collection-stat small {
+    font-size: .57rem;
+  }
+
+  .collection-home-section {
+    margin-top: 28px;
+  }
+
+  .collection-section-heading {
+    align-items: start;
+  }
+
+  .collection-section-heading > span {
+    margin-top: 17px;
+  }
+
+  .collection-shelf-items {
+    gap: 13px;
+    min-height: 290px;
+    padding: 18px 14px 15px;
+    scroll-padding-inline: 14px;
+  }
+
+  .collection-shelf-items > .cover-link {
+    flex-basis: 116px;
+    width: 116px;
+    height: 254px;
+  }
+
+  .collection-shelf .cover-card {
+    height: 254px;
+  }
+
+  .collection-shelf .cover-art {
+    width: 116px;
+    max-width: 116px;
+    height: 174px;
+  }
+
+  .collection-shelf::after,
+  .empty-wood-shelf::after {
+    bottom: 67px;
+  }
+
+  .compact-library-head {
+    align-items: stretch;
+    margin-bottom: 19px;
+  }
+
+  .compact-library-head .title {
+    font-size: clamp(2.35rem, 12vw, 3.65rem);
+  }
+
+  .compact-library-head .subtitle {
+    font-size: .84rem;
+    line-height: 1.5;
+  }
+
+  .compact-library-head .library-header-actions {
+    margin-top: 4px;
+  }
+
+  .compact-library-head .library-header-actions .primary-btn {
+    width: 100%;
+    min-height: 46px;
+  }
+
+  .manga-detail-page .personal-metrics {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .owned-manga-heading {
+    align-items: start;
+  }
+
+  .owned-manga-heading > span {
+    margin-top: 18px;
+  }
+
+  .owned-volume-track {
+    gap: 11px;
+    min-height: 260px;
+    padding: 17px 13px 80px;
+    border-left-width: 7px;
+    border-right-width: 7px;
+    scroll-padding-inline: 13px;
+  }
+
+  .owned-volume-book {
+    flex-basis: 108px;
+    width: 108px;
+  }
+
+  .owned-volume-cover {
+    width: 108px;
+    height: 162px;
+  }
+}
+
+@media (max-width: 390px) {
+  .brand-copy strong {
+    font-size: 12px;
+  }
+
+  .topbar-inner {
+    gap: 5px;
+  }
+
+  .quick-search,
+  .section-quick-add {
+    width: 39px;
+    min-width: 39px;
+    height: 39px;
+  }
+
+  .profile-orb {
+    width: 36px;
+    height: 36px;
+  }
+
+  .bottom-dock a {
+    gap: 2px;
+    font-size: 8px;
+  }
+
+  .bottom-dock a svg {
+    width: 19px;
+    height: 19px;
+  }
+
+  .collection-stat {
+    padding-inline: 5px;
+  }
+
+  .collection-section-heading > span {
+    display: none;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .bottom-dock a,
+  .collection-home a,
+  .owned-volume-book {
+    scroll-behavior: auto;
+    transition: none;
+  }
+}
