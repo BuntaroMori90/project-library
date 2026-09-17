@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { Plus } from "lucide-react";
-import { AnimeBrowser } from "@/components/anime-browser";
+import { ShelfBrowser } from "@/components/shelf-browser";
 import type { DemoItem } from "@/lib/demo-data";
 import { normalizePreferences } from "@/lib/preferences";
 import { requireProfile } from "@/lib/profile";
@@ -14,35 +14,31 @@ const statusLabels: Record<string, string> = {
   DROPPED: "Abbandonato",
 };
 
+type AnimeShelfItem = DemoItem & { favorite?: boolean };
+
 export default async function AnimePage() {
   const { profile } = await requireProfile();
   const preferences = normalizePreferences(profile.preferences);
   const rows = (await listLibraryWorks(profile.id, "ANIME")).rows;
-  const items: DemoItem[] = rows.map((row) => {
-    const season = row.current_season != null ? Number(row.current_season) : null;
-    const episode = row.current_episode != null ? Number(row.current_episode) : null;
-
-    return {
-      id: row.id,
-      title: row.title,
-      creator: row.creators?.join(" · ") || "Studio non disponibile",
-      status: statusLabels[row.status] ?? "Da vedere",
-      progress: season ? `S${season}${episode ? ` · Ep. ${episode}` : ""}` : undefined,
-      meta: row.total_episodes ? `${row.total_episodes} episodi` : undefined,
-      coverUrl: row.cover_url ?? undefined,
-      coverClass: "poster-blue",
-    };
-  });
+  const items: AnimeShelfItem[] = rows.map((row) => ({
+    id: row.id,
+    title: row.title,
+    creator: row.creators?.join(" · ") || "Studio non disponibile",
+    status: statusLabels[row.status] ?? "Catalogato",
+    meta: row.total_episodes ? `${row.total_episodes} episodi` : undefined,
+    coverUrl: row.cover_url ?? undefined,
+    coverClass: "poster-blue",
+    favorite: row.favorite,
+  }));
 
   return (
-    <main className="page page-anime">
-      <header className="page-header immersive-head page-header-actions">
+    <main className="page page-library page-anime">
+      <header className="page-header immersive-head page-header-actions compact-library-head">
         <div>
-          <p className="eyebrow">La tua stanza · Anime</p>
-          <h1 className="title">Videoteca.</h1>
+          <p className="eyebrow">La tua collezione · Anime</p>
+          <h1 className="title">Anime</h1>
           <p className="subtitle">
-            Una stanza media e un catalogo digitale per organizzare ciò che hai visto,
-            stai guardando o vuoi vedere.
+            Una videoteca da consultare come catalogo: locandine, titoli e informazioni, senza modalità di riproduzione.
           </p>
         </div>
         <div className="library-header-actions">
@@ -53,13 +49,14 @@ export default async function AnimePage() {
       </header>
 
       {items.length ? (
-        <AnimeBrowser
+        <ShelfBrowser
           items={items}
+          kind="anime"
           defaultGroupBy={preferences.anime.groupBy}
           density={preferences.anime.density}
         />
       ) : (
-        <div className="catalog-notice">
+        <div className="empty-wood-shelf">
           <div>
             <strong>Nessun anime nella videoteca.</strong>
             <p>Cerca una serie e aggiungila al tuo catalogo personale.</p>
