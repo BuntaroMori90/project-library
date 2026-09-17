@@ -1,14 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import {
-  BookOpen,
-  Bookmark,
-  Film,
-  Home,
-  LibraryBig,
-  Settings,
-} from "lucide-react";
+import { BookOpen, Bookmark, Film, Home, LibraryBig } from "lucide-react";
 import { usePathname } from "next/navigation";
 
 const links = [
@@ -17,7 +10,6 @@ const links = [
   ["/library/manga", "Manga", LibraryBig],
   ["/library/anime", "Anime", Film],
   ["/library/wishlist", "Wishlist", Bookmark],
-  ["/library/settings", "Impostazioni", Settings],
 ] as const;
 
 export function BottomDock() {

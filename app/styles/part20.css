@@ -1,0 +1,855 @@
+/* Libronia real-shelf redesign preview.
+ * Scoped visual proposal: no demo data, no 3D libraries, no heavy assets.
+ */
+
+.home-libronia-preview,
+.design-manga-preview {
+  --preview-paper: color-mix(in srgb, var(--text) 94%, #f2dfc3 6%);
+  --preview-label: color-mix(in srgb, var(--bg-soft) 86%, #20130d 14%);
+  --preview-back: color-mix(in srgb, var(--wood-back) 78%, #120b08 22%);
+  --preview-mid: color-mix(in srgb, var(--wood-mid) 86%, #2b170f 14%);
+  --preview-light: color-mix(in srgb, var(--wood-light) 88%, #b47849 12%);
+  --preview-dark: color-mix(in srgb, var(--wood-dark) 88%, #100805 12%);
+  padding-top: 24px;
+}
+
+.design-preview-banner {
+  min-height: 38px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 18px;
+  padding: 8px 12px;
+  border: 1px solid rgba(216,170,109,.16);
+  border-radius: 12px;
+  background: rgba(216,170,109,.045);
+  color: var(--muted);
+  font-size: .72rem;
+}
+
+.design-preview-banner span {
+  font-weight: 750;
+}
+
+.design-preview-banner a {
+  color: var(--accent-2);
+  font-weight: 800;
+  white-space: nowrap;
+}
+
+.collection-overview {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 26px;
+  align-items: end;
+  padding: 18px 0 22px;
+  border-bottom: 1px solid rgba(255,255,255,.07);
+}
+
+.collection-overview-copy {
+  min-width: 0;
+}
+
+.collection-overview h1 {
+  margin: 6px 0 8px;
+  color: var(--preview-paper);
+  font-family: Georgia, "Times New Roman", serif;
+  font-size: clamp(2.25rem, 7vw, 4.8rem);
+  font-weight: 700;
+  line-height: .98;
+  letter-spacing: -.045em;
+}
+
+.collection-overview-copy > p:last-child {
+  max-width: 680px;
+  margin: 0;
+  color: var(--muted);
+  font-size: .91rem;
+  line-height: 1.6;
+}
+
+.collection-add-action {
+  min-height: 46px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 0 18px;
+  border: 1px solid rgba(216,170,109,.34);
+  border-radius: 999px;
+  background: rgba(216,170,109,.12);
+  color: var(--accent-2);
+  font-size: .82rem;
+  font-weight: 850;
+  white-space: nowrap;
+}
+
+.collection-count-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 9px;
+  margin-top: 16px;
+}
+
+.collection-count-card {
+  min-width: 0;
+  min-height: 90px;
+  display: grid;
+  grid-template-columns: auto 1fr;
+  grid-template-rows: auto auto;
+  align-content: center;
+  column-gap: 9px;
+  padding: 13px 14px;
+  border: 1px solid rgba(255,255,255,.065);
+  border-radius: 15px;
+  background: rgba(255,255,255,.018);
+  color: var(--text);
+}
+
+.collection-count-card svg {
+  grid-row: 1 / 3;
+  align-self: center;
+  color: var(--accent);
+}
+
+.collection-count-card strong {
+  min-width: 0;
+  font-size: 1.55rem;
+  line-height: 1;
+  letter-spacing: -.03em;
+}
+
+.collection-count-card span {
+  min-width: 0;
+  margin-top: 3px;
+  color: var(--muted);
+  font-size: .7rem;
+  font-weight: 750;
+  line-height: 1.2;
+}
+
+.collection-count-card small {
+  grid-column: 1 / -1;
+  margin-top: 7px;
+  color: color-mix(in srgb, var(--accent-2) 72%, var(--muted) 28%);
+  font-size: .63rem;
+  font-weight: 750;
+}
+
+.collection-shelf-section {
+  margin-top: 32px;
+}
+
+.collection-shelf-heading {
+  display: flex;
+  align-items: end;
+  justify-content: space-between;
+  gap: 18px;
+  margin-bottom: 12px;
+}
+
+.collection-shelf-heading h2 {
+  margin: 4px 0 0;
+  color: var(--preview-paper);
+  font-family: Georgia, "Times New Roman", serif;
+  font-size: clamp(1.55rem, 3vw, 2.15rem);
+  font-weight: 700;
+  letter-spacing: -.025em;
+}
+
+.collection-shelf-heading > span {
+  color: var(--muted-2);
+  font-size: .68rem;
+  font-weight: 700;
+}
+
+.collection-shelf {
+  --object-zone-height: 184px;
+  --shelf-top-pad: 18px;
+  position: relative;
+  overflow: hidden;
+  border: 1px solid color-mix(in srgb, var(--wood-light) 36%, transparent);
+  border-radius: 16px 16px 11px 11px;
+  background:
+    linear-gradient(to bottom,
+      var(--preview-back) 0 calc(var(--shelf-top-pad) + var(--object-zone-height) + 15px),
+      color-mix(in srgb, var(--preview-dark) 72%, var(--bg) 28%) calc(var(--shelf-top-pad) + var(--object-zone-height) + 15px) 100%),
+    linear-gradient(90deg, var(--preview-back), var(--preview-mid) 46%, var(--preview-back));
+  box-shadow:
+    inset 0 14px 26px rgba(255,255,255,.025),
+    inset 18px 0 32px rgba(0,0,0,.12),
+    inset -18px 0 32px rgba(0,0,0,.12),
+    0 20px 34px -28px rgba(0,0,0,.86);
+}
+
+.collection-shelf::before {
+  content: "";
+  position: absolute;
+  z-index: 0;
+  inset: 0 0 auto;
+  height: calc(var(--shelf-top-pad) + var(--object-zone-height) + 15px);
+  pointer-events: none;
+  background:
+    radial-gradient(ellipse at 48% -8%, rgba(255,244,222,.08), transparent 42%),
+    repeating-linear-gradient(1deg, rgba(255,255,255,.012) 0 1px, transparent 1px 8px),
+    repeating-linear-gradient(89deg, rgba(33,15,7,.025) 0 2px, transparent 2px 72px);
+}
+
+.collection-shelf-scroll {
+  position: relative;
+  z-index: 2;
+  overflow-x: auto;
+  overflow-y: hidden;
+  padding: var(--shelf-top-pad) 16px 14px;
+  overscroll-behavior-inline: contain;
+  scrollbar-width: thin;
+  scrollbar-color: rgba(216,170,109,.22) transparent;
+  scroll-snap-type: x proximity;
+}
+
+.collection-shelf-scroll::-webkit-scrollbar {
+  height: 4px;
+}
+
+.collection-shelf-scroll::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.collection-shelf-scroll::-webkit-scrollbar-thumb {
+  border-radius: 99px;
+  background: rgba(216,170,109,.22);
+}
+
+.collection-shelf-track {
+  width: max-content;
+  display: flex;
+  align-items: flex-start;
+  gap: 14px;
+}
+
+.collection-shelf-item {
+  width: 122px;
+  display: grid;
+  grid-template-rows: var(--object-zone-height) 56px;
+  gap: 22px;
+  scroll-snap-align: start;
+}
+
+.collection-object-zone {
+  height: var(--object-zone-height);
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  padding-bottom: 9px;
+}
+
+.collection-cover-shell {
+  position: relative;
+  max-width: 116px;
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+}
+
+.collection-cover-shell::after {
+  content: "";
+  position: absolute;
+  z-index: -1;
+  left: 8%;
+  right: 8%;
+  bottom: -5px;
+  height: 10px;
+  border-radius: 50%;
+  background: rgba(0,0,0,.48);
+  filter: blur(5px);
+}
+
+.collection-shelf-item.is-book .collection-cover-shell {
+  height: 170px;
+}
+
+.collection-shelf-item.is-manga .collection-cover-shell {
+  height: 166px;
+}
+
+.collection-shelf-item.is-anime .collection-cover-shell {
+  height: 162px;
+}
+
+.collection-cover-image {
+  display: block;
+  width: auto;
+  max-width: 100%;
+  height: auto;
+  max-height: 100%;
+  object-fit: contain;
+  object-position: center bottom;
+  border-radius: 3px 7px 7px 3px;
+  box-shadow:
+    0 13px 22px rgba(0,0,0,.36),
+    -2px 2px 0 rgba(0,0,0,.13);
+}
+
+.collection-cover-placeholder {
+  width: 108px;
+  aspect-ratio: 2 / 3;
+  display: grid;
+  place-items: center;
+  border: 1px solid rgba(240,201,147,.18);
+  border-radius: 3px 7px 7px 3px;
+  background:
+    linear-gradient(145deg, rgba(240,201,147,.12), transparent 55%),
+    color-mix(in srgb, var(--preview-dark) 74%, #17110e 26%);
+  color: rgba(240,201,147,.72);
+  font-family: Georgia, "Times New Roman", serif;
+  font-size: 2rem;
+  box-shadow: 0 13px 22px rgba(0,0,0,.34);
+}
+
+.collection-shelf-lip {
+  position: absolute;
+  z-index: 1;
+  top: calc(var(--shelf-top-pad) + var(--object-zone-height) - 1px);
+  left: 0;
+  right: 0;
+  height: 23px;
+  border-top: 1px solid rgba(255,236,207,.12);
+  border-bottom: 1px solid rgba(26,12,6,.55);
+  background:
+    linear-gradient(to bottom,
+      color-mix(in srgb, var(--preview-light) 88%, #c38a59 12%) 0 30%,
+      var(--preview-mid) 30% 72%,
+      var(--preview-dark) 72% 100%);
+  box-shadow:
+    0 8px 11px rgba(0,0,0,.34),
+    inset 0 1px rgba(255,255,255,.06);
+  pointer-events: none;
+}
+
+.collection-label {
+  min-width: 0;
+  align-self: start;
+  padding: 0 2px;
+}
+
+.collection-label-title {
+  display: flex;
+  align-items: flex-start;
+  gap: 5px;
+}
+
+.collection-label strong {
+  min-width: 0;
+  display: -webkit-box;
+  overflow: hidden;
+  color: var(--preview-paper);
+  font-size: .72rem;
+  font-weight: 780;
+  line-height: 1.28;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+}
+
+.collection-label svg {
+  flex: 0 0 auto;
+  margin-top: 2px;
+  color: var(--accent);
+}
+
+.collection-label > span {
+  display: block;
+  margin-top: 5px;
+  overflow: hidden;
+  color: var(--muted);
+  font-size: .62rem;
+  line-height: 1.25;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.collection-empty-shelf {
+  position: relative;
+  min-height: 156px;
+  display: flex;
+  align-items: flex-end;
+  overflow: hidden;
+  padding: 22px 20px 24px;
+  border: 1px solid color-mix(in srgb, var(--wood-light) 28%, transparent);
+  border-radius: 16px;
+  background:
+    linear-gradient(to bottom, var(--preview-back) 0 71%, var(--preview-mid) 71% 82%, var(--preview-dark) 82% 100%);
+}
+
+.collection-empty-shelf > div:last-child {
+  position: relative;
+  z-index: 2;
+  max-width: 520px;
+}
+
+.collection-empty-shelf strong {
+  color: var(--preview-paper);
+}
+
+.collection-empty-shelf p {
+  margin: 5px 0 0;
+  color: var(--muted);
+  font-size: .78rem;
+}
+
+/* Existing inventory shelves: keep the full cover visible in this proposal. */
+.shelf-browser.book.view-cover .cover-image,
+.shelf-browser.manga.view-cover .cover-image {
+  object-fit: contain;
+  object-position: center bottom;
+  background: rgba(8,7,6,.18);
+}
+
+/* Five destinations, safe-area aware. Settings remains reachable from profile. */
+.bottom-dock {
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  bottom: calc(10px + env(safe-area-inset-bottom));
+  width: min(620px, calc(100% - 16px));
+  min-height: 64px;
+}
+
+.bottom-dock a {
+  min-width: 0;
+  min-height: 48px;
+}
+
+.page,
+.app-page {
+  padding-bottom: calc(112px + env(safe-area-inset-bottom));
+}
+
+/* Manga series preview: only physically owned volumes are shown. */
+.design-manga-preview {
+  max-width: 1040px;
+}
+
+.manga-preview-header {
+  max-width: 720px;
+  margin: 18px 0 24px;
+}
+
+.manga-preview-header h1 {
+  margin: 5px 0 9px;
+  color: var(--preview-paper);
+  font-family: Georgia, "Times New Roman", serif;
+  font-size: clamp(2.1rem, 7vw, 4.4rem);
+  line-height: 1;
+  letter-spacing: -.04em;
+}
+
+.manga-preview-header > p:last-child {
+  margin: 0;
+  color: var(--muted);
+  line-height: 1.6;
+}
+
+.manga-series-object {
+  display: grid;
+  grid-template-columns: 116px minmax(0, 1fr);
+  gap: 18px;
+  align-items: center;
+  max-width: 680px;
+  margin-bottom: 32px;
+  padding: 16px;
+  border: 1px solid rgba(255,255,255,.065);
+  border-radius: 18px;
+  background: rgba(255,255,255,.018);
+}
+
+.manga-series-cover-wrap {
+  width: 116px;
+  height: 170px;
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+}
+
+.manga-series-cover {
+  width: auto;
+  max-width: 100%;
+  height: auto;
+  max-height: 100%;
+  object-fit: contain;
+  border-radius: 4px 8px 8px 4px;
+  box-shadow: 0 14px 28px rgba(0,0,0,.34);
+}
+
+.manga-series-cover-empty {
+  aspect-ratio: 2 / 3;
+  display: grid;
+  place-items: center;
+  background: var(--preview-dark);
+  color: var(--accent);
+  font-family: Georgia, serif;
+  font-size: 2rem;
+}
+
+.manga-series-object h2 {
+  margin: 5px 0 5px;
+  color: var(--preview-paper);
+  font-family: Georgia, "Times New Roman", serif;
+  font-size: 1.55rem;
+  line-height: 1.05;
+}
+
+.manga-series-object strong {
+  color: var(--accent-2);
+  font-size: .86rem;
+}
+
+.manga-series-object p {
+  margin: 8px 0 0;
+  color: var(--muted);
+  font-size: .77rem;
+  line-height: 1.5;
+}
+
+.manga-owned-preview-section {
+  margin-top: 8px;
+}
+
+.manga-owned-shelf {
+  --volume-zone-height: 176px;
+  --volume-top-pad: 17px;
+  position: relative;
+  overflow: hidden;
+  border: 1px solid color-mix(in srgb, var(--wood-light) 36%, transparent);
+  border-radius: 16px;
+  background:
+    linear-gradient(to bottom,
+      var(--preview-back) 0 calc(var(--volume-top-pad) + var(--volume-zone-height) + 14px),
+      color-mix(in srgb, var(--preview-dark) 75%, var(--bg) 25%) calc(var(--volume-top-pad) + var(--volume-zone-height) + 14px) 100%);
+  box-shadow:
+    inset 0 14px 25px rgba(255,255,255,.025),
+    inset 16px 0 28px rgba(0,0,0,.12),
+    inset -16px 0 28px rgba(0,0,0,.12),
+    0 20px 34px -28px rgba(0,0,0,.86);
+}
+
+.manga-owned-shelf::before {
+  content: "";
+  position: absolute;
+  inset: 0 0 auto;
+  height: calc(var(--volume-top-pad) + var(--volume-zone-height) + 14px);
+  background:
+    radial-gradient(ellipse at 50% -8%, rgba(255,244,222,.07), transparent 42%),
+    repeating-linear-gradient(1deg, rgba(255,255,255,.012) 0 1px, transparent 1px 8px),
+    repeating-linear-gradient(89deg, rgba(33,15,7,.025) 0 2px, transparent 2px 70px);
+  pointer-events: none;
+}
+
+.manga-owned-scroll {
+  position: relative;
+  z-index: 2;
+  overflow-x: auto;
+  padding: var(--volume-top-pad) 16px 13px;
+  overscroll-behavior-inline: contain;
+  scroll-snap-type: x proximity;
+  scrollbar-width: thin;
+  scrollbar-color: rgba(216,170,109,.22) transparent;
+}
+
+.manga-owned-track {
+  width: max-content;
+  display: flex;
+  gap: 12px;
+}
+
+.manga-owned-volume {
+  width: 92px;
+  display: grid;
+  grid-template-rows: var(--volume-zone-height) 38px;
+  gap: 21px;
+  scroll-snap-align: start;
+}
+
+.manga-owned-object {
+  align-self: end;
+  width: 88px;
+  aspect-ratio: 2 / 3;
+  display: grid;
+  grid-template-rows: auto 1fr auto;
+  padding: 9px 8px 10px;
+  border: 1px solid rgba(240,201,147,.18);
+  border-radius: 3px 7px 7px 3px;
+  background:
+    linear-gradient(145deg, rgba(240,201,147,.1), transparent 48%),
+    linear-gradient(170deg, color-mix(in srgb, var(--preview-mid) 42%, #17110e 58%), var(--preview-dark));
+  color: rgba(240,201,147,.78);
+  box-shadow:
+    0 13px 22px rgba(0,0,0,.36),
+    -2px 2px 0 rgba(0,0,0,.13);
+}
+
+.manga-owned-object small {
+  font-size: .43rem;
+  font-weight: 800;
+  letter-spacing: .14em;
+  text-transform: uppercase;
+}
+
+.manga-owned-object strong {
+  align-self: center;
+  justify-self: center;
+  font-family: Georgia, serif;
+  font-size: 1.45rem;
+  font-weight: 700;
+}
+
+.manga-owned-object span {
+  overflow: hidden;
+  font-size: .47rem;
+  line-height: 1.2;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.manga-owned-label {
+  overflow: hidden;
+  color: var(--preview-paper);
+  font-size: .66rem;
+  font-weight: 780;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.manga-owned-lip {
+  position: absolute;
+  z-index: 1;
+  top: calc(var(--volume-top-pad) + var(--volume-zone-height) - 1px);
+  left: 0;
+  right: 0;
+  height: 22px;
+  border-top: 1px solid rgba(255,236,207,.12);
+  border-bottom: 1px solid rgba(26,12,6,.55);
+  background:
+    linear-gradient(to bottom,
+      color-mix(in srgb, var(--preview-light) 88%, #c38a59 12%) 0 30%,
+      var(--preview-mid) 30% 72%,
+      var(--preview-dark) 72% 100%);
+  box-shadow: 0 8px 11px rgba(0,0,0,.34);
+  pointer-events: none;
+}
+
+.preview-data-note {
+  max-width: 760px;
+  margin: 12px 2px 0;
+  color: var(--muted-2);
+  font-size: .7rem;
+  line-height: 1.55;
+}
+
+.manga-volume-compact-strip {
+  margin-top: 14px;
+  padding: 12px 14px;
+  border: 1px solid rgba(255,255,255,.055);
+  border-radius: 12px;
+  background: rgba(255,255,255,.015);
+}
+
+.manga-volume-compact-strip > span {
+  color: var(--accent);
+  font-size: .58rem;
+  font-weight: 900;
+  letter-spacing: .12em;
+  text-transform: uppercase;
+}
+
+.manga-volume-compact-strip p {
+  margin: 6px 0 0;
+  color: var(--muted);
+  font-size: .7rem;
+  line-height: 1.55;
+}
+
+@media (max-width: 760px) {
+  .home-libronia-preview,
+  .design-manga-preview {
+    padding-top: 16px;
+  }
+
+  .design-preview-banner {
+    align-items: flex-start;
+    flex-direction: column;
+    gap: 4px;
+    margin-bottom: 14px;
+  }
+
+  .collection-overview {
+    grid-template-columns: 1fr;
+    gap: 15px;
+    padding-top: 10px;
+  }
+
+  .collection-overview h1 {
+    font-size: clamp(2.15rem, 11vw, 3.4rem);
+  }
+
+  .collection-add-action {
+    width: 100%;
+    min-height: 48px;
+  }
+
+  .collection-count-grid {
+    gap: 7px;
+  }
+
+  .collection-count-card {
+    min-height: 86px;
+    grid-template-columns: 1fr;
+    grid-template-rows: auto auto auto;
+    row-gap: 3px;
+    padding: 11px 10px;
+  }
+
+  .collection-count-card svg {
+    grid-row: auto;
+    width: 15px;
+    height: 15px;
+  }
+
+  .collection-count-card strong {
+    font-size: 1.35rem;
+  }
+
+  .collection-count-card span {
+    font-size: .64rem;
+  }
+
+  .collection-count-card small {
+    grid-column: auto;
+    margin-top: 2px;
+    font-size: .55rem;
+    line-height: 1.2;
+  }
+
+  .collection-shelf-section {
+    margin-top: 28px;
+  }
+
+  .collection-shelf-heading {
+    margin-bottom: 10px;
+  }
+
+  .collection-shelf-heading > span {
+    font-size: .62rem;
+  }
+
+  .collection-shelf {
+    --object-zone-height: 174px;
+    --shelf-top-pad: 15px;
+    border-radius: 14px;
+  }
+
+  .collection-shelf-scroll {
+    padding-inline: 13px;
+  }
+
+  .collection-shelf-track {
+    gap: 12px;
+  }
+
+  .collection-shelf-item {
+    width: 112px;
+    grid-template-rows: var(--object-zone-height) 54px;
+    gap: 21px;
+  }
+
+  .collection-cover-shell {
+    max-width: 108px;
+  }
+
+  .collection-shelf-item.is-book .collection-cover-shell {
+    height: 162px;
+  }
+
+  .collection-shelf-item.is-manga .collection-cover-shell {
+    height: 158px;
+  }
+
+  .collection-shelf-item.is-anime .collection-cover-shell {
+    height: 154px;
+  }
+
+  .collection-cover-placeholder {
+    width: 101px;
+  }
+
+  .collection-label strong {
+    font-size: .69rem;
+  }
+
+  .collection-label > span {
+    font-size: .59rem;
+  }
+
+  .manga-series-object {
+    grid-template-columns: 94px minmax(0, 1fr);
+    gap: 14px;
+    padding: 13px;
+  }
+
+  .manga-series-cover-wrap {
+    width: 94px;
+    height: 141px;
+  }
+
+  .manga-series-object h2 {
+    font-size: 1.3rem;
+  }
+
+  .manga-series-object p {
+    font-size: .7rem;
+  }
+
+  .manga-owned-shelf {
+    --volume-zone-height: 166px;
+    --volume-top-pad: 15px;
+  }
+
+  .manga-owned-scroll {
+    padding-inline: 13px;
+  }
+
+  .manga-owned-track {
+    gap: 10px;
+  }
+
+  .manga-owned-volume {
+    width: 86px;
+  }
+
+  .manga-owned-object {
+    width: 82px;
+  }
+}
+
+@media (max-width: 390px) {
+  .collection-count-card {
+    padding-inline: 8px;
+  }
+
+  .collection-count-card strong {
+    font-size: 1.25rem;
+  }
+
+  .collection-count-card span {
+    font-size: .6rem;
+  }
+
+  .collection-shelf-heading > span {
+    display: none;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .collection-shelf-scroll,
+  .manga-owned-scroll {
+    scroll-behavior: auto;
+  }
+}
