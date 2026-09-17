@@ -4,6 +4,7 @@ import { Trash2 } from "lucide-react";
 import { useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { ManualWorkCover } from "@/components/manual-work-cover";
+import { ThemedConfirmDialog } from "@/components/themed-confirm-dialog";
 import type { OwnedMangaVolume } from "@/lib/repositories/owned-volume-covers";
 
 function VolumeCard({ volume }: { volume: OwnedMangaVolume }) {
@@ -15,6 +16,7 @@ function VolumeCard({ volume }: { volume: OwnedMangaVolume }) {
   const [pending, setPending] = useState(false);
   const [processing, setProcessing] = useState(false);
   const [removing, setRemoving] = useState(false);
+  const [confirmingRemove, setConfirmingRemove] = useState(false);
   const [error, setError] = useState("");
   const [saved, setSaved] = useState(false);
   const busy = pending || processing || removing;
@@ -49,11 +51,6 @@ function VolumeCard({ volume }: { volume: OwnedMangaVolume }) {
 
   async function removeVolume() {
     if (lock.current || pending || processing) return;
-    const label = volume.unit_number ?? "speciale";
-    if (!window.confirm(`Rimuovere il volume ${label} dalla tua collezione?`)) {
-      return;
-    }
-
     lock.current = true;
     setRemoving(true);
     setError("");
@@ -66,6 +63,7 @@ function VolumeCard({ volume }: { volume: OwnedMangaVolume }) {
       });
       const result = await response.json();
       if (!response.ok) throw new Error(result.error);
+      setConfirmingRemove(false);
       router.refresh();
     } catch (e) {
       setError(
@@ -76,6 +74,8 @@ function VolumeCard({ volume }: { volume: OwnedMangaVolume }) {
       setRemoving(false);
     }
   }
+
+  const volumeLabel = volume.unit_number ?? "speciale";
 
   return (
     <article className="owned-volume-card" id={`owned-${volume.owned_id}`}>
@@ -116,8 +116,11 @@ function VolumeCard({ volume }: { volume: OwnedMangaVolume }) {
           className="owned-volume-remove"
           type="button"
           disabled={busy}
-          onClick={() => void removeVolume()}
-          aria-label={`Rimuovi volume ${volume.unit_number ?? "speciale"} dalla collezione`}
+          onClick={() => {
+            setError("");
+            setConfirmingRemove(true);
+          }}
+          aria-label={`Rimuovi volume ${volumeLabel} dalla collezione`}
         >
           <Trash2 size={15} />
           {removing ? "Rimuovo…" : "Rimuovi"}
@@ -157,12 +160,27 @@ function VolumeCard({ volume }: { volume: OwnedMangaVolume }) {
           ) : null}
         </form>
       ) : null}
-      {error ? (
+      {error && !confirmingRemove ? (
         <p role="alert" className="catalog-error">
           {error}
         </p>
       ) : null}
       {saved ? <small role="status">Copertina aggiornata.</small> : null}
+      <ThemedConfirmDialog
+        open={confirmingRemove}
+        title={`Rimuovere il volume ${volumeLabel}?`}
+        description="Verrà rimosso solo questo volume dalla tua collezione. La serie, l’edizione e gli altri volumi resteranno invariati."
+        confirmLabel="Rimuovi volume"
+        pending={removing}
+        error={error}
+        onCancel={() => {
+          if (!removing) {
+            setConfirmingRemove(false);
+            setError("");
+          }
+        }}
+        onConfirm={() => void removeVolume()}
+      />
     </article>
   );
 }
