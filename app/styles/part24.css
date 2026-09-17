@@ -1,0 +1,190 @@
+/* Feedback pass: restore the Anime preview to the darker TV/videoteca language. */
+
+.preview-anime-room {
+  padding: 18px;
+  border-color: rgba(255,255,255,.065);
+  background:
+    radial-gradient(circle at 50% -10%, rgba(82,92,125,.10), transparent 34rem),
+    linear-gradient(180deg, #0b0c0f, #07080a 58%, #050506);
+  box-shadow:
+    inset 0 1px rgba(255,255,255,.025),
+    inset 0 -32px 46px rgba(0,0,0,.32),
+    0 24px 44px -34px rgba(0,0,0,.95);
+}
+
+.preview-tv-cabinet {
+  width: min(760px, 100%);
+}
+
+.preview-tv-bezel {
+  padding: 12px;
+  border-color: rgba(255,255,255,.085);
+  border-radius: 26px;
+  background:
+    linear-gradient(145deg, rgba(255,255,255,.045), transparent 24%),
+    linear-gradient(150deg, #24252a, #101114 68%, #07080a);
+  box-shadow:
+    0 24px 48px rgba(0,0,0,.55),
+    inset 0 0 0 2px rgba(255,255,255,.018);
+}
+
+.preview-tv-screen {
+  border: 6px solid #050506;
+  border-radius: 19px;
+  background:
+    radial-gradient(circle at 22% 28%, rgba(85,94,132,.20), transparent 39%),
+    radial-gradient(circle at 82% 15%, rgba(124,101,169,.08), transparent 31%),
+    linear-gradient(145deg, #17191f, #0a0b0e 72%);
+  box-shadow:
+    inset 0 0 42px rgba(0,0,0,.82),
+    inset 0 0 0 1px rgba(255,255,255,.025);
+}
+
+.preview-tv-poster {
+  border: 1px solid rgba(255,255,255,.07);
+  background:
+    linear-gradient(180deg, rgba(255,255,255,.02), transparent 38%),
+    linear-gradient(155deg, #343a50, #171922 72%);
+  box-shadow: 0 16px 28px rgba(0,0,0,.48);
+}
+
+.preview-tv-copy p {
+  color: #b8b9be;
+}
+
+.preview-tv-copy > strong {
+  border: 1px solid rgba(255,255,255,.07);
+  background: rgba(255,255,255,.055);
+}
+
+.preview-tv-note {
+  color: #74777e;
+}
+
+.preview-tv-controls button {
+  border-color: rgba(255,255,255,.09);
+  background: rgba(255,255,255,.035);
+  color: #d8d9dd;
+}
+
+.preview-tv-controls small {
+  color: #8f94a4;
+}
+
+.preview-tv-stand {
+  display: none;
+}
+
+.preview-video-library-alpha {
+  display: grid;
+  gap: 14px;
+}
+
+.preview-video-library-group {
+  display: grid;
+  gap: 8px;
+  padding-top: 12px;
+  border-top: 1px solid rgba(255,255,255,.055);
+}
+
+.preview-video-library-group:first-child {
+  padding-top: 0;
+  border-top: 0;
+}
+
+.preview-video-library-letter {
+  display: flex;
+  align-items: baseline;
+  gap: 9px;
+}
+
+.preview-video-library-letter strong {
+  color: #b7bedf;
+  font-family: Georgia, "Times New Roman", serif;
+  font-size: 1.55rem;
+  line-height: 1;
+}
+
+.preview-video-library-letter span {
+  color: #74777e;
+  font-size: .66rem;
+  font-weight: 750;
+  letter-spacing: .08em;
+  text-transform: uppercase;
+}
+
+.preview-video-library {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 10px;
+  padding: 0;
+  overflow: visible;
+}
+
+.preview-video-library > button {
+  min-width: 0;
+  display: grid;
+  gap: 7px;
+  padding: 7px;
+  border: 1px solid rgba(255,255,255,.055);
+  border-radius: 13px;
+  background: rgba(255,255,255,.018);
+  color: #e8e8ea;
+  text-align: left;
+}
+
+.preview-anime-case {
+  width: 100%;
+  height: auto;
+  aspect-ratio: 16 / 10;
+  display: grid;
+  place-items: center;
+  overflow: hidden;
+  border: 1px solid rgba(255,255,255,.075);
+  border-radius: 9px;
+  background:
+    radial-gradient(circle at 28% 30%, rgba(92,101,144,.22), transparent 38%),
+    linear-gradient(145deg, #222630, #0c0e13 72%);
+  box-shadow: inset 0 0 22px rgba(0,0,0,.34);
+}
+
+.preview-anime-case i {
+  color: rgba(238,240,247,.78);
+  font-size: 1.1rem;
+  letter-spacing: .03em;
+}
+
+.preview-video-library button strong {
+  min-width: 0;
+  overflow: hidden;
+  color: #d9dadd;
+  font-size: .7rem;
+  line-height: 1.2;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.preview-video-library button.active {
+  border-color: rgba(155,164,207,.32);
+  background: rgba(96,105,150,.08);
+}
+
+.preview-video-library button.active .preview-anime-case {
+  outline: 1px solid rgba(169,178,221,.62);
+  outline-offset: 1px;
+}
+
+@media (max-width: 640px) {
+  .preview-anime-room {
+    padding: 11px;
+  }
+
+  .preview-video-library {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 8px;
+  }
+
+  .preview-video-library > button {
+    padding: 6px;
+  }
+}
