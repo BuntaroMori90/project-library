@@ -275,7 +275,10 @@ export function OwnedVolumeGallery({
     } catch {
       // La ricerca automatica può comunque partire senza sessionStorage.
     }
-    void recoverAutomaticCovers(true, 0);
+    const timer = window.setTimeout(() => {
+      void recoverAutomaticCovers(true, 0);
+    }, 0);
+    return () => window.clearTimeout(timer);
   }, [missingAutomatic, recoverAutomaticCovers, volumes.length, workId]);
 
   return (
@@ -308,8 +311,16 @@ export function OwnedVolumeGallery({
           </button>
         </div>
       ) : null}
-      {autoMessage ? <p className="owned-volume-auto-status" role="status">{autoMessage}</p> : null}
-      {autoError ? <p className="catalog-error" role="alert">{autoError}</p> : null}
+      {autoMessage ? (
+        <p className="owned-volume-auto-status" role="status">
+          {autoMessage}
+        </p>
+      ) : null}
+      {autoError ? (
+        <p className="catalog-error" role="alert">
+          {autoError}
+        </p>
+      ) : null}
       {volumes.length ? (
         <div className="owned-volume-grid">
           {volumes.slice(0, visible).map((v) => (
