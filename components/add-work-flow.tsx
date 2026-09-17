@@ -1,8 +1,9 @@
 "use client";
 
 import Image from "next/image";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import {
   BookOpen,
   Bookmark,
@@ -111,6 +112,9 @@ export function AddWorkFlow({
   initialType?: AddWorkType;
 }) {
   const router = useRouter();
+  const searchRequest = useRef<AbortController | null>(null);
+  const saving = useRef(false);
+
   const [type, setType] = useState<AddWorkType>(initialType);
   const [entryMode, setEntryMode] = useState<EntryMode>("catalog");
   const [query, setQuery] = useState("");
@@ -124,16 +128,68 @@ export function AddWorkFlow({
   const [manualTotalVolumes, setManualTotalVolumes] = useState("");
   const [manualCoverUrl, setManualCoverUrl] = useState("");
   const [manualSaving, setManualSaving] = useState<"library" | "wishlist" | null>(null);
+  const [keepAdding, setKeepAdding] = useState(false);
+  const [saved, setSaved] = useState<{ title: string; href: string } | null>(null);
 
-  function resetManual() {
+  useEffect(() => {
+    return () => {
+      searchRequest.current?.abort();
+      searchRequest.current = null;
+    };
+  }, []);
+
+  function resetManualDraft() {
     setManualTitle("");
     setManualAuthor("");
     setManualTotalVolumes("");
     setManualCoverUrl("");
-    setManualSaving(null);
+  }
+
+  function hasManualDraft() {
+    return Boolean(
+      manualTitle.trim() ||
+        manualAuthor.trim() ||
+        manualTotalVolumes.trim() ||
+        manualCoverUrl.trim(),
+    );
+  }
+
+  function completeSave(workId: string, placement: string, title: string) {
+    const href =
+      placement === "wishlist"
+        ? "/library/wishlist"
+        : type === "book"
+          ? `/library/books/${workId}?chooseEdition=1#edizioni`
+          : `/library/${type === "anime" ? "anime" : "manga"}/${workId}`;
+
+    if (!keepAdding) {
+      router.push(href);
+      return;
+    }
+
+    setSaved({ title, href });
+    setQuery("");
+    setResults([]);
+    setSearched(false);
+    setError(null);
+    resetManualDraft();
   }
 
   function switchType(next: AddWorkType) {
+    if (saving.current || next === type) return;
+    if (
+      hasManualDraft() &&
+      !window.confirm(
+        "Cambiare tipo di opera? I dati manuali non ancora salvati, inclusa la copertina, verranno cancellati.",
+      )
+    ) {
+      return;
+    }
+
+    searchRequest.current?.abort();
+    searchRequest.current = null;
+    setLoading(false);
+    setSaved(null);
     setType(next);
     setEntryMode("catalog");
     setQuery("");
@@ -141,10 +197,15 @@ export function AddWorkFlow({
     setError(null);
     setSearched(false);
     setImporting(null);
-    resetManual();
+    setManualSaving(null);
+    resetManualDraft();
   }
 
   function switchEntryMode(next: EntryMode) {
+    if (saving.current) return;
+    searchRequest.current?.abort();
+    searchRequest.current = null;
+    setLoading(false);
     setEntryMode(next);
     setError(null);
     if (next === "manual" && !manualTitle.trim()) {
@@ -154,15 +215,20 @@ export function AddWorkFlow({
 
   async function search(event: React.FormEvent) {
     event.preventDefault();
+    if (saving.current) return;
+
     const normalized = query.trim();
     if (normalized.length < 2) return;
 
     setError(null);
+    setSaved(null);
     setSearched(true);
     setLoading(true);
     setResults([]);
 
+    searchRequest.current?.abort();
     const controller = new AbortController();
+    searchRequest.current = controller;
     const timeout = window.setTimeout(() => controller.abort(), 12000);
 
     try {
@@ -175,21 +241,27 @@ export function AddWorkFlow({
         throw new Error(payload.error ?? "Ricerca non disponibile.");
       }
 
+      if (searchRequest.current !== controller) return;
+
       const nextResults = (payload.results ?? []) as Result[];
       setResults(nextResults);
       if ((type === "book" || type === "manga") && nextResults.length === 0) {
         setManualTitle(normalized);
         setEntryMode("manual");
       }
-    } catch (err) {
-      if (err instanceof DOMException && err.name === "AbortError") {
+    } catch (caught) {
+      if (searchRequest.current !== controller) return;
+      if (caught instanceof DOMException && caught.name === "AbortError") {
         setError("La ricerca sta impiegando troppo tempo. Puoi riprovare o usare l'inserimento manuale.");
       } else {
-        setError(err instanceof Error ? err.message : "Ricerca non disponibile.");
+        setError(caught instanceof Error ? caught.message : "Ricerca non disponibile.");
       }
     } finally {
       window.clearTimeout(timeout);
-      setLoading(false);
+      if (searchRequest.current === controller) {
+        searchRequest.current = null;
+        setLoading(false);
+      }
     }
   }
 
@@ -197,6 +269,10 @@ export function AddWorkFlow({
     result: Result,
     destination: "library" | "wishlist",
   ) {
+    if (saving.current) return;
+    saving.current = true;
+    setSaved(null);
+
     const importKey = `${result.provider}:${result.providerId}:${destination}`;
     setImporting(importKey);
     setError(null);
@@ -216,21 +292,11 @@ export function AddWorkFlow({
         throw new Error(payload.error ?? "Import non riuscito.");
       }
 
-      if (destination === "wishlist" && payload.placement === "wishlist") {
-        router.push("/library/wishlist");
-        return;
-      }
-
-      if (type === "book") {
-        router.push(`/library/books/${payload.workId}?chooseEdition=1#edizioni`);
-        return;
-      }
-
-      const target = type === "anime" ? "anime" : "manga";
-      router.push(`/library/${target}/${payload.workId}`);
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "Import non riuscito.");
+      completeSave(payload.workId, payload.placement, result.title);
+    } catch (caught) {
+      setError(caught instanceof Error ? caught.message : "Import non riuscito.");
     } finally {
+      saving.current = false;
       setImporting(null);
     }
   }
@@ -254,6 +320,9 @@ export function AddWorkFlow({
       return;
     }
 
+    if (saving.current) return;
+    saving.current = true;
+    setSaved(null);
     setManualSaving(destination);
     setError(null);
 
@@ -274,22 +343,13 @@ export function AddWorkFlow({
         throw new Error(payload.error ?? "Inserimento manuale non riuscito.");
       }
 
-      if (destination === "wishlist" && payload.placement === "wishlist") {
-        router.push("/library/wishlist");
-        return;
-      }
-
-      if (type === "book") {
-        router.push(`/library/books/${payload.workId}?chooseEdition=1#edizioni`);
-      } else if (totalVolumes) {
-        router.push(`/library/manga/${payload.workId}#volumi`);
-      } else {
-        router.push(`/library/manga/${payload.workId}#edizione-personale`);
-      }
-      router.refresh();
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "Inserimento manuale non riuscito.");
+      completeSave(payload.workId, payload.placement, title);
+    } catch (caught) {
+      setError(
+        caught instanceof Error ? caught.message : "Inserimento manuale non riuscito.",
+      );
     } finally {
+      saving.current = false;
       setManualSaving(null);
     }
   }
@@ -297,6 +357,7 @@ export function AddWorkFlow({
   const meta = typeMeta[type];
   const Icon = meta.icon;
   const canInsertManually = type === "book" || type === "manga";
+  const isSaving = Boolean(importing || manualSaving);
 
   return (
     <section className="add-work-flow">
@@ -314,6 +375,7 @@ export function AddWorkFlow({
             <button
               key={key}
               type="button"
+              disabled={isSaving}
               onClick={() => switchType(key)}
               className={`add-type-card ${type === key ? "active" : ""}`}
             >
@@ -330,6 +392,7 @@ export function AddWorkFlow({
           <button
             type="button"
             className={`add-mode-card ${entryMode === "catalog" ? "active" : ""}`}
+            disabled={isSaving}
             onClick={() => switchEntryMode("catalog")}
           >
             <Search size={19} />
@@ -341,6 +404,7 @@ export function AddWorkFlow({
           <button
             type="button"
             className={`add-mode-card ${entryMode === "manual" ? "active" : ""}`}
+            disabled={isSaving}
             onClick={() => switchEntryMode("manual")}
           >
             <PenLine size={19} />
@@ -370,11 +434,12 @@ export function AddWorkFlow({
               onChange={(event) => setQuery(event.target.value)}
               placeholder={meta.placeholder}
               autoFocus
+              disabled={isSaving}
             />
             <button
               className="primary-btn"
               type="submit"
-              disabled={loading || query.trim().length < 2}
+              disabled={loading || isSaving || query.trim().length < 2}
             >
               {loading ? "Cerco…" : "Cerca"}
             </button>
@@ -412,6 +477,7 @@ export function AddWorkFlow({
                 value={manualCoverUrl}
                 onChange={setManualCoverUrl}
                 title={manualTitle}
+                disabled={Boolean(manualSaving)}
               />
 
               <div className="manual-work-fields">
@@ -422,6 +488,7 @@ export function AddWorkFlow({
                     onChange={(event) => setManualTitle(event.target.value)}
                     placeholder={type === "book" ? "Inserisci il titolo del libro" : "Titolo italiano, originale o quello che conosci"}
                     autoFocus
+                    disabled={Boolean(manualSaving)}
                   />
                 </label>
 
@@ -440,6 +507,7 @@ export function AddWorkFlow({
                         value={manualAuthor}
                         onChange={(event) => setManualAuthor(event.target.value)}
                         placeholder={type === "book" ? "Es. Haruki Murakami" : "Es. Takehiko Inoue"}
+                        disabled={Boolean(manualSaving)}
                       />
                     </label>
 
@@ -454,6 +522,7 @@ export function AddWorkFlow({
                           min="1"
                           step="1"
                           placeholder="Es. 37"
+                          disabled={Boolean(manualSaving)}
                         />
                         <small>Se lo conosci, prepariamo subito Vol. 1…N.</small>
                       </label>
@@ -495,7 +564,27 @@ export function AddWorkFlow({
         </section>
       ) : null}
 
-      {error ? <p className="catalog-error">{error}</p> : null}
+      <label className="add-keep-adding">
+        <input
+          type="checkbox"
+          checked={keepAdding}
+          disabled={isSaving}
+          onChange={(event) => setKeepAdding(event.target.checked)}
+        />
+        <span>
+          <strong>Dopo il salvataggio, aggiungi un’altra opera</strong>
+          <small>Rimani in questa schermata e riparti con un modulo vuoto.</small>
+        </span>
+      </label>
+
+      {saved ? (
+        <div className="add-save-success" role="status">
+          <span>“{saved.title}” salvato.</span>
+          <Link href={saved.href}>{type === "book" ? "Apri e scegli l’edizione" : "Apri scheda"}</Link>
+        </div>
+      ) : null}
+
+      {error ? <p className="catalog-error" role="alert">{error}</p> : null}
 
       {searched && !loading && results.length === 0 && !error && entryMode === "catalog" ? (
         <div className="catalog-empty add-empty-state">
@@ -544,7 +633,7 @@ export function AddWorkFlow({
                     className="add-result add-to-wishlist"
                     type="button"
                     onClick={() => importWork(result, "wishlist")}
-                    disabled={Boolean(importing)}
+                    disabled={isSaving}
                   >
                     {importing === wishlistKey ? <LoaderCircle className="spin" size={18} /> : <Bookmark size={18} />}
                     <span>{importing === wishlistKey ? "Salvo" : "Wishlist"}</span>
@@ -553,7 +642,7 @@ export function AddWorkFlow({
                     className="add-result"
                     type="button"
                     onClick={() => importWork(result, "library")}
-                    disabled={Boolean(importing)}
+                    disabled={isSaving}
                   >
                     {importing === libraryKey ? <LoaderCircle className="spin" size={18} /> : <Plus size={18} />}
                     <span>

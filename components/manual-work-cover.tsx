@@ -63,16 +63,19 @@ export function ManualWorkCover({
   value,
   title,
   onChange,
+  disabled = false,
 }: {
   value: string;
   title: string;
   onChange: (value: string) => void;
+  disabled?: boolean;
 }) {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const locked = busy || disabled;
 
   async function onFile(file: File | undefined) {
-    if (!file) return;
+    if (!file || disabled) return;
     setBusy(true);
     setError(null);
     try {
@@ -87,7 +90,7 @@ export function ManualWorkCover({
   const hasCover = Boolean(value);
 
   return (
-    <aside className="manual-cover-card">
+    <aside className={`manual-cover-card ${disabled ? "is-disabled" : ""}`} aria-busy={busy}>
       <div className={`manual-cover-preview ${hasCover ? "has-cover" : ""}`}>
         {hasCover ? (
           <>
@@ -97,6 +100,7 @@ export function ManualWorkCover({
               className="manual-cover-remove"
               onClick={() => onChange("")}
               aria-label="Rimuovi copertina"
+              disabled={locked}
             >
               <X size={15} />
             </button>
@@ -111,24 +115,24 @@ export function ManualWorkCover({
       </div>
 
       <div className="manual-cover-actions">
-        <label className="soft-action manual-cover-upload">
+        <label className={`soft-action manual-cover-upload ${locked ? "is-disabled" : ""}`}>
           <ImagePlus size={16} />
           {busy ? "Elaboro…" : hasCover ? "Cambia immagine" : "Carica immagine"}
           <input
             type="file"
             accept="image/jpeg,image/png,image/webp"
-            disabled={busy}
+            disabled={locked}
             onChange={(event) => void onFile(event.target.files?.[0])}
           />
         </label>
 
-        <div className="manual-cover-url">
+        <div className={`manual-cover-url ${locked ? "is-disabled" : ""}`}>
           <Link2 size={15} />
           <input
             type="url"
             placeholder="Oppure incolla URL"
             value={value.startsWith("data:") ? "" : value}
-            disabled={value.startsWith("data:") || busy}
+            disabled={value.startsWith("data:") || locked}
             onChange={(event) => onChange(event.target.value)}
           />
         </div>
