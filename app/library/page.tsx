@@ -1,7 +1,6 @@
-import Image from "next/image";
 import Link from "next/link";
-import { BookOpen, Clapperboard, LibraryBig } from "lucide-react";
-import { DemoCover, canOptimizeCover } from "@/components/demo-cover";
+import { BookOpen, Clapperboard, LibraryBig, Plus } from "lucide-react";
+import { DemoCover } from "@/components/demo-cover";
 import type { DemoItem } from "@/lib/demo-data";
 import { requireProfile } from "@/lib/profile";
 import { listLibraryWorks } from "@/lib/repositories/library";
@@ -47,25 +46,77 @@ function itemHref(row: LibraryRow) {
 
 function toItem(row: LibraryRow): DemoItem {
   let progress: string | undefined;
-  if (row.mediaType === "BOOK" && row.current_page)
+
+  if (row.mediaType === "BOOK" && row.current_page) {
     progress = `${row.current_page}${row.total_pages ? ` / ${row.total_pages}` : ""} pagine`;
-  if (row.mediaType === "MANGA" && row.current_volume)
-    progress = `Vol. ${row.current_volume}${row.current_chapter ? ` · Cap. ${row.current_chapter}` : ""}`;
-  if (row.mediaType === "ANIME" && row.current_season)
+  }
+
+  if (row.mediaType === "MANGA") {
+    const owned = Number(row.owned_units ?? 0);
+    progress = `${owned} ${owned === 1 ? "volume" : "volumi"}`;
+  }
+
+  if (row.mediaType === "ANIME" && row.current_season) {
     progress = `S${row.current_season}${row.current_episode ? ` · Ep. ${row.current_episode}` : ""}`;
+  }
+
   const coverUrl = row.cover_url?.startsWith("data:image/")
     ? `/api/library/cover/work/${row.id}`
     : row.cover_url ?? undefined;
+
   return {
     id: row.id,
     title: row.title,
     creator: row.creators?.join(" · ") || "Autore non disponibile",
-    status: statusLabels[row.mediaType][row.status] ?? "Da iniziare",
+    status: statusLabels[row.mediaType][row.status] ?? "In collezione",
     progress,
     meta: row.rating != null ? `${row.rating} / 10` : undefined,
     coverUrl,
     coverClass: row.mediaType === "ANIME" ? "poster-blue" : "cover-ink",
   };
+}
+
+function HomeShelf({
+  title,
+  eyebrow,
+  rows,
+  emptyCopy,
+}: {
+  title: string;
+  eyebrow: string;
+  rows: LibraryRow[];
+  emptyCopy: string;
+}) {
+  return (
+    <section className="collection-home-section">
+      <div className="collection-home-heading">
+        <div>
+          <p className="eyebrow">{eyebrow}</p>
+          <h2>{title}</h2>
+        </div>
+        {rows.length ? <span>{rows.length} elementi</span> : null}
+      </div>
+
+      {rows.length ? (
+        <div className="collection-summary-shelf">
+          <div className="collection-summary-row">
+            {rows.map((row) => (
+              <DemoCover
+                key={row.id}
+                item={toItem(row)}
+                href={itemHref(row)}
+              />
+            ))}
+          </div>
+        </div>
+      ) : (
+        <div className="empty-collection-shelf compact-empty-shelf">
+          <div className="empty-shelf-space" aria-hidden="true" />
+          <p>{emptyCopy}</p>
+        </div>
+      )}
+    </section>
+  );
 }
 
 export default async function LibraryHomePage() {
@@ -75,159 +126,70 @@ export default async function LibraryHomePage() {
     ...row,
     mediaType: row.media_type,
   }));
+
   const books = all.filter((row) => row.mediaType === "BOOK");
   const manga = all.filter((row) => row.mediaType === "MANGA");
   const anime = all.filter((row) => row.mediaType === "ANIME");
-  const recent = all.slice(0, 5);
-  const favorites = all.filter((row) => row.favorite).slice(0, 5);
-  const showcase = (favorites.length ? favorites : recent).slice(0, 4);
+  const mangaVolumes = manga.reduce(
+    (total, row) => total + Number(row.owned_units ?? 0),
+    0,
+  );
+
+  // listLibraryWorks currently exposes updated_at as the reliable ordering field.
+  // Keep this section concise and do not infer missing creation dates.
+  const recent = all.slice(0, 6);
+  const favorites = all.filter((row) => row.favorite).slice(0, 6);
 
   return (
-    <main className="page home-page home-v4">
-      <section className="home-collection-hero">
-        <div className="home-collection-copy">
-          <p className="eyebrow">La mia collezione</p>
-          <h1>
-            Libri, manga e anime.
-            <br />
-            Tutto al suo posto.
-          </h1>
-          <p className="home-collection-intro">
-            Un archivio personale da sfogliare, ordinare e far crescere nel
-            tempo.
+    <main className="page home-page collection-home">
+      <section className="collection-home-intro">
+        <div className="collection-home-title">
+          <p className="eyebrow">Libronia</p>
+          <h1>La tua collezione</h1>
+          <p>
+            Libri, manga e anime organizzati come una libreria personale, senza
+            distrazioni.
           </p>
-          <div
-            className="home-collection-ledger"
-            aria-label="Riepilogo collezione"
-          >
-            <div className="ledger-total">
-              <strong>{all.length}</strong>
-              <span>opere</span>
-            </div>
-            <Link href="/library/books" className="ledger-item">
-              <BookOpen size={16} />
-              <span>Libri</span>
-              <strong>{books.length}</strong>
-            </Link>
-            <Link href="/library/manga" className="ledger-item">
-              <LibraryBig size={16} />
-              <span>Manga</span>
-              <strong>{manga.length}</strong>
-            </Link>
-            <Link href="/library/anime" className="ledger-item">
-              <Clapperboard size={16} />
-              <span>Anime</span>
-              <strong>{anime.length}</strong>
-            </Link>
-          </div>
         </div>
-        <div className="collection-stage" aria-label="Opere in evidenza">
-          <span className="stage-glow" />
-          {showcase.map((row, index) => {
-            const item = toItem(row);
-            return (
-              <Link
-                href={itemHref(row)}
-                key={row.id}
-                className={`stage-cover stage-cover-${index + 1} ${item.coverClass}`}
-              >
-                {item.coverUrl ? (
-                  <Image
-                    className="cover-image"
-                    src={item.coverUrl}
-                    alt={item.title}
-                    width={400}
-                    height={600}
-                    sizes="(max-width: 640px) 42vw, 180px"
-                    unoptimized={!canOptimizeCover(item.coverUrl)}
-                    preload={index === 0}
-                  />
-                ) : (
-                  <>
-                    <span>{item.title}</span>
-                    <small>{item.creator}</small>
-                  </>
-                )}
-              </Link>
-            );
-          })}
-          {!showcase.length ? (
-            <Link
-              href="/library/add"
-              className="stage-cover stage-cover-1 cover-ink"
-            >
-              <span>Inizia la collezione</span>
-              <small>Aggiungi la prima opera</small>
-            </Link>
-          ) : null}
-          <div className="stage-shadow" />
+
+        <Link className="primary-btn collection-add-button" href="/library/add">
+          <Plus size={18} />
+          Aggiungi alla collezione
+        </Link>
+
+        <div className="collection-counts" aria-label="Riepilogo collezione">
+          <Link href="/library/books" className="collection-count-card">
+            <BookOpen size={18} />
+            <span>Libri</span>
+            <strong>{books.length}</strong>
+          </Link>
+          <Link href="/library/manga" className="collection-count-card">
+            <LibraryBig size={18} />
+            <span>Volumi manga</span>
+            <strong>{mangaVolumes}</strong>
+            <small>{manga.length} {manga.length === 1 ? "serie" : "serie"}</small>
+          </Link>
+          <Link href="/library/anime" className="collection-count-card">
+            <Clapperboard size={18} />
+            <span>Anime</span>
+            <strong>{anime.length}</strong>
+          </Link>
         </div>
       </section>
 
-      <section className="home-vitrine-section">
-        <div className="home-vitrine-heading">
-          <div>
-            <p className="eyebrow">Ultimi inserimenti</p>
-            <h2>Aggiunti di recente</h2>
-          </div>
-          <span>{recent.length} elementi</span>
-        </div>
-        {recent.length ? (
-          <div className="home-display-shelf">
-            <div className="home-cover-row home-cover-row-clean">
-              {recent.map((row) => (
-                <DemoCover
-                  key={row.id}
-                  item={toItem(row)}
-                  href={itemHref(row)}
-                />
-              ))}
-            </div>
-          </div>
-        ) : (
-          <div className="catalog-notice">
-            <div>
-              <strong>La libreria è ancora vuota.</strong>
-              <p>
-                Aggiungi un libro, un manga o un anime per costruire la tua
-                collezione.
-              </p>
-              <Link className="primary-btn" href="/library/add">
-                Aggiungi la prima opera
-              </Link>
-            </div>
-          </div>
-        )}
-      </section>
+      <HomeShelf
+        eyebrow="Attività recente"
+        title="Ultimi aggiunti"
+        rows={recent}
+        emptyCopy="Il ripiano è ancora vuoto. Aggiungi la prima opera alla tua collezione."
+      />
 
-      <section className="home-vitrine-section favorites-section">
-        <div className="home-vitrine-heading">
-          <div>
-            <p className="eyebrow">Scelti da te</p>
-            <h2>Preferiti</h2>
-          </div>
-          <span>La parte più personale della libreria</span>
-        </div>
-        {favorites.length ? (
-          <div className="favorites-gallery">
-            {favorites.map((row, index) => (
-              <div
-                key={row.id}
-                className={`favorite-piece favorite-piece-${index + 1}`}
-              >
-                <DemoCover item={toItem(row)} href={itemHref(row)} />
-              </div>
-            ))}
-          </div>
-        ) : (
-          <div className="catalog-notice">
-            <div>
-              <strong>Nessun preferito.</strong>
-              <p>Contrassegna le opere dalla loro scheda personale.</p>
-            </div>
-          </div>
-        )}
-      </section>
+      <HomeShelf
+        eyebrow="Scelti da te"
+        title="Preferiti"
+        rows={favorites}
+        emptyCopy="Non hai ancora contrassegnato opere come preferite."
+      />
     </main>
   );
 }
