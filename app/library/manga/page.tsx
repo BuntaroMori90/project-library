@@ -1,3 +1,4 @@
+import { listMangaShelfVariants } from "@/lib/repositories/manga-shelf";
 import Link from "next/link";
 import { Plus } from "lucide-react";
 import { ShelfBrowser } from "@/components/shelf-browser";
@@ -17,12 +18,16 @@ const statusLabels: Record<string, string> = {
 
 type MangaShelfItem = DemoItem & {
   href?: string;
+  badge?: string;
 };
 
 export default async function MangaPage() {
   const { profile } = await requireProfile();
   const preferences = normalizePreferences(profile.preferences);
-  const worksResult = await listLibraryWorks(profile.id, "MANGA");
+  const [worksResult, variants] = await Promise.all([
+    listLibraryWorks(profile.id, "MANGA"),
+    listMangaShelfVariants(profile.id),
+  ]);
   const rows = worksResult.rows;
   const ownedCounts = await getMangaOwnedCounts(
     profile.id,
@@ -44,6 +49,23 @@ export default async function MangaPage() {
     };
   });
 
+  for (const variant of variants.rows) {
+    const series = items.find((item) => item.id === variant.work_id);
+    if (!series) continue;
+    items.push({
+      ...series,
+      id: `variant:${variant.edition_id}`,
+      title: `${variant.work_title} · ${variant.custom_name || variant.custom_format || "Variant"}`,
+      badge: variant.custom_format || "Variant",
+      progress:
+        variant.volume_number != null
+          ? `Volume ${variant.volume_number}`
+          : "Edizione speciale",
+      coverUrl: variant.cover_url ?? undefined,
+      href: `/library/manga/${variant.work_id}#i-miei-volumi`,
+    });
+  }
+
   return (
     <main className="page page-library page-manga collection-room-page">
       <header className="page-header immersive-head page-header-actions collection-section-head">
@@ -51,8 +73,8 @@ export default async function MangaPage() {
           <p className="eyebrow">La tua collezione · Manga</p>
           <h1 className="title">Le tue serie.</h1>
           <p className="subtitle">
-            Una sola copertina per serie. Apri la scheda per consultare volumi,
-            edizioni speciali e variant.
+            Una copertina per serie, con le variant che possiedi in evidenza.
+            Se elimini l’ultimo volume di una variant, sparisce anche dallo scaffale.
           </p>
         </div>
         <div className="library-header-actions">
