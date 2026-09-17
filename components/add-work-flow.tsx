@@ -2,7 +2,8 @@
 
 import Image from "next/image";
 import { useRouter } from "next/navigation";
-import { useState } from "react";
+import Link from "next/link";
+import { useEffect, useRef, useState } from "react";
 import {
   BookOpen,
   Bookmark,
@@ -124,6 +125,22 @@ export function AddWorkFlow({
   initialType?: AddWorkType;
 }) {
   const router = useRouter();
+  const searchRequest = useRef<AbortController | null>(null);
+  const saving = useRef(false);
+  const [keepAdding, setKeepAdding] = useState(false);
+  const [saved, setSaved] = useState<{ title: string; href: string } | null>(null);
+  useEffect(() => () => { searchRequest.current?.abort(); searchRequest.current = null; }, []);
+
+  function completeSave(workId: string, placement: string, title: string) {
+    const href = placement === "wishlist" ? "/library/wishlist"
+      : type === "book" ? `/library/books/${workId}?chooseEdition=1#edizioni`
+      : `/library/${type === "anime" ? "anime" : "manga"}/${workId}`;
+    if (!keepAdding) { router.push(href); return; }
+    setSaved({ title, href });
+    setQuery(""); setResults([]); setSearched(false);
+    setManualTitle(""); setManualAuthor(""); setManualTotalVolumes("");
+  }
+
   const [type, setType] = useState<AddWorkType>(initialType);
   const [entryMode, setEntryMode] = useState<EntryMode>("catalog");
   const [query, setQuery] = useState("");
@@ -140,6 +157,12 @@ export function AddWorkFlow({
   >(null);
 
   function switchType(next: AddWorkType) {
+    if (saving.current || next === type) return;
+    if ((manualTitle.trim() || manualAuthor.trim() || manualTotalVolumes.trim()) && !window.confirm("Cambiare tipo di opera? I dati manuali non ancora salvati verranno cancellati.")) return;
+    searchRequest.current?.abort();
+    searchRequest.current = null;
+    setLoading(false);
+    setSaved(null);
     setType(next);
     setEntryMode("catalog");
     setQuery("");
@@ -154,6 +177,10 @@ export function AddWorkFlow({
   }
 
   function switchEntryMode(next: EntryMode) {
+    if (saving.current) return;
+    searchRequest.current?.abort();
+    searchRequest.current = null;
+    setLoading(false);
     setEntryMode(next);
     setError(null);
     if (next === "manual" && !manualTitle.trim()) {
@@ -163,6 +190,7 @@ export function AddWorkFlow({
 
   async function search(event: React.FormEvent) {
     event.preventDefault();
+    if (saving.current) return;
     const normalized = query.trim();
     if (normalized.length < 2) return;
 
@@ -171,7 +199,9 @@ export function AddWorkFlow({
     setLoading(true);
     setResults([]);
 
+    searchRequest.current?.abort();
     const controller = new AbortController();
+    searchRequest.current = controller;
     const timeout = window.setTimeout(() => controller.abort(), 12000);
 
     try {
@@ -184,6 +214,7 @@ export function AddWorkFlow({
         throw new Error(payload.error ?? "Ricerca non disponibile.");
       }
 
+      if (searchRequest.current !== controller) return;
       const nextResults = (payload.results ?? []) as Result[];
       setResults(nextResults);
       if ((type === "book" || type === "manga") && nextResults.length === 0) {
@@ -191,6 +222,7 @@ export function AddWorkFlow({
         setEntryMode("manual");
       }
     } catch (err) {
+      if (searchRequest.current !== controller) return;
       if (err instanceof DOMException && err.name === "AbortError") {
         setError(
           "La ricerca sta impiegando troppo tempo. Puoi riprovare o usare l'inserimento manuale.",
@@ -200,7 +232,10 @@ export function AddWorkFlow({
       }
     } finally {
       window.clearTimeout(timeout);
-      setLoading(false);
+      if (searchRequest.current === controller) {
+        searchRequest.current = null;
+        setLoading(false);
+      }
     }
   }
 
@@ -208,6 +243,9 @@ export function AddWorkFlow({
     result: Result,
     destination: "library" | "wishlist",
   ) {
+    if (saving.current) return;
+    saving.current = true;
+    setSaved(null);
     const importKey = `${result.provider}:${result.providerId}:${destination}`;
     setImporting(importKey);
     setError(null);
@@ -227,21 +265,11 @@ export function AddWorkFlow({
         throw new Error(payload.error ?? "Import non riuscito.");
       }
 
-      if (destination === "wishlist" && payload.placement === "wishlist") {
-        router.push("/library/wishlist");
-        return;
-      }
-
-      if (type === "book") {
-        router.push(`/library/books/${payload.workId}?chooseEdition=1#edizioni`);
-        return;
-      }
-
-      const target = type === "anime" ? "anime" : "manga";
-      router.push(`/library/${target}/${payload.workId}`);
+      completeSave(payload.workId, payload.placement, result.title);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Import non riuscito.");
     } finally {
+      saving.current = false;
       setImporting(null);
     }
   }
@@ -265,6 +293,9 @@ export function AddWorkFlow({
       return;
     }
 
+    if (saving.current) return;
+    saving.current = true;
+    setSaved(null);
     setManualSaving(destination);
     setError(null);
 
@@ -284,24 +315,13 @@ export function AddWorkFlow({
         throw new Error(payload.error ?? "Inserimento manuale non riuscito.");
       }
 
-      if (destination === "wishlist" && payload.placement === "wishlist") {
-        router.push("/library/wishlist");
-        return;
-      }
-
-      if (type === "book") {
-        router.push(`/library/books/${payload.workId}?chooseEdition=1#edizioni`);
-      } else if (totalVolumes) {
-        router.push(`/library/manga/${payload.workId}#volumi`);
-      } else {
-        router.push(`/library/manga/${payload.workId}#edizione-personale`);
-      }
-      router.refresh();
+      completeSave(payload.workId, payload.placement, title);
     } catch (err) {
       setError(
         err instanceof Error ? err.message : "Inserimento manuale non riuscito.",
       );
     } finally {
+      saving.current = false;
       setManualSaving(null);
     }
   }
@@ -332,6 +352,7 @@ export function AddWorkFlow({
             <button
               key={key}
               type="button"
+              disabled={Boolean(importing || manualSaving)}
               onClick={() => switchType(key)}
               className={`add-type-card ${type === key ? "active" : ""}`}
             >
@@ -354,6 +375,7 @@ export function AddWorkFlow({
           <button
             type="button"
             className={`add-mode-card ${entryMode === "catalog" ? "active" : ""}`}
+            disabled={Boolean(importing || manualSaving)}
             onClick={() => switchEntryMode("catalog")}
           >
             <Search size={19} />
@@ -520,7 +542,12 @@ export function AddWorkFlow({
         </section>
       ) : null}
 
-      {error ? <p className="catalog-error">{error}</p> : null}
+      <label className="provider-note">
+        <input type="checkbox" checked={keepAdding} disabled={Boolean(importing || manualSaving)} onChange={(event) => setKeepAdding(event.target.checked)} />
+        Dopo il salvataggio, aggiungi un’altra opera
+      </label>
+      {saved ? <p role="status">“{saved.title}” salvato. <Link href={saved.href}>{type === "book" ? "Apri e scegli l’edizione" : "Apri"}</Link></p> : null}
+      {error ? <p className="catalog-error" role="alert">{error}</p> : null}
 
       {searched &&
       !loading &&
