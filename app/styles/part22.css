@@ -169,13 +169,22 @@
 
 .cover-meta strong { -webkit-line-clamp: 2; }
 
-/* Manga detail: show only volumes actually owned. */
+/* Manga detail: only the owned physical collection is visually exposed. */
+.manga-detail-page .personal-metrics > div:nth-child(3) { display: none; }
+.manga-detail-page .personal-metrics { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+
+.manga-detail-page .volumes-stage {
+  display: flex;
+  flex-direction: column;
+}
+
 .manga-detail-page .volumes-stage > .section-heading,
 .manga-detail-page .volumes-stage > .detail-explainer,
 .manga-detail-page .volumes-stage > .volume-legend { display: none; }
 
 .manga-detail-page .volumes-stage::before {
   content: "I tuoi volumi";
+  order: 0;
   display: block;
   margin-bottom: 4px;
   color: var(--text);
@@ -186,12 +195,16 @@
 
 .manga-detail-page .volumes-stage::after {
   content: "Solo i volumi registrati come posseduti nella tua collezione.";
+  order: 1;
   display: block;
-  order: -1;
   margin: 0 0 14px;
   color: var(--muted-2);
   font-size: .74rem;
 }
+
+.manga-detail-page .volumes-stage > .bulk-owned-volumes { order: 2; }
+.manga-detail-page .volumes-stage > .volume-grid,
+.manga-detail-page .volumes-stage > .catalog-notice { order: 3; }
 
 .manga-detail-page .volume-grid.volume-grid-visual {
   display: flex;
@@ -282,6 +295,7 @@
   .collection-home-heading { align-items: start; }
   .collection-home-heading > span { display: none; }
   .collection-home-section { margin-bottom: 28px; }
+  .manga-detail-page .personal-metrics { grid-template-columns: 1fr; }
   .manga-detail-page .volume-grid.volume-grid-visual { padding-inline: 14px; }
 }
 
