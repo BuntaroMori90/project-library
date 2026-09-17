@@ -90,7 +90,8 @@ function cleanupSpecialVolumes() {
 export function DetailAppMode() {
   const pathname = usePathname();
   const [active, setActive] = useState(false);
-  const [editing, setEditing] = useState(false);
+  const [editingPath, setEditingPath] = useState<string | null>(null);
+  const editing = editingPath === pathname;
 
   useEffect(() => {
     const body = document.body;
@@ -106,7 +107,6 @@ export function DetailAppMode() {
       });
     };
 
-    setEditing(false);
     body.classList.remove("detail-edit-mode");
     sync();
 
@@ -124,9 +124,9 @@ export function DetailAppMode() {
   if (!active) return null;
 
   const toggleEditing = () => {
-    setEditing((current) => {
-      const next = !current;
-      document.body.classList.toggle("detail-edit-mode", next);
+    setEditingPath((current) => {
+      const next = current === pathname ? null : pathname;
+      document.body.classList.toggle("detail-edit-mode", next === pathname);
       return next;
     });
   };
