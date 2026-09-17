@@ -75,6 +75,44 @@
   display: none;
 }
 
+.preview-video-library-alpha {
+  display: grid;
+  gap: 14px;
+}
+
+.preview-video-library-group {
+  display: grid;
+  gap: 8px;
+  padding-top: 12px;
+  border-top: 1px solid rgba(255,255,255,.055);
+}
+
+.preview-video-library-group:first-child {
+  padding-top: 0;
+  border-top: 0;
+}
+
+.preview-video-library-letter {
+  display: flex;
+  align-items: baseline;
+  gap: 9px;
+}
+
+.preview-video-library-letter strong {
+  color: #b7bedf;
+  font-family: Georgia, "Times New Roman", serif;
+  font-size: 1.55rem;
+  line-height: 1;
+}
+
+.preview-video-library-letter span {
+  color: #74777e;
+  font-size: .66rem;
+  font-weight: 750;
+  letter-spacing: .08em;
+  text-transform: uppercase;
+}
+
 .preview-video-library {
   display: grid;
   grid-template-columns: repeat(4, minmax(0, 1fr));
