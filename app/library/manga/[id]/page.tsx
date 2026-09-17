@@ -1,3 +1,4 @@
+import { BulkOwnedVolumes } from "@/components/bulk-owned-volumes";
 import Image from "next/image";
 import Link from "next/link";
 import { notFound } from "next/navigation";
@@ -526,6 +527,7 @@ export default async function MangaDetailPage({
           L'intera serie resta visibile. Il progresso di lettura e il possesso
           fisico sono indipendenti, anche quando leggi online.
         </p>
+        {libraryEntry ? <BulkOwnedVolumes workId={id} editions={editions.map(({ id, name }) => ({ id, name }))} /> : null}
         <VolumeLegend />
         {volumes.length && canonicalEdition?.id ? (
           <div className="volume-grid volume-grid-visual">
