@@ -235,7 +235,7 @@ export async function createPersonalBookEdition(
     const editionResult = await client.query<{ id: string }>(
       `insert into editions
          (work_id,name,source_provider,source_external_id,is_canonical,created_at,updated_at)
-       values ($1,$2,'USER',concat($3,':',gen_random_uuid()::text),false,now(),now())
+       values ($1,$2,'MANUAL',concat('USER:',$3,':',gen_random_uuid()::text),false,now(),now())
        returning id`,
       [workId, values.name || "Edizione personale", profileId],
     );
@@ -306,9 +306,11 @@ export async function removeBookFromLibrary(profileId: string, workId: string) {
     );
     await client.query(
       `delete from editions e
-        where e.work_id=$1 and e.source_provider='USER'
+        where e.work_id=$1
+          and e.source_provider='MANUAL'
+          and e.source_external_id like concat('USER:',$2,':%')
           and not exists (select 1 from ownership o where o.edition_id=e.id)`,
-      [workId],
+      [workId, profileId],
     );
   });
 }
