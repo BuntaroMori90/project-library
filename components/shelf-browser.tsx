@@ -35,7 +35,7 @@ function itemHref(kind: ShelfKind, item: ShelfItem) {
 }
 
 function countLabel(kind: ShelfKind, count: number) {
-  if (kind === "manga") return count === 1 ? "serie" : "serie";
+  if (kind === "manga") return "serie";
   if (kind === "anime") return count === 1 ? "titolo" : "titoli";
   return count === 1 ? "opera" : "opere";
 }
@@ -45,7 +45,7 @@ export function ShelfBrowser({
   kind,
   defaultGroupBy,
   density,
-  coverView = "cover",
+  coverView = "front",
 }: {
   items: ShelfItem[];
   kind: ShelfKind;
