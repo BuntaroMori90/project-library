@@ -7,6 +7,8 @@ import { requireProfile } from "@/lib/profile";
 import { getBookShelfEditionMeta } from "@/lib/repositories/book-shelf";
 import { listLibraryWorks } from "@/lib/repositories/library";
 
+type BookShelfItem = DemoItem & { favorite?: boolean };
+
 export default async function BooksPage() {
   const { profile } = await requireProfile();
   const preferences = normalizePreferences(profile.preferences);
@@ -16,7 +18,7 @@ export default async function BooksPage() {
     rows.map((row) => row.id),
   );
 
-  const items: DemoItem[] = rows.map((row) => {
+  const items: BookShelfItem[] = rows.map((row) => {
     const metadata = editionMeta.get(row.id);
     const editionLabel = [metadata?.edition, metadata?.format]
       .filter(Boolean)
@@ -31,6 +33,7 @@ export default async function BooksPage() {
         ? `/api/library/cover/work/${row.id}`
         : row.cover_url ?? undefined,
       coverClass: "cover-ink",
+      favorite: row.favorite,
     };
   });
 
