@@ -1,3 +1,5 @@
+import { OwnedVolumeGallery } from "@/components/owned-volume-gallery";
+import { listOwnedMangaVolumes } from "@/lib/repositories/owned-volume-covers";
 import { BulkOwnedVolumes } from "@/components/bulk-owned-volumes";
 import Image from "next/image";
 import Link from "next/link";
@@ -33,11 +35,11 @@ const statusLabels: Record<string, string> = {
   PAUSED: "In pausa",
   DROPPED: "Abbandonato",
 };
-function DetailTabs() {
+function DetailTabs({ owned = false }: { owned?: boolean }) {
   return (
     <nav className="detail-tabs" aria-label="Sezioni opera">
       <a href="#panoramica">Panoramica</a>
-      <a className="active" href="#volumi">
+      <a className="active" href={owned ? "#i-miei-volumi" : "#volumi"}>
         Volumi
       </a>
       <a href="#capitoli">Capitoli</a>
@@ -271,7 +273,9 @@ export default async function MangaDetailPage({
   const { id } = await params;
   if (!UUID.test(id)) return <DemoDetail id={id} />;
   const { profile } = await requireProfile();
-  const detail = await getMangaDetail(profile.id, id);
+  const [detail, ownedVolumeRows] = await Promise.all([
+    getMangaDetail(profile.id, id), listOwnedMangaVolumes(profile.id, id),
+  ]);
   const {
     work,
     creators,
@@ -478,7 +482,7 @@ export default async function MangaDetailPage({
           </form>
         </div>
       </section>
-      <DetailTabs />
+      <DetailTabs owned />
       <section id="panoramica" className="detail-section overview-grid">
         <article className="overview-card">
           <span className="eyebrow">Opera</span>
@@ -511,11 +515,12 @@ export default async function MangaDetailPage({
           </p>
         </article>
       </section>
+      <OwnedVolumeGallery volumes={ownedVolumeRows.rows} />
       <section id="volumi" className="detail-section volumes-stage">
         <div className="section-heading detail-heading">
           <div>
             <span className="eyebrow">Catalogo + collezione</span>
-            <h2>Tutti i volumi</h2>
+            <h2>Gestisci i volumi</h2>
           </div>
           <span>
             {totalVolumes
@@ -528,6 +533,8 @@ export default async function MangaDetailPage({
           fisico sono indipendenti, anche quando leggi online.
         </p>
         {libraryEntry ? <BulkOwnedVolumes workId={id} editions={editions.map(({ id, name }) => ({ id, name }))} /> : null}
+        <details className="owned-catalog-tools">
+          <summary>Apri il catalogo completo per aggiungere o rimuovere singoli volumi</summary>
         <VolumeLegend />
         {volumes.length && canonicalEdition?.id ? (
           <div className="volume-grid volume-grid-visual">
@@ -609,6 +616,7 @@ export default async function MangaDetailPage({
             </div>
           </div>
         )}
+        </details>
       </section>
       <section id="capitoli" className="detail-section two-up-detail">
         <article className="info-panel">

@@ -50,6 +50,11 @@ export async function POST(request: Request) {
 
     const editionType = asText(formData.get("editionType"));
 
+    const rawTotal = asText(formData.get("totalVolumes"));
+    const totalVolumes = rawTotal == null ? null : Number(rawTotal);
+    if (totalVolumes != null && (!Number.isInteger(totalVolumes) || totalVolumes < 1 || totalVolumes > 10_000)) {
+      return NextResponse.json({ error: "Il totale deve essere un numero intero tra 1 e 10000." }, { status: 400 });
+    }
     stage = "database";
     await createPersonalMangaEdition(sessionProfile.profile.id, workId, {
       name: asText(formData.get("customName")),
@@ -60,7 +65,7 @@ export async function POST(request: Request) {
       isbn: asText(formData.get("customIsbn")),
       publicationYear: asNumber(formData.get("customPublicationYear")),
       volumeNumber: asNumber(formData.get("volumeNumber")),
-      totalVolumes: asNumber(formData.get("totalVolumes")),
+      totalVolumes,
     });
 
     stage = "refresh";

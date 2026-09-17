@@ -1,0 +1,141 @@
+.owned-volume-gallery {
+  scroll-margin-top: 6rem;
+}
+.owned-volume-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(170px, 1fr));
+  gap: 24px 18px;
+  margin: 24px 0;
+  align-items: start;
+}
+.owned-volume-card {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  min-width: 0;
+  padding: 12px;
+  border-radius: 14px;
+  background: rgba(255, 255, 255, 0.035);
+  border: 1px solid rgba(160, 140, 120, 0.2);
+}
+.owned-volume-cover {
+  aspect-ratio: 2/3;
+  width: 100%;
+  display: grid;
+  place-items: center;
+  overflow: hidden;
+  border-radius: 4px 9px 9px 4px;
+  background: linear-gradient(110deg, #302a27, #4a4037);
+  color: #eee0cd;
+  box-shadow: 3px 6px 12px #0003;
+}
+.owned-volume-cover img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+}
+.owned-volume-card small {
+  overflow-wrap: anywhere;
+}
+.owned-volume-card .edition-badge {
+  align-self: flex-start;
+  font-size: 0.72rem;
+  padding: 3px 8px;
+  border-radius: 6px;
+  background: #b99a6825;
+}
+.owned-volume-card button {
+  white-space: normal;
+  min-height: 44px;
+}
+.owned-volume-form {
+  display: grid;
+  gap: 10px;
+  min-width: 0;
+}
+.owned-volume-form input {
+  min-width: 0;
+  max-width: 100%;
+}
+.owned-volume-form p {
+  font-size: 0.8rem;
+}
+@media (max-width: 520px) {
+  .owned-volume-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 16px 10px;
+  }
+  .owned-volume-card {
+    padding: 9px;
+  }
+  .owned-volume-card:has(.owned-volume-form) {
+    grid-column: 1/-1;
+  }
+  .owned-volume-card:has(.owned-volume-form) .owned-volume-cover {
+    max-width: 150px;
+    align-self: center;
+  }
+}
+
+/* Keep horizontal movement inside the book/manga shelf, not the whole page. */
+.preview-page-section:has(.preview-real-shelf) {
+  grid-template-columns: minmax(0, 1fr);
+  min-width: 0;
+}
+.preview-page-section:has(.preview-real-shelf) .preview-section-head > div {
+  min-width: 0;
+}
+.owned-volume-form .manual-cover-url {
+  display: flex;
+}
+
+.owned-volume-card > .soft-action {
+  font-size: 0.78rem;
+}
+.owned-catalog-tools > summary {
+  cursor: pointer;
+  padding: 16px 0;
+  line-height: 1.5;
+}
+
+/* Transparent index: movement belongs to the page, not a second scrollbar. */
+.alphabet-rail-shell.alphabet-rail-persistent .alphabet-rail,
+.alphabet-rail-shell.alphabet-rail-persistent.scrubbing .alphabet-rail {
+  background: transparent;
+  border-color: transparent;
+  box-shadow: none;
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
+  min-height: 0;
+  max-height: 100%;
+}
+.alphabet-rail-shell.alphabet-rail-persistent .alphabet-rail button {
+  color: var(--muted, #c1b4a4);
+  text-shadow: 0 1px 3px var(--bg, #100c09);
+}
+.alphabet-rail-shell.alphabet-rail-persistent .alphabet-rail button.active {
+  color: var(--accent-2, #d8aa6d);
+  background: rgba(216, 170, 109, 0.16);
+}
+
+.isbn-photo-search {
+  display: grid;
+  gap: 10px;
+  margin: 14px 0;
+}
+.isbn-photo-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.isbn-photo-actions button {
+  min-height: 44px;
+  display: inline-flex;
+  gap: 7px;
+  align-items: center;
+}
+.isbn-photo-search small,
+.isbn-photo-search p {
+  color: var(--muted);
+  line-height: 1.5;
+}
