@@ -1,0 +1,271 @@
+/* Inventory workflow + add-flow integration layer. */
+
+.add-work-flow button:disabled,
+.add-work-flow input:disabled,
+.add-work-flow select:disabled {
+  cursor: not-allowed;
+  opacity: .58;
+}
+
+.manual-cover-card.is-disabled {
+  opacity: .72;
+}
+
+.manual-cover-upload.is-disabled,
+.manual-cover-url.is-disabled {
+  pointer-events: none;
+}
+
+.add-keep-adding {
+  display: flex;
+  align-items: center;
+  gap: 11px;
+  margin-top: 14px;
+  padding: 12px 14px;
+  border: 1px solid rgba(216, 170, 109, .14);
+  border-radius: 13px;
+  background: rgba(216, 170, 109, .025);
+  cursor: pointer;
+}
+
+.add-keep-adding > input {
+  width: 18px;
+  height: 18px;
+  flex: 0 0 auto;
+  accent-color: var(--accent-2, #d8aa6d);
+}
+
+.add-keep-adding > span {
+  min-width: 0;
+  display: grid;
+  gap: 2px;
+}
+
+.add-keep-adding strong {
+  color: var(--text);
+  font-size: .76rem;
+}
+
+.add-keep-adding small {
+  color: var(--muted-2);
+  font-size: .68rem;
+  line-height: 1.35;
+}
+
+.add-save-success {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-top: 12px;
+  padding: 12px 14px;
+  border: 1px solid rgba(126, 196, 142, .24);
+  border-radius: 13px;
+  background: rgba(94, 158, 111, .08);
+  color: var(--text);
+  font-size: .76rem;
+}
+
+.add-save-success a {
+  flex: 0 0 auto;
+  color: var(--accent-2);
+  font-weight: 850;
+  text-decoration: none;
+}
+
+.add-save-success a:hover {
+  text-decoration: underline;
+}
+
+.bulk-owned-volumes {
+  margin: 16px 0 14px;
+  overflow: hidden;
+  border: 1px solid rgba(216, 170, 109, .16);
+  border-radius: 15px;
+  background:
+    radial-gradient(circle at 0 0, rgba(216, 170, 109, .055), transparent 38%),
+    rgba(255, 255, 255, .015);
+}
+
+.bulk-owned-summary {
+  min-height: 64px;
+  display: grid;
+  grid-template-columns: 34px minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 11px;
+  padding: 12px 14px;
+  list-style: none;
+  cursor: pointer;
+}
+
+.bulk-owned-summary::-webkit-details-marker {
+  display: none;
+}
+
+.bulk-owned-summary-icon {
+  width: 34px;
+  height: 34px;
+  display: grid;
+  place-items: center;
+  border: 1px solid rgba(216, 170, 109, .18);
+  border-radius: 10px;
+  background: rgba(216, 170, 109, .07);
+  color: var(--accent-2);
+}
+
+.bulk-owned-summary-copy {
+  min-width: 0;
+  display: grid;
+  gap: 2px;
+}
+
+.bulk-owned-summary-copy strong {
+  color: var(--text);
+  font-size: .8rem;
+}
+
+.bulk-owned-summary-copy small {
+  overflow: hidden;
+  color: var(--muted-2);
+  font-size: .68rem;
+  line-height: 1.35;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.bulk-owned-chevron {
+  color: var(--muted-2);
+  transition: transform .16s ease;
+}
+
+.bulk-owned-volumes[open] .bulk-owned-chevron {
+  transform: rotate(180deg);
+}
+
+.bulk-owned-volumes[open] .bulk-owned-summary {
+  border-bottom: 1px solid rgba(255, 255, 255, .05);
+}
+
+.bulk-owned-form {
+  display: grid;
+  gap: 12px;
+  padding: 14px;
+}
+
+.bulk-owned-fields {
+  display: grid;
+  grid-template-columns: minmax(160px, .75fr) minmax(220px, 1.25fr);
+  gap: 10px;
+}
+
+.bulk-owned-fields label {
+  min-width: 0;
+  display: grid;
+  gap: 6px;
+}
+
+.bulk-owned-fields label > span {
+  color: var(--text);
+  font-size: .72rem;
+  font-weight: 800;
+}
+
+.bulk-owned-fields input,
+.bulk-owned-fields select {
+  width: 100%;
+  min-width: 0;
+  min-height: 44px;
+  padding: 0 11px;
+  border: 1px solid rgba(255, 255, 255, .075);
+  border-radius: 11px;
+  outline: 0;
+  background: rgba(0, 0, 0, .18);
+  color: var(--text);
+  font: inherit;
+  font-size: .78rem;
+}
+
+.bulk-owned-fields input:focus,
+.bulk-owned-fields select:focus {
+  border-color: rgba(216, 170, 109, .44);
+  box-shadow: 0 0 0 3px rgba(216, 170, 109, .06);
+}
+
+.bulk-owned-help,
+.bulk-owned-selection,
+.bulk-owned-success,
+.bulk-owned-message {
+  margin: 0;
+  font-size: .7rem;
+  line-height: 1.45;
+}
+
+.bulk-owned-help {
+  color: var(--muted-2);
+}
+
+.bulk-owned-selection {
+  display: grid;
+  gap: 3px;
+  padding: 10px 11px;
+  border: 1px solid rgba(216, 170, 109, .11);
+  border-radius: 11px;
+  background: rgba(216, 170, 109, .025);
+  color: var(--muted);
+}
+
+.bulk-owned-selection strong {
+  color: var(--text);
+  font-size: .72rem;
+}
+
+.bulk-owned-success {
+  padding: 10px 11px;
+  border: 1px solid rgba(126, 196, 142, .2);
+  border-radius: 11px;
+  background: rgba(94, 158, 111, .07);
+  color: var(--text);
+}
+
+.bulk-owned-actions {
+  display: flex;
+  justify-content: flex-end;
+  padding-top: 2px;
+}
+
+.bulk-owned-actions .primary-btn {
+  min-height: 42px;
+}
+
+@media (max-width: 720px) {
+  .add-save-success {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .bulk-owned-summary {
+    grid-template-columns: 32px minmax(0, 1fr) auto;
+    padding: 11px 12px;
+  }
+
+  .bulk-owned-summary-icon {
+    width: 32px;
+    height: 32px;
+  }
+
+  .bulk-owned-summary-copy small {
+    white-space: normal;
+  }
+
+  .bulk-owned-form {
+    padding: 12px;
+  }
+
+  .bulk-owned-fields {
+    grid-template-columns: 1fr;
+  }
+
+  .bulk-owned-actions .primary-btn {
+    width: 100%;
+  }
+}
