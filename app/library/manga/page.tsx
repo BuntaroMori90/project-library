@@ -7,6 +7,8 @@ import { requireProfile } from "@/lib/profile";
 import { listLibraryWorks } from "@/lib/repositories/library";
 import { getMangaOwnedCounts } from "@/lib/repositories/manga-ownership";
 
+type MangaShelfItem = DemoItem & { favorite?: boolean };
+
 export default async function MangaPage() {
   const { profile } = await requireProfile();
   const preferences = normalizePreferences(profile.preferences);
@@ -16,7 +18,7 @@ export default async function MangaPage() {
     rows.map((row) => row.id),
   );
 
-  const items: DemoItem[] = rows.map((row) => {
+  const items: MangaShelfItem[] = rows.map((row) => {
     const owned = ownedCounts.get(row.id) ?? 0;
 
     return {
@@ -26,6 +28,7 @@ export default async function MangaPage() {
       status: `${owned} ${owned === 1 ? "volume" : "volumi"}`,
       coverUrl: row.cover_url ?? undefined,
       coverClass: "cover-ink",
+      favorite: row.favorite,
     };
   });
 
