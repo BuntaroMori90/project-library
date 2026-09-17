@@ -90,3 +90,28 @@ export async function listOwnedMangaShelfVolumes(
     explicitOwned: row.explicit_owned,
   }));
 }
+
+export async function removeOwnedMangaShelfVolume(
+  profileId: string,
+  workId: string,
+  editionId: string,
+  unitId: string,
+) {
+  const result = await query<{ id: string }>(
+    `delete from owned_units ou
+      using editions e,content_units cu
+      where ou.profile_id=$1
+        and ou.edition_id=$2
+        and ou.unit_id=$3
+        and e.id=ou.edition_id
+        and e.work_id=$4
+        and cu.id=ou.unit_id
+        and cu.edition_id=e.id
+        and cu.work_id=e.work_id
+        and cu.unit_type='VOLUME'
+      returning ou.id`,
+    [profileId, editionId, unitId, workId],
+  );
+
+  return result.rows.length > 0;
+}
