@@ -50,6 +50,19 @@ export async function saveOwnedVolumeCover(
   return result.rows[0] ?? null;
 }
 
+export async function removeOwnedVolume(profileId: string, ownedId: string) {
+  const result = await query<{ work_id: string }>(
+    `delete from owned_units ou
+    using editions e, works w, library_entries le
+    where ou.id=$2 and ou.profile_id=$1
+      and e.id=ou.edition_id and w.id=e.work_id and w.media_type='MANGA'
+      and le.profile_id=$1 and le.work_id=w.id
+    returning e.work_id`,
+    [profileId, ownedId],
+  );
+  return result.rows[0] ?? null;
+}
+
 export async function getOwnedVolumeCover(profileId: string, ownedId: string) {
   const result = await query<{ cover: string | null }>(
     `select coalesce(
