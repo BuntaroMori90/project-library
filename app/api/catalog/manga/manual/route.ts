@@ -6,12 +6,22 @@ import {
   saveCatalogDestination,
   type CatalogDestination,
 } from "@/lib/repositories/catalog-destination";
+import {
+  normalizeMangaReadingStatus,
+  saveInitialMangaReading,
+} from "@/lib/repositories/manga-reading";
 
 function asPositiveInteger(value: unknown) {
   if (typeof value !== "number" && typeof value !== "string") return null;
   const parsed = Number(value);
   if (!Number.isFinite(parsed) || parsed <= 0) return null;
   return Math.floor(parsed);
+}
+
+function asOptionalNumber(value: unknown) {
+  if (value === null || value === undefined || value === "") return null;
+  const parsed = Number(value);
+  return Number.isFinite(parsed) && parsed >= 0 ? parsed : null;
 }
 
 function normalizeCoverUrl(value: unknown) {
@@ -43,6 +53,10 @@ export async function POST(request: Request) {
       coverUrl?: string;
       totalVolumes?: number | string;
       destination?: CatalogDestination;
+      intent?: "collection" | "digital" | "mixed";
+      readingStatus?: string;
+      currentVolume?: number | string;
+      currentChapter?: number | string;
     };
     const title = body.title?.trim() ?? "";
     if (!title) {
@@ -69,7 +83,12 @@ export async function POST(request: Request) {
       destination,
     );
 
-    if (destination === "library") {
+    const intent =
+      body.intent === "digital" || body.intent === "mixed"
+        ? body.intent
+        : "collection";
+
+    if (destination === "library" && intent !== "digital") {
       await query(
         `insert into ownership
            (profile_id,edition_id,ownership_format,custom_format,custom_name,updated_at)
@@ -79,6 +98,15 @@ export async function POST(request: Request) {
            updated_at=now()`,
         [authContext.profile.id, created.editionId],
       );
+    }
+
+    if (destination === "library" && intent !== "collection") {
+      await saveInitialMangaReading(authContext.profile.id, created.workId, {
+        mode: intent === "mixed" ? "BOTH" : "DIGITAL",
+        status: normalizeMangaReadingStatus(body.readingStatus) ?? "IN_PROGRESS",
+        currentVolume: asOptionalNumber(body.currentVolume),
+        currentChapter: asOptionalNumber(body.currentChapter),
+      });
     }
 
     return NextResponse.json({
