@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { BookOpen, Bookmark, Film, Home, LibraryBig } from "lucide-react";
+import { BookOpen, Film, Home, LibraryBig } from "lucide-react";
 import { usePathname } from "next/navigation";
 
 const links = [
@@ -9,14 +9,13 @@ const links = [
   ["/library/books", "Libri", BookOpen],
   ["/library/manga", "Manga", LibraryBig],
   ["/library/anime", "Anime", Film],
-  ["/library/wishlist", "Wishlist", Bookmark],
 ] as const;
 
 export function BottomDock() {
   const pathname = usePathname();
 
   return (
-    <nav className="bottom-dock" aria-label="Navigazione principale">
+    <nav className="bottom-dock bottom-dock-four" aria-label="Navigazione principale">
       {links.map(([href, label, Icon]) => {
         const active =
           href === "/library" ? pathname === href : pathname.startsWith(href);
