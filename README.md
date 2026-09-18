@@ -1,5 +1,7 @@
 # Libronia
 
-Preview pubblica del redesign: `/preview/libronia`.
+Libronia is the personal collection app for books, manga and anime.
 
-La preview è demo-only; i dati privati restano protetti sotto `/library`.
+## Public redesign preview
+
+The branch `redesign/libronia-collection-ui` exposes a static, unauthenticated visual preview at `/preview/libronia` using demo data only. It does not read or modify private collection data.
