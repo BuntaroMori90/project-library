@@ -6,7 +6,7 @@ import type { DemoItem } from "@/lib/demo-data";
 import { normalizePreferences } from "@/lib/preferences";
 import { requireProfile } from "@/lib/profile";
 import { listLibraryWorks } from "@/lib/repositories/library";
-import { listMangaReadingModes } from "@/lib/repositories/manga-reading";
+import { normalizeMangaReadingMode } from "@/lib/repositories/manga-reading";
 
 const statusLabels: Record<string, string> = {
   PLANNED: "Da iniziare",
@@ -36,14 +36,10 @@ export default async function MangaPage() {
     listMangaShelfVariants(profile.id),
   ]);
   const rows = worksResult.rows;
-  const readingModes = await listMangaReadingModes(
-    profile.id,
-    rows.map((row) => row.id),
-  );
 
   const items: MangaShelfItem[] = rows.map((row) => {
     const owned = Number(row.owned_units ?? 0);
-    const readingMode = readingModes.get(row.id) ?? null;
+    const readingMode = normalizeMangaReadingMode(row.source_label);
     const readingActivity =
       Boolean(readingMode) ||
       row.status !== "PLANNED" ||

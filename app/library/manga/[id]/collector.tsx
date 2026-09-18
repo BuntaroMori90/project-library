@@ -85,6 +85,8 @@ export async function MangaCollectorPanel({ workId }: { workId: string }) {
               <div className="manga-special-cover">
                 {standardEdition.custom_cover_url ? (
                   <img
+                    loading="lazy"
+                    decoding="async"
                     src={standardEdition.custom_cover_url}
                     alt={`Copertina ${standardEdition.custom_name || standardEdition.name}`}
                   />
@@ -176,7 +178,7 @@ export async function MangaCollectorPanel({ workId }: { workId: string }) {
                 <article key={edition.id} className="manga-special-card">
                   <div className="manga-special-cover">
                     {edition.custom_cover_url ? (
-                      <img src={edition.custom_cover_url} alt={`Copertina ${name}`} />
+                      <img loading="lazy" decoding="async" src={edition.custom_cover_url} alt={`Copertina ${name}`} />
                     ) : (
                       <Gem size={28} />
                     )}

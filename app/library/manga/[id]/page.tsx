@@ -9,7 +9,7 @@ import { Check, Circle, Heart, LibraryBig, StickyNote } from "lucide-react";
 import { requireProfile } from "@/lib/profile";
 import { demoManga } from "@/lib/demo-data";
 import { getMangaDetail } from "@/lib/repositories/library";
-import { getMangaReadingMode } from "@/lib/repositories/manga-reading";
+import { normalizeMangaReadingMode } from "@/lib/repositories/manga-reading";
 import { listOwnedMangaVolumes } from "@/lib/repositories/owned-volume-covers";
 import {
   toggleOwnedVolume,
@@ -134,10 +134,9 @@ export default async function MangaDetailPage({
   if (!UUID.test(id)) return <DemoDetail id={id} />;
 
   const { profile } = await requireProfile();
-  const [detail, ownedVolumeRows, readingMode] = await Promise.all([
+  const [detail, ownedVolumeRows] = await Promise.all([
     getMangaDetail(profile.id, id),
     listOwnedMangaVolumes(profile.id, id),
-    getMangaReadingMode(profile.id, id),
   ]);
 
   const {
@@ -152,6 +151,7 @@ export default async function MangaDetailPage({
     ownedVolumeNumbers,
   } = detail;
   if (!work) notFound();
+  const readingMode = normalizeMangaReadingMode(progress?.source_label);
 
   const currentVolume =
     progress?.current_volume != null ? Number(progress.current_volume) : null;
