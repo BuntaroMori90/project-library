@@ -113,6 +113,17 @@ export function MangaAddFlow() {
     );
   }
 
+  function openManualEntry() {
+    if (savingRef.current || coverProcessing) return;
+    const pending = requestRef.current;
+    requestRef.current = null;
+    pending?.abort();
+    setLoading(false);
+    setError(null);
+    setManualTitle((title) => title || query.trim());
+    setMode("manual");
+  }
+
   function backToSearch() {
     if (savingRef.current || coverProcessing) return;
     setMode("catalog");
@@ -249,7 +260,7 @@ export function MangaAddFlow() {
       <section className="manga-intent-stage">
         <div>
           <span className="eyebrow">Cosa vuoi registrare?</span>
-          <h2>Una scelta, poi solo i campi che servono.</h2>
+          <h2>Come segui questo manga?</h2>
         </div>
         <div className="manga-intent-grid">
           {intentions.map((item) => {
@@ -334,6 +345,8 @@ export function MangaAddFlow() {
             </button>
           </form>
 
+          <button type="button" className="manual-entry-link" onClick={openManualEntry} disabled={Boolean(savingKey)}>Non trovi l’opera? Inseriscila manualmente</button>
+
           <div className="manga-easy-results">
             {results.map((result) => {
               const libraryKey = `${result.provider}:${result.providerId}:library`;
@@ -394,9 +407,9 @@ export function MangaAddFlow() {
         <section className="manga-manual-fallback">
           <div className="manga-manual-fallback-head">
             <div>
-              <span className="eyebrow">Non trovato nel catalogo</span>
+              <span className="eyebrow">Inserimento manuale</span>
               <h2>Inseriscilo manualmente.</h2>
-              <p>Il titolo cercato è già pronto. Tutto il resto è facoltativo.</p>
+              <p>Basta il titolo. Copertina e dettagli sono facoltativi.</p>
             </div>
             <button type="button" className="secondary-btn" onClick={backToSearch}>
               <Search size={16} /> Torna alla ricerca

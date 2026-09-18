@@ -222,6 +222,17 @@ export function AddWorkFlow({
     resetManualDraft();
   }
 
+  function openManualEntry() {
+    if (saving.current || coverProcessing || photoProcessing) return;
+    const pending = searchRequest.current;
+    searchRequest.current = null;
+    pending?.abort();
+    setLoading(false);
+    setError(null);
+    setManualTitle((title) => title || query.trim());
+    setEntryMode("manual");
+  }
+
   function backToSearch() {
     if (saving.current || coverProcessing || photoProcessing) return;
     setEntryMode("catalog");
@@ -418,8 +429,8 @@ export function AddWorkFlow({
             <div className="add-search-icon"><Icon size={20} /></div>
             <div>
               <span className="eyebrow">Aggiungi {meta.label.toLowerCase()}</span>
-              <h2>Cerca prima nel catalogo.</h2>
-              <p>{meta.hint} Se non troviamo nulla, comparirà automaticamente l'inserimento manuale.</p>
+              <h2>Cerca nel catalogo</h2>
+              <p>{meta.hint}</p>
             </div>
           </div>
 
@@ -440,6 +451,7 @@ export function AddWorkFlow({
               {loading ? "Cerco…" : "Cerca"}
             </button>
           </form>
+            <button type="button" className="manual-entry-link" onClick={openManualEntry} disabled={isSaving}>Non trovi l’opera? Inseriscila manualmente</button>
 
           {type === "book" ? (
             <IsbnPhotoSearch
@@ -464,10 +476,10 @@ export function AddWorkFlow({
           <div className="manual-work-entry-head">
             <div className="manual-work-icon"><PenLine size={20} /></div>
             <div>
-              <span className="eyebrow">Non trovato nel catalogo</span>
+              <span className="eyebrow">Inserimento manuale</span>
               <strong>Inseriscilo manualmente.</strong>
               <p>
-                Abbiamo già riportato il titolo cercato. È l'unico dato obbligatorio: copertina e dettagli possono essere completati anche dopo.
+                Basta il titolo. Copertina e dettagli possono essere completati dopo.
               </p>
             </div>
             <button className="secondary-btn manual-back-search" type="button" onClick={backToSearch}>
