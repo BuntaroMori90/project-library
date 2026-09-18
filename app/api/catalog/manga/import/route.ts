@@ -6,6 +6,16 @@ import {
   saveCatalogDestination,
   type CatalogDestination,
 } from "@/lib/repositories/catalog-destination";
+import {
+  normalizeMangaReadingStatus,
+  saveInitialMangaReading,
+} from "@/lib/repositories/manga-reading";
+
+function optionalNumber(value: unknown) {
+  if (value === null || value === undefined || value === "") return null;
+  const parsed = Number(value);
+  return Number.isFinite(parsed) && parsed >= 0 ? parsed : null;
+}
 
 export async function POST(request: Request) {
   const authContext = await getApiProfile();
@@ -20,6 +30,10 @@ export async function POST(request: Request) {
       providerId?: string;
       provider?: string;
       destination?: CatalogDestination;
+      intent?: "collection" | "digital" | "mixed";
+      readingStatus?: string;
+      currentVolume?: number | string;
+      currentChapter?: number | string;
     };
 
     if (!body.providerId) {
@@ -39,6 +53,18 @@ export async function POST(request: Request) {
       imported.workId,
       destination,
     );
+
+    if (
+      destination === "library" &&
+      (body.intent === "digital" || body.intent === "mixed")
+    ) {
+      await saveInitialMangaReading(profileId, imported.workId, {
+        mode: body.intent === "mixed" ? "BOTH" : "DIGITAL",
+        status: normalizeMangaReadingStatus(body.readingStatus) ?? "IN_PROGRESS",
+        currentVolume: optionalNumber(body.currentVolume),
+        currentChapter: optionalNumber(body.currentChapter),
+      });
+    }
 
     return NextResponse.json({
       ok: true,
