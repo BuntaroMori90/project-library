@@ -12,7 +12,7 @@ const repo=load('lib/repositories/library.ts',{
     if(sql.includes('from works'))return{rows:[{id:'work',title:'Manga'}]};
     if(sql.includes('from work_creators'))return{rows:[{name:'Author'}]};
     if(sql.includes('from library_entries'))return{rows:[{status:'IN_PROGRESS'}]};
-    if(sql.includes('from progress'))return{rows:[{current_volume:1}]};
+    if(sql.includes('from progress')){assert.ok(sql.includes('source_label'));return{rows:[{current_volume:1,source_label:'BOTH'}]};}
     if(sql.includes('from editions e'))return{rows:[{id:'edition',is_canonical:true}]};
     if(sql.includes('from content_units cu')){
       assert.deepEqual(values,['work','edition','profile']);
@@ -21,4 +21,4 @@ const repo=load('lib/repositories/library.ts',{
     throw new Error('Unexpected query');
   }}
 });
-(async()=>{const detail=await repo.getMangaDetail('profile','work');assert.equal(detail.work.title,'Manga');assert.deepEqual(detail.creators,['Author']);assert.deepEqual(detail.volumes,[{id:'u1',unit_number:1},{id:'u2',unit_number:2}]);assert.deepEqual([...detail.ownedIds],['u1']);assert.equal(detail.libraryEntry.status,'IN_PROGRESS');assert.equal(detail.progress.current_volume,1);assert.equal(queryCount,6);console.log('PASS: ISBN checksums and book prefix; manga detail preserves ownership, progress and units with two fewer queries.');})().catch(e=>{console.error(e);process.exit(1)});
+(async()=>{const detail=await repo.getMangaDetail('profile','work');assert.equal(detail.work.title,'Manga');assert.deepEqual(detail.creators,['Author']);assert.deepEqual(detail.volumes,[{id:'u1',unit_number:1},{id:'u2',unit_number:2}]);assert.deepEqual([...detail.ownedIds],['u1']);assert.equal(detail.libraryEntry.status,'IN_PROGRESS');assert.equal(detail.progress.current_volume,1);assert.equal(detail.progress.source_label,'BOTH');assert.equal(queryCount,6);console.log('PASS: ISBN checksums and book prefix; manga detail preserves ownership, progress and units with two fewer queries.');})().catch(e=>{console.error(e);process.exit(1)});

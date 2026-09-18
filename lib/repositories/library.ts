@@ -153,8 +153,9 @@ export async function getMangaDetail(profileId: string, workId: string) {
     query<{
       current_volume: string | number | null;
       current_chapter: string | number | null;
+      source_label: string | null;
     }>(
-      "select current_volume,current_chapter from progress where profile_id=$1 and work_id=$2 limit 1",
+      "select current_volume,current_chapter,source_label from progress where profile_id=$1 and work_id=$2 limit 1",
       [profileId, workId],
     ),
     query<EditionRow>(
@@ -285,6 +286,7 @@ export async function listLibraryWorks(
     creators: string[] | null;
     current_volume: string | number | null;
     current_chapter: string | number | null;
+    source_label: string | null;
     current_season: number | null;
     current_episode: string | number | null;
     current_page: number | null;
@@ -308,7 +310,7 @@ export async function listLibraryWorks(
             w.total_volumes,w.total_seasons,w.total_episodes,
             le.status,le.favorite,le.rating,le.updated_at,
             coalesce(creators.names,'{}') as creators,
-            p.current_volume,p.current_chapter,p.current_season,p.current_episode,
+            p.current_volume,p.current_chapter,p.source_label,p.current_season,p.current_episode,
             p.current_page,p.total_pages,p.percentage,
             coalesce(owned.count,0) as owned_units
        from library_entries le
