@@ -10,7 +10,6 @@ import {
   Layers3,
   LibraryBig,
   LoaderCircle,
-  PenLine,
   Plus,
   Search,
   Smartphone,
@@ -84,7 +83,6 @@ export function MangaAddFlow() {
   const [loading, setLoading] = useState(false);
   const [savingKey, setSavingKey] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const [searched, setSearched] = useState(false);
   const [manualTitle, setManualTitle] = useState("");
   const [manualAuthor, setManualAuthor] = useState("");
   const [manualTotalVolumes, setManualTotalVolumes] = useState("");
@@ -115,6 +113,13 @@ export function MangaAddFlow() {
     );
   }
 
+  function backToSearch() {
+    if (savingRef.current || coverProcessing) return;
+    setMode("catalog");
+    setResults([]);
+    setError(null);
+  }
+
   async function search(event: React.FormEvent) {
     event.preventDefault();
     const normalized = query.trim();
@@ -125,7 +130,6 @@ export function MangaAddFlow() {
     requestRef.current = controller;
     const timeout = window.setTimeout(() => controller.abort(), 12000);
     setLoading(true);
-    setSearched(true);
     setResults([]);
     setError(null);
 
@@ -147,7 +151,7 @@ export function MangaAddFlow() {
       if (requestRef.current !== controller) return;
       setError(
         caught instanceof DOMException && caught.name === "AbortError"
-          ? "La ricerca sta impiegando troppo tempo. Puoi riprovare o inserirlo manualmente."
+          ? "La ricerca sta impiegando troppo tempo. Riprova tra poco."
           : caught instanceof Error
             ? caught.message
             : "Ricerca non disponibile.",
@@ -242,26 +246,6 @@ export function MangaAddFlow() {
 
   return (
     <section className="manga-easy-add">
-      <div className="manga-add-mode" aria-label="Metodo di inserimento">
-        <button
-          type="button"
-          className={mode === "catalog" ? "active" : ""}
-          onClick={() => setMode("catalog")}
-        >
-          <Search size={18} /> Cerca manga
-        </button>
-        <button
-          type="button"
-          className={mode === "manual" ? "active" : ""}
-          onClick={() => {
-            setMode("manual");
-            if (!manualTitle) setManualTitle(query.trim());
-          }}
-        >
-          <PenLine size={18} /> Manuale
-        </button>
-      </div>
-
       <section className="manga-intent-stage">
         <div>
           <span className="eyebrow">Cosa vuoi registrare?</span>
@@ -350,13 +334,6 @@ export function MangaAddFlow() {
             </button>
           </form>
 
-          {searched && !loading && !results.length && mode === "catalog" && !error ? (
-            <div className="catalog-empty add-empty-state">
-              <strong>Nessun risultato preciso.</strong>
-              <span>Passa a Manuale: basta anche solo il titolo.</span>
-            </div>
-          ) : null}
-
           <div className="manga-easy-results">
             {results.map((result) => {
               const libraryKey = `${result.provider}:${result.providerId}:library`;
@@ -414,79 +391,91 @@ export function MangaAddFlow() {
           </div>
         </>
       ) : (
-        <form
-          className="manga-easy-manual"
-          onSubmit={(event) => {
-            event.preventDefault();
-            void saveManual("library");
-          }}
-        >
-          <ManualWorkCover
-            value={manualCoverUrl}
-            onChange={setManualCoverUrl}
-            onBusyChange={setCoverProcessing}
-            title={manualTitle}
-            disabled={Boolean(savingKey)}
-          />
-          <div className="manga-easy-manual-fields">
-            <label className="manual-primary-field">
-              Titolo <b>obbligatorio</b>
-              <input
-                value={manualTitle}
-                onChange={(event) => setManualTitle(event.target.value)}
-                placeholder="Titolo del manga"
-                autoFocus
-              />
-            </label>
-            <details>
-              <summary>
-                <span><strong>Altri dettagli</strong><small>Facoltativi</small></span>
-                <ChevronDown size={17} />
-              </summary>
-              <div className="manga-easy-optional-fields">
-                <label>
-                  Autore
-                  <input
-                    value={manualAuthor}
-                    onChange={(event) => setManualAuthor(event.target.value)}
-                    placeholder="Es. Takehiko Inoue"
-                  />
-                </label>
-                <label>
-                  Volumi pubblicati
-                  <input
-                    value={manualTotalVolumes}
-                    onChange={(event) => setManualTotalVolumes(event.target.value)}
-                    type="number"
-                    min="1"
-                    step="1"
-                    inputMode="numeric"
-                    placeholder="Es. 37"
-                  />
-                </label>
-              </div>
-            </details>
-            <div className="manga-easy-manual-actions">
-              <button
-                type="button"
-                className="secondary-btn"
-                disabled={!manualTitle.trim() || Boolean(savingKey) || coverProcessing}
-                onClick={() => void saveManual("wishlist")}
-              >
-                {savingKey === "manual:wishlist" ? <LoaderCircle className="spin" size={17} /> : <Bookmark size={17} />}
-                Wishlist
-              </button>
-              <button
-                type="submit"
-                className="primary-btn"
-                disabled={!manualTitle.trim() || Boolean(savingKey) || coverProcessing}
-              >
-                {savingKey === "manual:library" ? <LoaderCircle className="spin" size={17} /> : <BookOpenCheck size={17} />}
-                Salva manga
-              </button>
+        <section className="manga-manual-fallback">
+          <div className="manga-manual-fallback-head">
+            <div>
+              <span className="eyebrow">Non trovato nel catalogo</span>
+              <h2>Inseriscilo manualmente.</h2>
+              <p>Il titolo cercato è già pronto. Tutto il resto è facoltativo.</p>
             </div>
+            <button type="button" className="secondary-btn" onClick={backToSearch}>
+              <Search size={16} /> Torna alla ricerca
+            </button>
           </div>
-        </form>
+          <form
+            className="manga-easy-manual"
+            onSubmit={(event) => {
+              event.preventDefault();
+              void saveManual("library");
+            }}
+          >
+            <ManualWorkCover
+              value={manualCoverUrl}
+              onChange={setManualCoverUrl}
+              onBusyChange={setCoverProcessing}
+              title={manualTitle}
+              disabled={Boolean(savingKey)}
+            />
+            <div className="manga-easy-manual-fields">
+              <label className="manual-primary-field">
+                Titolo <b>obbligatorio</b>
+                <input
+                  value={manualTitle}
+                  onChange={(event) => setManualTitle(event.target.value)}
+                  placeholder="Titolo del manga"
+                  autoFocus
+                />
+              </label>
+              <details>
+                <summary>
+                  <span><strong>Altri dettagli</strong><small>Facoltativi</small></span>
+                  <ChevronDown size={17} />
+                </summary>
+                <div className="manga-easy-optional-fields">
+                  <label>
+                    Autore
+                    <input
+                      value={manualAuthor}
+                      onChange={(event) => setManualAuthor(event.target.value)}
+                      placeholder="Es. Takehiko Inoue"
+                    />
+                  </label>
+                  <label>
+                    Volumi pubblicati
+                    <input
+                      value={manualTotalVolumes}
+                      onChange={(event) => setManualTotalVolumes(event.target.value)}
+                      type="number"
+                      min="1"
+                      step="1"
+                      inputMode="numeric"
+                      placeholder="Es. 37"
+                    />
+                  </label>
+                </div>
+              </details>
+              <div className="manga-easy-manual-actions">
+                <button
+                  type="button"
+                  className="secondary-btn"
+                  disabled={!manualTitle.trim() || Boolean(savingKey) || coverProcessing}
+                  onClick={() => void saveManual("wishlist")}
+                >
+                  {savingKey === "manual:wishlist" ? <LoaderCircle className="spin" size={17} /> : <Bookmark size={17} />}
+                  Wishlist
+                </button>
+                <button
+                  type="submit"
+                  className="primary-btn"
+                  disabled={!manualTitle.trim() || Boolean(savingKey) || coverProcessing}
+                >
+                  {savingKey === "manual:library" ? <LoaderCircle className="spin" size={17} /> : <BookOpenCheck size={17} />}
+                  Salva manga
+                </button>
+              </div>
+            </div>
+          </form>
+        </section>
       )}
 
       {error ? <p className="catalog-error" role="alert">{error}</p> : null}
