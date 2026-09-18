@@ -2,10 +2,10 @@ const assert = require('node:assert/strict');
 const fs = require('node:fs');
 const ts = require('typescript');
 function load(file, imports) {
-  const module = { exports: {} };
+  const compiledModule = { exports: {} };
   const code = ts.transpileModule(fs.readFileSync(file, 'utf8'), { compilerOptions: { module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2022 } }).outputText;
-  new Function('require', 'module', 'exports', code)(name => name === 'server-only' ? {} : imports[name], module, module.exports);
-  return module.exports;
+  new Function('require', 'module', 'exports', code)(name => name === 'server-only' ? {} : imports[name], compiledModule, compiledModule.exports);
+  return compiledModule.exports;
 }
 (async () => {
   for (const route of ['import', 'manual']) {
@@ -35,3 +35,4 @@ function load(file, imports) {
   assert.equal((await destination.saveCatalogDestination('p', 'w', 'library')).alreadyPresent, true);
   console.log('PASS: new manga initialization, duplicate preservation, physical-only additions, concurrent insert detection');
 })().catch(error => { console.error(error); process.exitCode = 1; });
+
