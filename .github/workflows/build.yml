@@ -23,5 +23,7 @@ jobs:
         run: npm install
       - name: Lint and typecheck
         run: npm run check
+      - name: Test manga cover recovery
+        run: node tests/manga-cover-recovery.cjs
       - name: Build Next.js application
         run: npm run build
