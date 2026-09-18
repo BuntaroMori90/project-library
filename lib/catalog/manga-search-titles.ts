@@ -35,4 +35,4 @@ export async function getMangaSearchTitles(title: string, originalTitle?: string
     // Missing aliases must not prevent searching the known title.
   }
   return [...new Set(known)];
-}
+}
