@@ -330,6 +330,7 @@ async function searchOpenLibrary(params: {
   q?: string;
   title?: string;
   limit?: number;
+  signal?: AbortSignal;
 }) {
   const url = new URL(`${BASE}/search.json`);
   if (params.q) url.searchParams.set("q", params.q);
@@ -340,6 +341,7 @@ async function searchOpenLibrary(params: {
 
   const response = await fetch(url, {
     headers: catalogHeaders(),
+    signal: params.signal,
     next: { revalidate: 1800 },
   });
   if (!response.ok) {
@@ -352,17 +354,17 @@ async function searchOpenLibrary(params: {
 export class OpenLibraryProvider implements BookCatalogProvider {
   readonly name = "OPEN_LIBRARY" as const;
 
-  async search(query: string): Promise<BookCatalogResult[]> {
+  async search(query: string, signal?: AbortSignal): Promise<BookCatalogResult[]> {
     const normalizedQuery = query.trim();
     const isbn = normalizedIsbn(normalizedQuery);
     const searches = isbn
       ? [
-          searchOpenLibrary({ q: isbn }),
-          searchOpenLibrary({ q: `isbn:${isbn}` }),
+          searchOpenLibrary({ q: isbn, signal }),
+          searchOpenLibrary({ q: `isbn:${isbn}`, signal }),
         ]
       : [
-          searchOpenLibrary({ q: normalizedQuery }),
-          searchOpenLibrary({ title: normalizedQuery }),
+          searchOpenLibrary({ q: normalizedQuery, signal }),
+          searchOpenLibrary({ title: normalizedQuery, signal }),
         ];
 
     const responses = await Promise.allSettled(searches);

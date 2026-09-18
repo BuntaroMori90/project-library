@@ -111,7 +111,7 @@ export class JikanDevelopmentProvider implements MangaCatalogProvider {
   }
 
   async search(query: string) {
-    const params = new URLSearchParams({ q: query, limit: "8", sfw: "true" });
+    const params = new URLSearchParams({ q: query, limit: "24", sfw: "true" });
     const payload = await this.request(`/manga?${params}`);
     return Array.isArray(payload.data) ? payload.data.map(normalize) : [];
   }

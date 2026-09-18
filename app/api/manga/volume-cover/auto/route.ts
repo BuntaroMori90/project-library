@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { revalidatePath } from "next/cache";
 import { getApiProfile } from "@/lib/profile";
+import { getMangaSearchTitles } from "@/lib/catalog/manga-search-titles";
 import { UUID } from "@/lib/inventory/volume-cover";
 import { findAutomaticMangaVolumeCover } from "@/lib/catalog/manga-volume-cover-lookup";
 import {
@@ -8,14 +9,16 @@ import {
   saveAutomaticMangaVolumeCover,
 } from "@/lib/repositories/owned-volume-covers";
 
-const BATCH_SIZE = 8;
+export const maxDuration = 60;
+const BATCH_SIZE = 2;
 const CONCURRENCY = 2;
 
 type LookupResult = {
   ownedId: string;
   volume: number;
   saved: boolean;
-  source?: "GOOGLE_BOOKS" | "OPEN_LIBRARY";
+  source?: "GOOGLE_BOOKS" | "OPEN_LIBRARY" | "POPSTORE";
+  unavailable?: boolean;
 };
 
 export async function POST(request: Request) {
@@ -31,8 +34,8 @@ export async function POST(request: Request) {
   const workId = typeof body?.workId === "string" ? body.workId : "";
   const requestedOffset = Number(body?.offset ?? 0);
   const offset =
-    Number.isInteger(requestedOffset) && requestedOffset >= 0
-      ? Math.min(requestedOffset, 5000)
+    Number.isSafeInteger(requestedOffset) && requestedOffset >= 0
+      ? requestedOffset
       : 0;
 
   if (!UUID.test(workId)) {
@@ -49,6 +52,7 @@ export async function POST(request: Request) {
     const hasMore = candidatesResult.rows.length > BATCH_SIZE;
     const candidates = candidatesResult.rows.slice(0, BATCH_SIZE);
     const outcomes: LookupResult[] = [];
+    const titles = candidates[0] ? await getMangaSearchTitles(candidates[0].work_title, candidates[0].original_title) : [];
 
     for (let index = 0; index < candidates.length; index += CONCURRENCY) {
       const chunk = candidates.slice(index, index + CONCURRENCY);
@@ -59,15 +63,18 @@ export async function POST(request: Request) {
             return { ownedId: candidate.owned_id, volume, saved: false };
           }
 
-          const match = await findAutomaticMangaVolumeCover({
+          const lookup = await findAutomaticMangaVolumeCover({
             workTitle: candidate.work_title,
+            alternativeTitles: titles,
+            language: candidate.language,
             unitNumber: volume,
             publisher: candidate.publisher,
             isbn: candidate.isbn,
             editionName: candidate.edition_name,
           });
+          const match = lookup.match;
           if (!match) {
-            return { ownedId: candidate.owned_id, volume, saved: false };
+            return { ownedId: candidate.owned_id, volume, saved: false, unavailable: lookup.unavailable };
           }
 
           const saved = await saveAutomaticMangaVolumeCover(
@@ -99,8 +106,10 @@ export async function POST(request: Request) {
       updated,
       unresolved: checked - updated,
       hasMore,
-      nextOffset: checked === 0 ? 0 : updated > 0 ? 0 : offset + checked,
+      nextOffset: offset + checked - updated,
+      unavailable: outcomes.filter((item) => item.unavailable).length,
       sources: {
+        italianCatalog: outcomes.filter((item) => item.saved && item.source === "POPSTORE").length,
         googleBooks: outcomes.filter(
           (item) => item.saved && item.source === "GOOGLE_BOOKS",
         ).length,

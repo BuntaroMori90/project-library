@@ -1,3 +1,4 @@
+import { getMangaSearchTitles } from "@/lib/catalog/manga-search-titles";
 import type {
   CatalogProviderName,
   MangaCatalogProvider,
@@ -97,6 +98,17 @@ export async function searchMangaCatalog(query: string) {
     throw firstFailure?.reason instanceof Error
       ? firstFailure.reason
       : new Error("Cataloghi manga temporaneamente non disponibili.");
+  }
+
+  if (!successful.some((source) => source.results.some((result) => relevance(result, query) >= 60))) {
+    const titles = await getMangaSearchTitles(query);
+    const alternative = titles.find((title) => normalize(title) !== normalize(query));
+    if (alternative) {
+      const retries = await Promise.allSettled(providers.map(async (provider) => ({
+        provider: provider.name, results: await provider.search(alternative),
+      })));
+      for (const retry of retries) if (retry.status === "fulfilled") successful.push(retry.value);
+    }
   }
 
   const merged: MangaCatalogResult[] = [];

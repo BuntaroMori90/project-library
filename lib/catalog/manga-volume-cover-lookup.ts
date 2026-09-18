@@ -3,6 +3,8 @@ import { OpenLibraryProvider } from "@/lib/catalog/providers/openlibrary";
 
 export type MangaVolumeCoverLookupInput = {
   workTitle: string;
+  alternativeTitles?: string[];
+  language?: string | null;
   unitNumber: number;
   publisher: string | null;
   isbn: string | null;
@@ -11,7 +13,7 @@ export type MangaVolumeCoverLookupInput = {
 
 export type MangaVolumeCoverMatch = {
   coverUrl: string;
-  source: "GOOGLE_BOOKS" | "OPEN_LIBRARY";
+  source: "GOOGLE_BOOKS" | "OPEN_LIBRARY" | "POPSTORE";
   score: number;
   title: string;
   publisher: string | null;
@@ -39,6 +41,12 @@ type GoogleBooksVolume = {
 type GoogleBooksPayload = { items?: GoogleBooksVolume[] };
 
 const SUSPICIOUS_EDITION_MARKERS = [
+  "color walk",
+  "artbook",
+  "novel",
+  "romanzo",
+  "databook",
+  "new edition",
   "deluxe",
   "omnibus",
   "maximum",
@@ -55,7 +63,8 @@ function normalize(value: string | null | undefined) {
     .normalize("NFD")
     .replace(/[\u0300-\u036f]/g, "")
     .toLowerCase()
-    .replace(/[^a-z0-9]+/g, " ")
+    .replace(/[’']/g, "")
+    .replace(/[^\p{L}\p{N}]+/gu, " ")
     .trim();
 }
 
@@ -116,7 +125,7 @@ function hasUnexpectedEditionMarker(candidateTitle: string, editionName: string 
   );
 }
 
-function scoreCandidate(params: {
+export function scoreCandidate(params: {
   candidateTitle: string;
   candidatePublisher: string | null;
   candidateLanguage: string | null;
@@ -135,22 +144,24 @@ function scoreCandidate(params: {
     return 0;
   }
 
-  const titleScore = baseTitleScore(params.candidateTitle, params.input.workTitle);
+  const titles = [params.input.workTitle, ...(params.input.alternativeTitles ?? [])];
+  const titleScore = Math.max(...titles.map((title) => baseTitleScore(params.candidateTitle, title)));
   if (!titleScore) return 0;
   if (
-    !hasVolumeEvidence(
-      params.candidateTitle,
-      params.input.workTitle,
-      params.input.unitNumber,
-    )
+    !titles.some((title) => hasVolumeEvidence(params.candidateTitle, title, params.input.unitNumber))
   ) {
     return 0;
   }
 
+  const edition = normalize(params.input.editionName);
+  if (SUSPICIOUS_EDITION_MARKERS.some((marker) => edition.includes(marker) && !normalize(params.candidateTitle).includes(marker))) return 0;
+  const language = normalize(params.candidateLanguage);
+  const expectedLanguage = normalize(params.input.language || "it");
+  if (expectedLanguage.startsWith("it") && language && !language.startsWith("it")) return 0;
   let score = titleScore + 34;
   if (params.input.publisher) {
     if (publisherMatches(params.input.publisher, params.candidatePublisher)) score += 28;
-    else if (params.candidatePublisher) score -= 24;
+    else if (params.candidatePublisher) return 0;
   }
   if (params.candidateLanguage?.toLowerCase().startsWith("it")) score += 10;
   return score;
@@ -193,18 +204,19 @@ async function searchGoogleBooks(
 ): Promise<MangaVolumeCoverMatch[]> {
   const url = new URL("https://www.googleapis.com/books/v1/volumes");
   const exactIsbn = compactIsbn(input.isbn);
-  const titleQuery = `intitle:"${input.workTitle}" ${input.unitNumber}`;
+  const edition = SUSPICIOUS_EDITION_MARKERS.filter((marker) => normalize(input.editionName).includes(marker)).join(" ");
+  const titleQuery = `intitle:"${input.workTitle}" ${edition} ${input.unitNumber}`;
   url.searchParams.set("q", exactIsbn ? `isbn:${exactIsbn}` : titleQuery);
   url.searchParams.set("printType", "books");
-  url.searchParams.set("projection", "lite");
-  url.searchParams.set("maxResults", "16");
+  url.searchParams.set("projection", "full");
+  url.searchParams.set("maxResults", "40");
   url.searchParams.set("langRestrict", "it");
   const key = process.env.GOOGLE_BOOKS_API_KEY?.trim();
   if (key) url.searchParams.set("key", key);
 
-  try {
+  {
     const response = await fetchWithTimeout(url);
-    if (!response.ok) return [];
+    if (!response.ok) throw new Error(`Catalogo non disponibile (${response.status}).`);
     const payload = (await response.json()) as GoogleBooksPayload;
     return (payload.items ?? [])
       .map((volume): MangaVolumeCoverMatch | null => {
@@ -232,8 +244,6 @@ async function searchGoogleBooks(
         };
       })
       .filter((candidate): candidate is MangaVolumeCoverMatch => Boolean(candidate));
-  } catch {
-    return [];
   }
 }
 
@@ -243,8 +253,8 @@ async function searchOpenLibrary(
   const provider = new OpenLibraryProvider();
   const exactIsbn = compactIsbn(input.isbn);
   const query = exactIsbn ?? `${input.workTitle} ${input.unitNumber}`;
-  try {
-    const results = await provider.search(query);
+  {
+    const results = await provider.search(query, AbortSignal.timeout(5500));
     return results
       .slice(0, 12)
       .map((result): MangaVolumeCoverMatch | null => {
@@ -269,8 +279,6 @@ async function searchOpenLibrary(
         };
       })
       .filter((candidate): candidate is MangaVolumeCoverMatch => Boolean(candidate));
-  } catch {
-    return [];
   }
 }
 
@@ -278,7 +286,7 @@ function sameBibliographicCandidate(
   first: MangaVolumeCoverMatch,
   second: MangaVolumeCoverMatch,
 ) {
-  if (normalize(first.title) === normalize(second.title)) return true;
+  if (normalize(first.title) === normalize(second.title) && first.publisher && second.publisher && publisherMatches(first.publisher, second.publisher)) return true;
   return Boolean(
     first.publisher &&
       second.publisher &&
@@ -287,34 +295,51 @@ function sameBibliographicCandidate(
   );
 }
 
+async function searchItalianStore(input: MangaVolumeCoverLookupInput): Promise<MangaVolumeCoverMatch[]> {
+  const url = new URL("https://popstore.it/search/suggest.json");
+  const edition = SUSPICIOUS_EDITION_MARKERS.filter((marker) => normalize(input.editionName).includes(marker)).join(" ");
+  url.searchParams.set("q", `${input.workTitle} ${edition} ${input.unitNumber}`);
+  url.searchParams.set("resources[type]", "product");
+  url.searchParams.set("resources[limit]", "10");
+  url.searchParams.set("resources[options][unavailable_products]", "show");
+  url.searchParams.set("resources[options][fields]", "title");
+  const response = await fetchWithTimeout(url);
+  if (!response.ok) throw new Error("Catalogo italiano non disponibile.");
+  const payload = await response.json() as { resources?: { results?: { products?: Array<{ title: string; vendor?: string; image?: string }> } } };
+  return (payload.resources?.results?.products ?? []).flatMap((product) => {
+    const coverUrl = secureImage(product.image);
+    if (!coverUrl || !product.title) return [];
+    const score = scoreCandidate({ candidateTitle: product.title, candidatePublisher: product.vendor ?? null,
+      candidateLanguage: "it", identifiers: [], input });
+    return score >= 100 ? [{ coverUrl, title: product.title, publisher: product.vendor ?? null, score,
+      source: "POPSTORE" as const }] : [];
+  });
+}
+
 export async function findAutomaticMangaVolumeCover(
   input: MangaVolumeCoverLookupInput,
-): Promise<MangaVolumeCoverMatch | null> {
-  if (
-    !Number.isInteger(input.unitNumber) ||
-    input.unitNumber < 1 ||
-    input.unitNumber > 10000
-  ) {
-    return null;
+): Promise<{ match: MangaVolumeCoverMatch | null; unavailable: boolean }> {
+  if (!Number.isInteger(input.unitNumber) || input.unitNumber < 1 || input.unitNumber > 10000) {
+    return { match: null, unavailable: false };
   }
-
-  const google = await searchGoogleBooks(input);
-  const bestGoogle = google.sort((a, b) => b.score - a.score)[0];
-  if (bestGoogle?.score >= 130) return bestGoogle;
-
-  const openLibrary = await searchOpenLibrary(input);
-  const candidates = [...google, ...openLibrary].sort((a, b) => b.score - a.score);
-  const best = candidates[0];
-  if (!best || best.score < 100) return null;
-
-  const runnerUp = candidates[1];
-  if (
-    runnerUp &&
-    runnerUp.coverUrl !== best.coverUrl &&
-    best.score - runnerUp.score < 8 &&
-    !sameBibliographicCandidate(best, runnerUp)
-  ) {
-    return null;
+  const titles = [...new Set([input.workTitle, ...(input.alternativeTitles ?? [])].filter(Boolean))].slice(0, 5);
+  const candidates: MangaVolumeCoverMatch[] = [];
+  let unavailable = false;
+  // Bound provider concurrency and stop after a confident, unambiguous match.
+  for (const title of titles) {
+    const attemptInput = { ...input, workTitle: title, alternativeTitles: titles };
+    const attempts = await Promise.allSettled([
+      searchGoogleBooks(attemptInput), searchItalianStore(attemptInput), searchOpenLibrary(attemptInput),
+    ]);
+    for (const attempt of attempts) {
+      if (attempt.status === "fulfilled") candidates.push(...attempt.value);
+      else unavailable = true;
+    }
+    const unique = [...new Map(candidates.map((item) => [item.coverUrl, item])).values()].sort((a,b) => b.score-a.score);
+    const [best, runnerUp] = unique;
+    if (best && (!runnerUp || best.score-runnerUp.score >= 8 || sameBibliographicCandidate(best,runnerUp))) {
+      return { match: best, unavailable };
+    }
   }
-  return best;
+  return { match: null, unavailable };
 }

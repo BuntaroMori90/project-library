@@ -139,7 +139,7 @@ export function MangaAddFlow() {
     requestRef.current?.abort();
     const controller = new AbortController();
     requestRef.current = controller;
-    const timeout = window.setTimeout(() => controller.abort(), 12000);
+    const timeout = window.setTimeout(() => controller.abort(), 25000);
     setLoading(true);
     setResults([]);
     setError(null);

@@ -17,6 +17,7 @@ export type MangaVolumeCoverLookupCandidate = {
   owned_id: string;
   work_id: string;
   work_title: string;
+  original_title: string | null;
   unit_number: string | number | null;
   edition_name: string;
   edition_format: string | null;
@@ -55,7 +56,7 @@ export async function listMissingMangaVolumeCovers(
   offset = 0,
 ) {
   return query<MangaVolumeCoverLookupCandidate>(
-    `select ou.id as owned_id,e.work_id,w.title as work_title,
+    `select ou.id as owned_id,e.work_id,w.title as work_title,w.original_title,
       cu.unit_number::float8 as unit_number,
       coalesce(o.custom_name,e.name,'Edizione') as edition_name,
       o.custom_format as edition_format,
@@ -91,9 +92,9 @@ export async function saveAutomaticMangaVolumeCover(
   coverUrl: string,
 ) {
   const result = await query<{ work_id: string }>(
-    `update content_units cu
-      set cover_url=$3
-    from owned_units ou, editions e, works w, library_entries le
+    `update owned_units ou
+      set custom_cover_url=$3
+    from content_units cu, editions e, works w, library_entries le
     where ou.id=$2 and ou.profile_id=$1
       and cu.id=ou.unit_id and cu.edition_id=ou.edition_id
       and e.id=ou.edition_id and w.id=e.work_id and w.media_type='MANGA'

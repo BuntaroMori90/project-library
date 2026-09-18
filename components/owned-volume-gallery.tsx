@@ -204,79 +204,75 @@ export function OwnedVolumeGallery({
   const [autoLoading, setAutoLoading] = useState(false);
   const [autoMessage, setAutoMessage] = useState("");
   const [autoError, setAutoError] = useState("");
-  const [autoOffset, setAutoOffset] = useState(0);
+  const autoLock = useRef(false);
+  const autoRequest = useRef<AbortController | null>(null);
   const workId = volumes[0]?.work_id ?? null;
+  useEffect(() => () => autoRequest.current?.abort(), [workId]);
   const missingAutomatic = volumes.filter(isAutomaticCoverEligible).length;
 
   const recoverAutomaticCovers = useCallback(
-    async (silent = false, requestedOffset?: number) => {
-      if (!workId || autoLoading) return;
+    async () => {
+      if (!workId || autoLock.current) return;
+      autoLock.current = true;
+      const controller = new AbortController();
+      autoRequest.current = controller;
       setAutoLoading(true);
       setAutoError("");
-      if (!silent) setAutoMessage("");
-
+      setAutoMessage("Avvio ricerca delle copertine…");
+      let offset = 0;
+      let totalChecked = 0;
+      let totalUpdated = 0;
+      let totalUnavailable = 0;
       try {
-        const response = await fetch("/api/manga/volume-cover/auto", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            workId,
-            offset: requestedOffset ?? autoOffset,
-          }),
-        });
-        const result = (await response.json()) as {
-          error?: string;
-          checked?: number;
-          updated?: number;
-          hasMore?: boolean;
-          nextOffset?: number;
-        };
-        if (!response.ok) {
-          throw new Error(result.error ?? "Ricerca automatica non disponibile.");
+        let hasMore = true;
+        while (hasMore) {
+          const response = await fetch("/api/manga/volume-cover/auto", {
+            method: "POST", headers: { "Content-Type": "application/json" },
+            signal: controller.signal, body: JSON.stringify({ workId, offset }),
+          });
+          const result = await response.json() as {
+            error?: string; checked?: number; updated?: number;
+            hasMore?: boolean; nextOffset?: number; unavailable?: number;
+          };
+          if (!response.ok) throw new Error(result.error ?? "Ricerca automatica non disponibile.");
+          totalChecked += result.checked ?? 0;
+          totalUpdated += result.updated ?? 0;
+          totalUnavailable += result.unavailable ?? 0;
+          offset = result.nextOffset ?? 0;
+          hasMore = Boolean(result.hasMore) && (result.checked ?? 0) > 0;
+          setAutoMessage(`Controllati ${totalChecked} volumi · recuperate ${totalUpdated} copertine${hasMore ? " · ricerca in corso…" : "."}`);
         }
-
-        const updated = result.updated ?? 0;
-        const checked = result.checked ?? 0;
-        setAutoOffset(result.nextOffset ?? 0);
-
-        if (updated > 0) {
-          setAutoMessage(
-            `${updated} ${updated === 1 ? "copertina recuperata" : "copertine recuperate"} automaticamente.`,
-          );
-          router.refresh();
-        } else if (!silent) {
-          setAutoMessage(
-            checked > 0
-              ? "Nessuna copertina abbastanza affidabile in questo gruppo. Puoi continuare la ricerca o inserirla manualmente."
-              : "Non ci sono altri volumi standard da controllare in questo punto della serie.",
-          );
+        if (totalUnavailable > 0) {
+          setAutoError(`Per ${totalUnavailable} volumi la ricerca è incompleta: uno o più cataloghi non rispondono. Puoi riprovare.`);
+        } else if (totalChecked > totalUpdated) {
+          setAutoMessage(`Ricerca completata: ${totalUpdated} copertine recuperate su ${totalChecked} volumi controllati. Per gli altri non è emerso un abbinamento sicuro.`);
         }
       } catch (caught) {
-        if (!silent) {
-          setAutoError(
-            caught instanceof Error
-              ? caught.message
-              : "Ricerca automatica non disponibile.",
-          );
-        }
+        if (!controller.signal.aborted) setAutoError(
+          `${totalUpdated} copertine recuperate. ${caught instanceof Error ? caught.message : "Ricerca interrotta."} Premi Recupera copertine per riprovare i volumi mancanti.`,
+        );
       } finally {
-        setAutoLoading(false);
+        autoLock.current = false;
+        if (!controller.signal.aborted) {
+          setAutoLoading(false);
+          if (totalUpdated > 0) router.refresh();
+        }
       }
     },
-    [autoLoading, autoOffset, router, workId],
+    [router, workId],
   );
 
   useEffect(() => {
     if (!workId || missingAutomatic === 0) return;
-    const key = `libronia:auto-manga-covers:${workId}:${volumes.length}`;
+    const key = `libronia:auto-manga-covers:v2:${workId}:${volumes.length}`;
     try {
       if (window.sessionStorage.getItem(key)) return;
-      window.sessionStorage.setItem(key, "1");
     } catch {
       // La ricerca automatica può comunque partire senza sessionStorage.
     }
     const timer = window.setTimeout(() => {
-      void recoverAutomaticCovers(true, 0);
+      try { window.sessionStorage.setItem(key, "1"); } catch { /* Optional session cache. */ }
+      void recoverAutomaticCovers();
     }, 0);
     return () => window.clearTimeout(timer);
   }, [missingAutomatic, recoverAutomaticCovers, volumes.length, workId]);
@@ -296,7 +292,7 @@ export function OwnedVolumeGallery({
           <div>
             <strong>Copertine automatiche</strong>
             <small>
-              Libronia prova titolo, numero, editore e ISBN quando disponibili.
+              Libronia controlla tutti i volumi mancanti usando titoli alternativi, numero ed editore, anche nei cataloghi italiani.
               Variant e speciali restano manuali per evitare abbinamenti errati.
             </small>
           </div>
@@ -304,7 +300,7 @@ export function OwnedVolumeGallery({
             type="button"
             className="soft-action"
             disabled={autoLoading}
-            onClick={() => void recoverAutomaticCovers(false)}
+            onClick={() => void recoverAutomaticCovers()}
           >
             <Sparkles size={16} aria-hidden="true" />
             {autoLoading ? "Cerco…" : "Recupera copertine"}
