@@ -25,8 +25,8 @@ export default async function AddWorkPage({
           <h1 className="title">Aggiungi senza perdere tempo.</h1>
           <p className="subtitle">
             {isManga
-              ? "Trova il titolo e indica subito se lo possiedi, lo leggi in digitale o entrambe le cose. Il resto può essere completato dopo."
-              : "Cerca nei cataloghi quando vuoi recuperare automaticamente dati e copertine. Puoi anche partire dai dati essenziali e completare la scheda in seguito."}
+              ? "Trova prima il manga nel catalogo, poi indica se lo possiedi, lo leggi in digitale o entrambe le cose. Se non lo trovi, compare automaticamente il modulo manuale."
+              : "Cerchiamo prima l'opera nel catalogo per recuperare dati e copertina. Solo se non troviamo risultati ti proponiamo l'inserimento manuale con i dati essenziali."}
           </p>
         </div>
       </header>
