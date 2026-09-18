@@ -1,0 +1,326 @@
+/* Manga collection/read-state split + compact manga insertion flow. */
+
+.bottom-dock.bottom-dock-four {
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+}
+
+.manga-scope-tabs {
+  width: min(680px, 100%);
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 6px;
+  margin: 2px 0 14px;
+  padding: 5px;
+  border: 1px solid rgba(218, 177, 124, .12);
+  border-radius: 16px;
+  background: rgba(255,255,255,.018);
+}
+
+.manga-scope-tabs button {
+  min-height: 48px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  padding: 7px 10px;
+  border: 0;
+  border-radius: 12px;
+  background: transparent;
+  color: var(--muted);
+  font: inherit;
+  font-size: .78rem;
+  font-weight: 850;
+  cursor: pointer;
+}
+
+.manga-scope-tabs button small {
+  min-width: 21px;
+  min-height: 21px;
+  display: grid;
+  place-items: center;
+  padding: 0 5px;
+  border-radius: 999px;
+  background: rgba(255,255,255,.05);
+  color: var(--muted-2);
+  font-size: .63rem;
+}
+
+.manga-scope-tabs button.active {
+  background: linear-gradient(145deg, rgba(214,166,103,.14), rgba(214,166,103,.06));
+  color: var(--text);
+  box-shadow: inset 0 0 0 1px rgba(214,166,103,.18);
+}
+
+.manga-scope-tabs button.active small {
+  background: rgba(214,166,103,.14);
+  color: var(--accent-2);
+}
+
+.manga-easy-add {
+  max-width: 980px;
+  margin-inline: auto;
+  display: grid;
+  gap: 14px;
+}
+
+.manga-add-mode {
+  width: fit-content;
+  display: flex;
+  gap: 5px;
+  padding: 4px;
+  border: 1px solid rgba(255,255,255,.06);
+  border-radius: 999px;
+  background: rgba(255,255,255,.018);
+}
+
+.manga-add-mode button {
+  min-height: 38px;
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  padding: 0 13px;
+  border: 0;
+  border-radius: 999px;
+  background: transparent;
+  color: var(--muted);
+  font: inherit;
+  font-size: .76rem;
+  font-weight: 850;
+  cursor: pointer;
+}
+
+.manga-add-mode button.active {
+  background: rgba(214,166,103,.1);
+  color: var(--text);
+}
+
+.manga-intent-stage {
+  display: grid;
+  gap: 15px;
+  padding: clamp(17px, 3vw, 25px);
+  border: 1px solid rgba(214,166,103,.16);
+  border-radius: 20px;
+  background:
+    radial-gradient(circle at 8% 0%, rgba(214,166,103,.08), transparent 36%),
+    rgba(255,255,255,.015);
+}
+
+.manga-intent-stage h2 {
+  margin: 4px 0 0;
+  font-size: clamp(1.3rem, 3vw, 1.8rem);
+}
+
+.manga-intent-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 9px;
+}
+
+.manga-intent-grid > button {
+  min-height: 86px;
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 14px;
+  border: 1px solid rgba(255,255,255,.07);
+  border-radius: 14px;
+  background: rgba(0,0,0,.13);
+  color: var(--text);
+  text-align: left;
+  cursor: pointer;
+}
+
+.manga-intent-grid > button > svg {
+  flex: 0 0 auto;
+  margin-top: 2px;
+  color: var(--muted);
+}
+
+.manga-intent-grid > button > span {
+  display: grid;
+  gap: 4px;
+}
+
+.manga-intent-grid strong { font-size: .8rem; }
+.manga-intent-grid small { color: var(--muted-2); font-size: .68rem; line-height: 1.35; }
+
+.manga-intent-grid > button.active {
+  border-color: rgba(214,166,103,.34);
+  background: rgba(214,166,103,.075);
+  box-shadow: 0 0 0 2px rgba(214,166,103,.035);
+}
+
+.manga-intent-grid > button.active > svg { color: var(--accent-2); }
+
+.manga-reading-quick-fields {
+  display: grid;
+  grid-template-columns: 1.1fr 1fr 1fr;
+  gap: 10px;
+  padding-top: 2px;
+}
+
+.manga-reading-quick-fields label,
+.manga-easy-manual-fields label {
+  display: grid;
+  gap: 6px;
+  color: var(--text);
+  font-size: .72rem;
+  font-weight: 800;
+}
+
+.manga-reading-quick-fields label small { color: var(--muted-2); font-weight: 650; }
+
+.manga-reading-quick-fields input,
+.manga-reading-quick-fields select,
+.manga-easy-manual-fields input {
+  width: 100%;
+  min-height: 45px;
+  padding: 0 11px;
+  border: 1px solid rgba(255,255,255,.075);
+  border-radius: 11px;
+  outline: 0;
+  background: rgba(0,0,0,.19);
+  color: var(--text);
+  font: inherit;
+}
+
+.manga-easy-search {
+  min-height: 58px;
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 10px;
+  padding: 7px 8px 7px 15px;
+  border: 1px solid rgba(255,255,255,.075);
+  border-radius: 15px;
+  background: rgba(0,0,0,.19);
+}
+
+.manga-easy-search > svg { color: var(--muted-2); }
+.manga-easy-search input {
+  min-width: 0;
+  border: 0;
+  outline: 0;
+  background: transparent;
+  color: var(--text);
+  font: inherit;
+}
+
+.manga-easy-search .primary-btn,
+.manga-easy-result-actions .primary-btn,
+.manga-easy-result-actions .secondary-btn,
+.manga-easy-manual-actions .primary-btn,
+.manga-easy-manual-actions .secondary-btn,
+.settings-shortcut-link {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+}
+
+.manga-easy-results { display: grid; gap: 9px; }
+.manga-easy-results > article {
+  display: grid;
+  grid-template-columns: 74px minmax(0, 1fr) auto;
+  gap: 13px;
+  align-items: center;
+  padding: 11px;
+  border: 1px solid rgba(255,255,255,.065);
+  border-radius: 15px;
+  background: rgba(255,255,255,.014);
+}
+
+.manga-easy-result-cover {
+  width: 74px;
+  aspect-ratio: 2 / 3;
+  display: grid;
+  place-items: center;
+  overflow: hidden;
+  border-radius: 8px;
+  background: rgba(255,255,255,.035);
+  color: var(--accent-2);
+  font-weight: 900;
+}
+.manga-easy-result-cover img { width: 100%; height: 100%; object-fit: cover; }
+.manga-easy-result-copy { min-width: 0; display: grid; gap: 3px; }
+.manga-easy-result-copy strong { font-size: .92rem; }
+.manga-easy-result-copy span { color: var(--muted); font-size: .74rem; }
+.manga-easy-result-copy small { color: var(--muted-2); font-size: .67rem; }
+.manga-easy-result-actions { display: flex; gap: 7px; }
+
+.manga-easy-manual {
+  display: grid;
+  grid-template-columns: minmax(170px, 210px) minmax(0, 1fr);
+  gap: 20px;
+  padding: clamp(16px, 3vw, 24px);
+  border: 1px solid rgba(214,166,103,.14);
+  border-radius: 20px;
+  background: rgba(255,255,255,.014);
+}
+
+.manga-easy-manual-fields { display: grid; gap: 12px; }
+.manga-easy-manual-fields .manual-primary-field input { min-height: 52px; }
+.manga-easy-manual-fields .manual-primary-field b { color: var(--muted-2); font-size: .62rem; }
+.manga-easy-manual-fields details {
+  border: 1px solid rgba(255,255,255,.06);
+  border-radius: 12px;
+  background: rgba(0,0,0,.1);
+}
+.manga-easy-manual-fields summary {
+  min-height: 52px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 9px 12px;
+  list-style: none;
+  cursor: pointer;
+}
+.manga-easy-manual-fields summary::-webkit-details-marker { display: none; }
+.manga-easy-manual-fields summary span { display: grid; gap: 2px; }
+.manga-easy-manual-fields summary small { color: var(--muted-2); font-size: .65rem; }
+.manga-easy-optional-fields {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+  padding: 0 12px 12px;
+}
+.manga-easy-manual-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  padding-top: 4px;
+}
+
+.manga-reading-editor {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+.manga-reading-editor button { grid-column: 1 / -1; }
+
+.settings-shortcut-card { align-content: space-between; }
+.settings-shortcut-link { width: fit-content; margin-top: 14px; }
+
+@media (max-width: 720px) {
+  .manga-scope-tabs { width: 100%; }
+  .manga-scope-tabs button { min-height: 44px; padding-inline: 6px; font-size: .7rem; }
+  .manga-scope-tabs button small { display: none; }
+  .manga-intent-grid { grid-template-columns: 1fr; }
+  .manga-intent-grid > button { min-height: 67px; }
+  .manga-reading-quick-fields { grid-template-columns: 1fr 1fr; }
+  .manga-reading-quick-fields label:first-child { grid-column: 1 / -1; }
+  .manga-easy-results > article { grid-template-columns: 64px minmax(0, 1fr); }
+  .manga-easy-result-cover { width: 64px; }
+  .manga-easy-result-actions { grid-column: 1 / -1; justify-content: flex-end; }
+  .manga-easy-manual { grid-template-columns: 120px minmax(0, 1fr); gap: 14px; }
+  .manga-easy-optional-fields { grid-template-columns: 1fr; }
+  .manga-reading-editor { grid-template-columns: 1fr; }
+}
+
+@media (max-width: 520px) {
+  .manga-add-mode { width: 100%; }
+  .manga-add-mode button { flex: 1; justify-content: center; }
+  .manga-easy-search { grid-template-columns: auto minmax(0, 1fr); }
+  .manga-easy-search .primary-btn { grid-column: 1 / -1; width: 100%; }
+  .manga-easy-manual { grid-template-columns: 1fr; }
+  .manga-easy-manual > .manual-cover-card { width: min(155px, 48vw); margin-inline: auto; }
+  .manga-easy-manual-actions { display: grid; grid-template-columns: 1fr 1fr; }
+}
