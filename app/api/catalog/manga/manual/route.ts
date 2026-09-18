@@ -100,7 +100,7 @@ export async function POST(request: Request) {
       );
     }
 
-    if (destination === "library" && intent !== "collection") {
+    if (!placement.alreadyPresent && destination === "library" && intent !== "collection") {
       await saveInitialMangaReading(authContext.profile.id, created.workId, {
         mode: intent === "mixed" ? "BOTH" : "DIGITAL",
         status: normalizeMangaReadingStatus(body.readingStatus) ?? "IN_PROGRESS",

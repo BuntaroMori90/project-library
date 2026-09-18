@@ -55,6 +55,7 @@ export async function POST(request: Request) {
     );
 
     if (
+      !placement.alreadyPresent &&
       destination === "library" &&
       (body.intent === "digital" || body.intent === "mixed")
     ) {

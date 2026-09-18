@@ -1,4 +1,4 @@
-/* Catalog-first fallback: manual entry appears only after an empty search. */
+/* Catalog search and optional manual entry. */
 
 .manual-fallback-entry .manual-work-entry-head {
   position: relative;
@@ -72,3 +72,23 @@
     width: 100%;
   }
 }
+
+.manual-entry-link {
+  justify-self: start;
+  width: fit-content;
+  min-height: 44px;
+  padding: 8px 0;
+  border: 0;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  font-size: .85rem;
+  text-align: left;
+  text-decoration: underline;
+  text-underline-offset: 4px;
+  cursor: pointer;
+}
+.manual-entry-link:disabled { opacity: .5; cursor: wait; }
+.manual-entry-link:focus-visible { outline: 2px solid currentColor; outline-offset: 4px; }
+.scope-count-unit { font-weight: 400; }
+.manga-scope-tabs button small { grid-auto-flow: column; gap: 3px; }

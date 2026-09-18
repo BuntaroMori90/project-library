@@ -31,9 +31,9 @@ export async function saveCatalogDestination(
       };
     }
 
-    await client.query(
+    const inserted = await client.query<{ id: string }>(
       `insert into library_entries (profile_id,work_id,status)
-       values ($1,$2,$3) on conflict (profile_id,work_id) do nothing`,
+       values ($1,$2,$3) on conflict (profile_id,work_id) do nothing returning id`,
       [profileId, workId, status],
     );
     await client.query(
@@ -42,7 +42,7 @@ export async function saveCatalogDestination(
     );
     return {
       placement: "library" as const,
-      alreadyPresent: Boolean(library.rows[0]),
+      alreadyPresent: !inserted.rows[0],
     };
   });
 }

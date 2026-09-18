@@ -115,7 +115,9 @@ export function ShelfBrowser({
               aria-pressed={scope === value}
             >
               <span>{label}</span>
-              <small>{counts[value]}</small>
+              <small title="Schede sullo scaffale, comprese le variant">
+                {counts[value]} <span className="scope-count-unit">schede</span>
+              </small>
             </button>
           ))}
         </div>
