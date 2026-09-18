@@ -1,0 +1,74 @@
+/* Catalog-first fallback: manual entry appears only after an empty search. */
+
+.manual-fallback-entry .manual-work-entry-head {
+  position: relative;
+  align-items: center;
+}
+
+.manual-fallback-entry .manual-work-entry-head > div:nth-child(2) {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+.manual-back-search,
+.manga-manual-fallback-head .secondary-btn {
+  flex: 0 0 auto;
+  min-height: 40px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+}
+
+.manga-manual-fallback {
+  display: grid;
+  gap: 10px;
+}
+
+.manga-manual-fallback-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 15px 17px;
+  border: 1px solid rgba(214,166,103,.15);
+  border-radius: 16px;
+  background: rgba(214,166,103,.035);
+}
+
+.manga-manual-fallback-head > div {
+  min-width: 0;
+}
+
+.manga-manual-fallback-head h2 {
+  margin: 3px 0 4px;
+  font-size: clamp(1.15rem, 3vw, 1.45rem);
+}
+
+.manga-manual-fallback-head p {
+  margin: 0;
+  color: var(--muted);
+  font-size: .76rem;
+  line-height: 1.45;
+}
+
+@media (max-width: 640px) {
+  .manual-fallback-entry .manual-work-entry-head {
+    display: grid;
+    grid-template-columns: auto minmax(0, 1fr);
+  }
+
+  .manual-back-search {
+    grid-column: 1 / -1;
+    width: 100%;
+  }
+
+  .manga-manual-fallback-head {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .manga-manual-fallback-head .secondary-btn {
+    width: 100%;
+  }
+}
