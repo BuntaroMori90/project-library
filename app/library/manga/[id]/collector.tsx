@@ -203,7 +203,7 @@ export async function MangaCollectorPanel({ workId }: { workId: string }) {
           <summary><BadgePlus size={18} /> Aggiungi variant o edizione speciale</summary>
           <form action={addPersonalMangaEdition} className="manga-special-form">
             <input type="hidden" name="workId" value={workId} />
-            <BookCoverField uploadEndpoint="/api/manga/personal-edition" />
+            <BookCoverField uploadEndpoint="/api/manga/personal-edition" resetOnSave />
             <div className="manga-special-primary-fields">
               <label>
                 Tipo

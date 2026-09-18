@@ -25,5 +25,7 @@ jobs:
         run: npm run check
       - name: Test manga cover recovery
         run: node tests/manga-cover-recovery.cjs
+      - name: Test consecutive variant saves
+        run: node tests/repeat-variant-save.cjs
       - name: Build Next.js application
         run: npm run build
