@@ -6,9 +6,13 @@ import type { CoverView, Density, GroupBy } from "@/lib/preferences";
 import { DemoCover } from "@/components/demo-cover";
 import { AlphabetRail } from "@/components/alphabet-rail";
 
+export type ShelfScope = "collection" | "outside";
+type ScopeFilter = "collection" | "outside" | "all";
+
 type ShelfItem = DemoItem & {
   href?: string;
   badge?: string;
+  shelfScope?: ShelfScope;
 };
 
 function creatorSortKey(creator: string) {
@@ -32,31 +36,47 @@ export function ShelfBrowser({
   defaultGroupBy,
   density,
   coverView,
+  showScopeTabs = false,
 }: {
   items: ShelfItem[];
   kind: "book" | "manga";
   defaultGroupBy: GroupBy;
   density: Density;
   coverView: CoverView;
+  showScopeTabs?: boolean;
 }) {
   const [query, setQuery] = useState("");
   const [groupBy, setGroupBy] = useState<GroupBy>(defaultGroupBy);
+  const [scope, setScope] = useState<ScopeFilter>("collection");
+
+  const counts = useMemo(
+    () => ({
+      collection: items.filter((item) => item.shelfScope === "collection").length,
+      outside: items.filter((item) => item.shelfScope === "outside").length,
+      all: items.length,
+    }),
+    [items],
+  );
 
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase();
+    const scoped =
+      showScopeTabs && scope !== "all"
+        ? items.filter((item) => item.shelfScope === scope)
+        : items;
     const result = q
-      ? items.filter((item) =>
+      ? scoped.filter((item) =>
           `${item.title} ${item.creator} ${item.progress ?? ""} ${item.meta ?? ""} ${item.badge ?? ""}`
             .toLowerCase()
             .includes(q),
         )
-      : items;
+      : scoped;
     return [...result].sort((a, b) =>
       groupKey(a, groupBy).localeCompare(groupKey(b, groupBy), "it", {
         sensitivity: "base",
       }),
     );
-  }, [items, query, groupBy]);
+  }, [items, query, groupBy, scope, showScopeTabs]);
 
   const groups = useMemo(() => {
     const map = new Map<string, ShelfItem[]>();
@@ -69,10 +89,38 @@ export function ShelfBrowser({
     return [...map.entries()].sort(([a], [b]) => a.localeCompare(b));
   }, [filtered, groupBy]);
 
+  const emptyCopy =
+    showScopeTabs && scope === "collection"
+      ? "Nessun manga con volumi posseduti."
+      : showScopeTabs && scope === "outside"
+        ? "Nessun manga letto o in lettura fuori dalla collezione fisica."
+        : "Nessun risultato.";
+
   return (
     <section
       className={`shelf-browser ${kind} density-${density} view-${coverView}`}
     >
+      {showScopeTabs ? (
+        <div className="manga-scope-tabs" aria-label="Visualizzazione manga">
+          {([
+            ["collection", "Collezione"],
+            ["outside", "Fuori collezione"],
+            ["all", "Tutti"],
+          ] as const).map(([value, label]) => (
+            <button
+              key={value}
+              type="button"
+              className={scope === value ? "active" : ""}
+              onClick={() => setScope(value)}
+              aria-pressed={scope === value}
+            >
+              <span>{label}</span>
+              <small>{counts[value]}</small>
+            </button>
+          ))}
+        </div>
+      ) : null}
+
       <div className="library-toolbar">
         <label className="search-control">
           <span className="sr-only">Cerca</span>
@@ -145,7 +193,7 @@ export function ShelfBrowser({
           ))
         ) : (
           <section className="empty-shelf">
-            <p>Nessun risultato.</p>
+            <p>{emptyCopy}</p>
           </section>
         )}
       </div>

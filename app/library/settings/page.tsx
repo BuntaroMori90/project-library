@@ -1,3 +1,5 @@
+import Link from "next/link";
+import { Bookmark } from "lucide-react";
 import { SignOutButton } from "@/components/sign-out-button";
 import { normalizePreferences } from "@/lib/preferences";
 import { requireProfile } from "@/lib/profile";
@@ -159,6 +161,16 @@ export default async function SettingsPage({
               </select>
             </label>
           </div>
+        </section>
+        <section className="settings-card settings-shortcut-card">
+          <div className="settings-title">
+            <span>Liste</span>
+            <h2>Wishlist</h2>
+            <p>Le opere che vuoi aggiungere in futuro, fuori dalla navigazione principale.</p>
+          </div>
+          <Link className="secondary-btn settings-shortcut-link" href="/library/wishlist">
+            <Bookmark size={17} /> Apri Wishlist
+          </Link>
         </section>
         <section className="settings-card account-card">
           <div className="settings-title">

@@ -1,24 +1,16 @@
 import { OwnedVolumeGallery } from "@/components/owned-volume-gallery";
-import { listOwnedMangaVolumes } from "@/lib/repositories/owned-volume-covers";
 import { BulkOwnedVolumes } from "@/components/bulk-owned-volumes";
+import { DemoCover } from "@/components/demo-cover";
+import { WishlistToggle } from "@/components/wishlist-toggle";
 import Image from "next/image";
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import {
-  BookOpen,
-  Check,
-  Circle,
-  Heart,
-  Layers3,
-  LibraryBig,
-  Star,
-  StickyNote,
-} from "lucide-react";
+import { Check, Circle, Heart, LibraryBig, StickyNote } from "lucide-react";
 import { requireProfile } from "@/lib/profile";
-import { getMangaDetail } from "@/lib/repositories/library";
 import { demoManga } from "@/lib/demo-data";
-import { DemoCover } from "@/components/demo-cover";
-import { WishlistToggle } from "@/components/wishlist-toggle";
+import { getMangaDetail } from "@/lib/repositories/library";
+import { getMangaReadingMode } from "@/lib/repositories/manga-reading";
+import { listOwnedMangaVolumes } from "@/lib/repositories/owned-volume-covers";
 import {
   toggleOwnedVolume,
   updateMangaPersonal,
@@ -28,6 +20,7 @@ import {
 
 const UUID =
   /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+
 const statusLabels: Record<string, string> = {
   PLANNED: "Da iniziare",
   IN_PROGRESS: "In lettura",
@@ -35,230 +28,97 @@ const statusLabels: Record<string, string> = {
   PAUSED: "In pausa",
   DROPPED: "Abbandonato",
 };
-function DetailTabs({ owned = false }: { owned?: boolean }) {
+
+const readingModeLabels: Record<string, string> = {
+  PHYSICAL: "Fisico",
+  DIGITAL: "Digitale",
+  BOTH: "Fisico + digitale",
+};
+
+function DetailTabs({
+  owned = false,
+  showEditions = true,
+}: {
+  owned?: boolean;
+  showEditions?: boolean;
+}) {
   return (
     <nav className="detail-tabs" aria-label="Sezioni opera">
       <a href="#panoramica">Panoramica</a>
       <a className="active" href={owned ? "#i-miei-volumi" : "#volumi"}>
         Volumi
       </a>
-      <a href="#capitoli">Capitoli</a>
-      <a href="#edizioni">Edizioni</a>
+      {showEditions ? <a href="#edizioni">Edizioni</a> : null}
       <a href="#personale">La mia scheda</a>
     </nav>
   );
 }
+
 function VolumeLegend() {
   return (
     <div className="volume-legend" aria-label="Legenda volumi">
-      <span>
-        <i className="legend-dot read" /> Letto
-      </span>
-      <span>
-        <i className="legend-dot owned" /> Posseduto fisicamente
-      </span>
-      <span>
-        <i className="legend-dot current" /> Attuale
-      </span>
-      <span>
-        <i className="legend-dot empty" /> Da leggere
-      </span>
+      <span><i className="legend-dot read" /> Letto</span>
+      <span><i className="legend-dot owned" /> Posseduto fisicamente</span>
+      <span><i className="legend-dot current" /> Attuale</span>
+      <span><i className="legend-dot empty" /> Da leggere</span>
     </div>
   );
 }
+
 function DemoDetail({ id }: { id: string }) {
   const item = demoManga.find((manga) => manga.id === id);
   if (!item) notFound();
   const totalVolumes = id === "berserk" ? 42 : id === "monster" ? 9 : 12;
   const readThrough = id === "berserk" ? 25 : totalVolumes;
-  const ownedThrough =
-    id === "berserk" ? 18 : id === "monster" ? totalVolumes : 4;
-  const chapter = id === "berserk" ? 201 : null;
+  const ownedThrough = id === "berserk" ? 18 : id === "monster" ? totalVolumes : 4;
+
   return (
     <main className="page manga-detail-page work-detail-v2">
-      <Link href="/library/manga" className="back-link">
-        ← Manga
-      </Link>
+      <Link href="/library/manga" className="back-link">← Manga</Link>
       <section className="work-hero">
-        <div className="work-cover-wrap">
-          <DemoCover item={item} />
-          <button className="round-favorite" aria-label="Preferito">
-            <Heart size={18} />
-          </button>
-        </div>
+        <div className="work-cover-wrap"><DemoCover item={item} /></div>
         <div className="work-identity">
           <p className="eyebrow">Manga · catalogo demo</p>
           <h1>{item.title}</h1>
-          <p className="work-original">ベルセルク</p>
-          <p className="work-byline">
-            {item.creator} · 1989 · In pubblicazione
-          </p>
-          <div className="meta-pills">
-            <span>Seinen</span>
-            <span>Dark fantasy</span>
-            <span>Avventura</span>
-          </div>
+          <p className="work-byline">{item.creator}</p>
           <p className="work-description">
-            Un'opera catalogata una sola volta; lettura, possesso, voto e note
-            restano invece personali e indipendenti.
+            Lettura e possesso restano indipendenti: l&apos;opera compare una volta
+            sola anche quando possiedi alcuni volumi e prosegui in digitale.
           </p>
         </div>
       </section>
       <section className="personal-dashboard" id="personale">
         <div className="personal-dashboard-head">
-          <div>
-            <span className="eyebrow">La mia scheda</span>
-            <h2>{item.title} nella mia libreria</h2>
-          </div>
-          <button className="soft-action">Modifica</button>
+          <div><span className="eyebrow">La mia scheda</span><h2>{item.title}</h2></div>
         </div>
         <div className="personal-metrics">
-          <div>
-            <span>Stato</span>
-            <strong>In lettura</strong>
-            <small>Gestito qui, non dalla Home</small>
-          </div>
-          <div>
-            <span>Progresso</span>
-            <strong>
-              Vol. {readThrough} · Cap. {chapter}
-            </strong>
-            <small>Ultimo punto registrato</small>
-          </div>
-          <div>
-            <span>Posseduti</span>
-            <strong>
-              {ownedThrough} / {totalVolumes}
-            </strong>
-            <small>Volumi fisici · tutte le edizioni</small>
-          </div>
-          <div>
-            <span>Il mio voto</span>
-            <strong>
-              9,5 <Star size={15} fill="currentColor" />
-            </strong>
-            <small>Personale</small>
-          </div>
+          <div><span>Stato</span><strong>In lettura</strong><small>Stato personale</small></div>
+          <div><span>Lettura</span><strong>Fisico + digitale</strong><small>Modalità</small></div>
+          <div><span>Progresso</span><strong>Vol. {readThrough}</strong><small>Ultimo punto registrato</small></div>
+          <div><span>Posseduti</span><strong>{ownedThrough}</strong><small>Volumi fisici</small></div>
         </div>
       </section>
-      <DetailTabs />
+      <DetailTabs showEditions={false} />
       <section id="panoramica" className="detail-section overview-grid">
         <article className="overview-card">
-          <span className="eyebrow">Opera</span>
-          <h2>Panoramica</h2>
+          <span className="eyebrow">Opera</span><h2>Panoramica</h2>
           <dl>
-            <div>
-              <dt>Autore</dt>
-              <dd>{item.creator}</dd>
-            </div>
-            <div>
-              <dt>Stato editoriale</dt>
-              <dd>In pubblicazione</dd>
-            </div>
-            <div>
-              <dt>Volumi catalogati</dt>
-              <dd>{totalVolumes}</dd>
-            </div>
-            <div>
-              <dt>Capitoli</dt>
-              <dd>Numerazione separata</dd>
-            </div>
+            <div><dt>Autore</dt><dd>{item.creator}</dd></div>
+            <div><dt>Volumi</dt><dd>{totalVolumes}</dd></div>
           </dl>
-        </article>
-        <article className="overview-card note-preview">
-          <StickyNote size={20} />
-          <span className="eyebrow">Le mie note</span>
-          <p>
-            Una nota personale breve può essere mostrata qui; la modifica
-            completa resta nella sezione “La mia scheda”.
-          </p>
         </article>
       </section>
       <section id="volumi" className="detail-section volumes-stage">
         <div className="section-heading detail-heading">
-          <div>
-            <span className="eyebrow">Catalogo + collezione</span>
-            <h2>Tutti i volumi</h2>
-          </div>
-          <span>{totalVolumes} nel catalogo demo</span>
+          <div><span className="eyebrow">Collezione</span><h2>I tuoi volumi</h2></div>
         </div>
-        <p className="subtitle detail-explainer">
-          Vedi sempre l'intera serie. Lettura e possesso sono due livelli
-          separati.
-        </p>
-        <VolumeLegend />
         <div className="volume-grid volume-grid-visual">
-          {Array.from({ length: totalVolumes }, (_, index) => index + 1).map(
-            (volume) => {
-              const read = volume <= readThrough;
-              const owned = volume <= ownedThrough;
-              const current = volume === readThrough;
-              return (
-                <article
-                  key={volume}
-                  className={`volume visual-volume ${owned ? "owned" : ""} ${read ? "read" : ""} ${current ? "current" : ""}`}
-                >
-                  <div className="volume-spine">
-                    <span>{String(volume).padStart(2, "0")}</span>
-                  </div>
-                  <div className="volume-copy">
-                    <strong>Volume {volume}</strong>
-                    <span>
-                      {current
-                        ? "Volume attuale"
-                        : read
-                          ? "Letto"
-                          : "Da leggere"}
-                    </span>
-                    <small>{owned ? "Posseduto" : "Non posseduto"}</small>
-                  </div>
-                </article>
-              );
-            },
-          )}
-        </div>
-      </section>
-      <section id="capitoli" className="detail-section two-up-detail">
-        <article className="info-panel">
-          <BookOpen size={22} />
-          <div>
-            <span className="eyebrow">Capitoli</span>
-            <h2>Progresso preciso</h2>
-            <p>
-              Segna semplicemente “letto fino al capitolo 201”. L'elenco
-              completo dei capitoli viene mostrato solo quando la fonte dati
-              fornisce numerazioni reali e speciali.
-            </p>
-          </div>
-        </article>
-        <article className="info-panel">
-          <Layers3 size={22} />
-          <div>
-            <span className="eyebrow">Edizioni</span>
-            <h2>Collezione fisica</h2>
-            <p>
-              Il progresso appartiene all'opera; i volumi posseduti appartengono
-              invece alla specifica edizione scelta.
-            </p>
-          </div>
-        </article>
-      </section>
-      <section id="edizioni" className="detail-section">
-        <div className="section-heading detail-heading">
-          <div>
-            <span className="eyebrow">Edizioni</span>
-            <h2>Le versioni di {item.title}</h2>
-          </div>
-        </div>
-        <div className="edition-row">
-          <article className="edition-choice selected">
-            <strong>Berserk Collection</strong>
-            <span>Edizione posseduta · 18 / {totalVolumes}</span>
-          </article>
-          <article className="edition-choice">
-            <strong>Deluxe / altre edizioni</strong>
-            <span>Arricchimento catalogo</span>
-          </article>
+          {Array.from({ length: ownedThrough }, (_, index) => index + 1).map((volume) => (
+            <article key={volume} className="volume visual-volume owned">
+              <div className="volume-spine"><span>{String(volume).padStart(2, "0")}</span></div>
+              <div className="volume-copy"><strong>Volume {volume}</strong><small>Posseduto</small></div>
+            </article>
+          ))}
         </div>
       </section>
     </main>
@@ -272,10 +132,14 @@ export default async function MangaDetailPage({
 }) {
   const { id } = await params;
   if (!UUID.test(id)) return <DemoDetail id={id} />;
+
   const { profile } = await requireProfile();
-  const [detail, ownedVolumeRows] = await Promise.all([
-    getMangaDetail(profile.id, id), listOwnedMangaVolumes(profile.id, id),
+  const [detail, ownedVolumeRows, readingMode] = await Promise.all([
+    getMangaDetail(profile.id, id),
+    listOwnedMangaVolumes(profile.id, id),
+    getMangaReadingMode(profile.id, id),
   ]);
+
   const {
     work,
     creators,
@@ -288,15 +152,16 @@ export default async function MangaDetailPage({
     ownedVolumeNumbers,
   } = detail;
   if (!work) notFound();
+
   const currentVolume =
     progress?.current_volume != null ? Number(progress.current_volume) : null;
   const currentChapter =
     progress?.current_chapter != null ? Number(progress.current_chapter) : null;
-  const totalVolumes =
-    work.total_volumes ?? canonicalEdition?.total_units ?? null;
+  const totalVolumes = work.total_volumes ?? canonicalEdition?.total_units ?? null;
   const ownedCount = ownedVolumeNumbers.size;
   const state = libraryEntry?.status ?? "PLANNED";
   const statusText = statusLabels[state] ?? "Da iniziare";
+  const readingModeText = readingMode ? readingModeLabels[readingMode] : "Non indicata";
   const publicationLabel =
     work.publication_status === "ONGOING"
       ? "In pubblicazione"
@@ -305,11 +170,28 @@ export default async function MangaDetailPage({
         : work.publication_status === "HIATUS"
           ? "In pausa editoriale"
           : "Stato da verificare";
+
+  const visibleEditions = editions.filter((edition) => {
+    const normalizedName = edition.name.trim().toLowerCase();
+    const genericName =
+      normalizedName === "edizione da completare" ||
+      normalizedName === "edizione personale" ||
+      normalizedName === "edizione";
+    return (
+      !genericName ||
+      Boolean(
+        edition.publisher ||
+          edition.language ||
+          edition.publication_year ||
+          edition.format,
+      )
+    );
+  });
+
   return (
     <main className="page manga-detail-page work-detail-v2">
-      <Link href="/library/manga" className="back-link">
-        ← Manga
-      </Link>
+      <Link href="/library/manga" className="back-link">← Manga</Link>
+
       <section className="work-hero real-work-hero">
         <div className="work-cover-wrap">
           <div className="real-cover-shell">
@@ -329,39 +211,31 @@ export default async function MangaDetailPage({
             )}
           </div>
           {libraryEntry?.favorite ? (
-            <span className="favorite-float">
-              <Heart size={16} fill="currentColor" /> Preferito
-            </span>
+            <span className="favorite-float"><Heart size={16} fill="currentColor" /> Preferito</span>
           ) : null}
         </div>
         <div className="work-identity">
           <p className="eyebrow">Manga</p>
           <h1>{work.title}</h1>
-          {work.original_title ? (
-            <p className="work-original">{work.original_title}</p>
-          ) : null}
+          {work.original_title ? <p className="work-original">{work.original_title}</p> : null}
           <p className="work-byline">
             {creators.join(" · ") || "Autore non disponibile"}
-            {work.release_year ? ` · ${work.release_year}` : ""} ·{" "}
-            {publicationLabel}
+            {work.release_year ? ` · ${work.release_year}` : ""} · {publicationLabel}
           </p>
           {work.genres?.length ? (
             <div className="meta-pills">
-              {work.genres.slice(0, 5).map((genre: string) => (
-                <span key={genre}>{genre}</span>
-              ))}
+              {work.genres.slice(0, 5).map((genre: string) => <span key={genre}>{genre}</span>)}
             </div>
           ) : null}
-          {work.description ? (
-            <p className="work-description">{work.description}</p>
-          ) : null}
+          {work.description ? <p className="work-description">{work.description}</p> : null}
         </div>
       </section>
+
       <section className="personal-dashboard" id="personale">
         <div className="personal-dashboard-head">
           <div>
             <span className="eyebrow">La mia scheda</span>
-            <h2>{work.title} nella mia libreria</h2>
+            <h2>Lettura e collezione</h2>
           </div>
           <WishlistToggle
             profileId={profile.id}
@@ -369,11 +243,13 @@ export default async function MangaDetailPage({
             returnPath={"/library/manga/" + work.id}
           />
         </div>
+
         <div className="personal-metrics">
           <div>
-            <span>Stato</span>
-            <strong>{statusText}</strong>
-            <small>Stato personale</small>
+            <span>Stato</span><strong>{statusText}</strong><small>Stato di lettura</small>
+          </div>
+          <div>
+            <span>Lettura</span><strong>{readingModeText}</strong><small>Fisico, digitale o entrambi</small>
           </div>
           <div>
             <span>Progresso</span>
@@ -381,25 +257,13 @@ export default async function MangaDetailPage({
               {currentVolume ? `Vol. ${currentVolume}` : "—"}
               {currentChapter ? ` · Cap. ${currentChapter}` : ""}
             </strong>
-            <small>Letto nell'opera, anche online</small>
+            <small>Dove sei arrivato</small>
           </div>
           <div>
-            <span>Posseduti</span>
-            <strong>
-              {ownedCount}
-              {totalVolumes ? ` / ${totalVolumes}` : ""}
-            </strong>
-            <small>Volumi fisici · tutte le edizioni</small>
-          </div>
-          <div>
-            <span>Il mio voto</span>
-            <strong>
-              {libraryEntry?.rating ?? "—"}
-              {libraryEntry?.rating ? " / 10" : ""}
-            </strong>
-            <small>Personale</small>
+            <span>Posseduti</span><strong>{ownedCount}</strong><small>Volumi fisici</small>
           </div>
         </div>
+
         <div className="personal-editors">
           <form action={updateMangaState} className="personal-editor-card">
             <input type="hidden" name="workId" value={work.id} />
@@ -415,13 +279,20 @@ export default async function MangaDetailPage({
             </label>
             <button type="submit">Salva stato</button>
           </form>
-          <form
-            action={updateMangaProgress}
-            className="personal-editor-card progress-card-editor"
-          >
+
+          <form action={updateMangaProgress} className="personal-editor-card progress-card-editor manga-reading-editor">
             <input type="hidden" name="workId" value={work.id} />
             <label>
-              Volume
+              Modalità di lettura
+              <select name="readingMode" defaultValue={readingMode ?? ""}>
+                <option value="">Non indicata</option>
+                <option value="PHYSICAL">Fisico</option>
+                <option value="DIGITAL">Digitale</option>
+                <option value="BOTH">Entrambi</option>
+              </select>
+            </label>
+            <label>
+              Volume raggiunto
               <input
                 name="currentVolume"
                 type="number"
@@ -433,7 +304,7 @@ export default async function MangaDetailPage({
               />
             </label>
             <label>
-              Capitolo
+              Capitolo raggiunto
               <input
                 name="currentChapter"
                 type="number"
@@ -443,20 +314,13 @@ export default async function MangaDetailPage({
                 placeholder="201"
               />
             </label>
-            <button type="submit">Aggiorna progresso</button>
+            <button type="submit">Aggiorna lettura</button>
           </form>
-          <form
-            action={updateMangaPersonal}
-            className="personal-editor-card personal-notes-editor"
-          >
+
+          <form action={updateMangaPersonal} className="personal-editor-card personal-notes-editor">
             <input type="hidden" name="workId" value={work.id} />
             <label className="favorite-toggle">
-              <input
-                type="checkbox"
-                name="favorite"
-                defaultChecked={Boolean(libraryEntry?.favorite)}
-              />{" "}
-              Preferito
+              <input type="checkbox" name="favorite" defaultChecked={Boolean(libraryEntry?.favorite)} /> Preferito
             </label>
             <label>
               Voto
@@ -482,212 +346,131 @@ export default async function MangaDetailPage({
           </form>
         </div>
       </section>
-      <DetailTabs owned />
+
+      <DetailTabs owned showEditions={visibleEditions.length > 0} />
+
       <section id="panoramica" className="detail-section overview-grid">
         <article className="overview-card">
           <span className="eyebrow">Opera</span>
           <h2>Panoramica</h2>
           <dl>
-            <div>
-              <dt>Autore</dt>
-              <dd>{creators.join(", ") || "—"}</dd>
-            </div>
-            <div>
-              <dt>Stato editoriale</dt>
-              <dd>{publicationLabel}</dd>
-            </div>
-            <div>
-              <dt>Volumi</dt>
-              <dd>{totalVolumes ?? "—"}</dd>
-            </div>
-            <div>
-              <dt>Capitoli</dt>
-              <dd>{work.total_chapters ?? "Da verificare"}</dd>
-            </div>
+            <div><dt>Autore</dt><dd>{creators.join(", ") || "—"}</dd></div>
+            <div><dt>Stato editoriale</dt><dd>{publicationLabel}</dd></div>
+            <div><dt>Volumi</dt><dd>{totalVolumes ?? "—"}</dd></div>
+            <div><dt>Capitoli</dt><dd>{work.total_chapters ?? "—"}</dd></div>
           </dl>
         </article>
         <article className="overview-card note-preview">
           <StickyNote size={20} />
           <span className="eyebrow">Le mie note</span>
-          <p>
-            {libraryEntry?.notes ||
-              "Nessuna nota personale. Puoi aggiungerla nella tua scheda senza modificare i dati globali dell'opera."}
-          </p>
+          <p>{libraryEntry?.notes || "Nessuna nota personale."}</p>
         </article>
       </section>
+
       <OwnedVolumeGallery volumes={ownedVolumeRows.rows} />
+
       <section id="volumi" className="detail-section volumes-stage">
         <div className="section-heading detail-heading">
           <div>
-            <span className="eyebrow">Catalogo + collezione</span>
+            <span className="eyebrow">Collezione fisica</span>
             <h2>Gestisci i volumi</h2>
           </div>
-          <span>
-            {totalVolumes
-              ? `${totalVolumes} pubblicati`
-              : "Totale da verificare"}
-          </span>
+          <span>{totalVolumes ? `${totalVolumes} pubblicati` : "Totale da verificare"}</span>
         </div>
         <p className="subtitle detail-explainer">
-          L'intera serie resta visibile. Il progresso di lettura e il possesso
-          fisico sono indipendenti, anche quando leggi online.
+          Qui registri solo ciò che possiedi. La lettura resta indipendente e si
+          aggiorna nella tua scheda.
         </p>
-        {libraryEntry ? <BulkOwnedVolumes workId={id} editions={editions.map(({ id, name }) => ({ id, name }))} /> : null}
+        {libraryEntry ? (
+          <BulkOwnedVolumes
+            workId={id}
+            editions={editions.map(({ id: editionId, name }) => ({ id: editionId, name }))}
+          />
+        ) : null}
+
         <details className="owned-catalog-tools">
           <summary>Apri il catalogo completo per aggiungere o rimuovere singoli volumi</summary>
-        <VolumeLegend />
-        {volumes.length && canonicalEdition?.id ? (
-          <div className="volume-grid volume-grid-visual">
-            {volumes.map((volume) => {
-              const ownedThisEdition = ownedIds.has(volume.id);
-              const ownedAnywhere = ownedVolumeNumbers.has(volume.unit_number);
-              const read =
-                currentVolume !== null && volume.unit_number <= currentVolume;
-              const current = currentVolume === volume.unit_number;
-              return (
-                <article
-                  key={volume.id}
-                  className={`volume visual-volume interactive-volume ${ownedAnywhere ? "owned" : ""} ${read ? "read" : ""} ${current ? "current" : ""}`}
-                >
-                  <div className="volume-spine">
-                    <span>{String(volume.unit_number).padStart(2, "0")}</span>
-                  </div>
-                  <div className="volume-copy">
-                    <strong>Volume {volume.unit_number}</strong>
-                    <span>
-                      {current
-                        ? "Volume attuale"
-                        : read
-                          ? "Letto"
-                          : "Da leggere"}
-                    </span>
-                    <small>
-                      {ownedThisEdition
-                        ? "Posseduto · edizione principale"
-                        : ownedAnywhere
-                          ? "Posseduto · altra edizione"
-                          : "Non posseduto"}
-                    </small>
-                  </div>
-                  <form
-                    action={toggleOwnedVolume}
-                    className="volume-toggle-form"
+          <VolumeLegend />
+          {volumes.length && canonicalEdition?.id ? (
+            <div className="volume-grid volume-grid-visual">
+              {volumes.map((volume) => {
+                const ownedThisEdition = ownedIds.has(volume.id);
+                const ownedAnywhere = ownedVolumeNumbers.has(volume.unit_number);
+                const read = currentVolume !== null && volume.unit_number <= currentVolume;
+                const current = currentVolume === volume.unit_number;
+                return (
+                  <article
+                    key={volume.id}
+                    className={`volume visual-volume interactive-volume ${ownedAnywhere ? "owned" : ""} ${read ? "read" : ""} ${current ? "current" : ""}`}
                   >
-                    <input type="hidden" name="workId" value={work.id} />
-                    <input
-                      type="hidden"
-                      name="editionId"
-                      value={canonicalEdition.id}
-                    />
-                    <input type="hidden" name="unitId" value={volume.id} />
-                    <button
-                      className="volume-action"
-                      type="submit"
-                      aria-label={
-                        ownedThisEdition
-                          ? `Rimuovi volume ${volume.unit_number} da questa edizione`
+                    <div className="volume-spine"><span>{String(volume.unit_number).padStart(2, "0")}</span></div>
+                    <div className="volume-copy">
+                      <strong>Volume {volume.unit_number}</strong>
+                      <span>{current ? "Volume attuale" : read ? "Letto" : "Da leggere"}</span>
+                      <small>
+                        {ownedThisEdition
+                          ? "Posseduto · edizione principale"
                           : ownedAnywhere
-                            ? `Segna volume ${volume.unit_number} anche in questa edizione`
-                            : `Segna volume ${volume.unit_number} come posseduto`
-                      }
-                    >
-                      {ownedThisEdition ? <Check size={14} /> : <Circle size={14} />}{" "}
-                      {ownedThisEdition
-                        ? "Posseduto"
-                        : ownedAnywhere
-                          ? "Segna anche qui"
-                          : "Segna"}
-                    </button>
-                  </form>
-                </article>
-              );
-            })}
-          </div>
-        ) : (
-          <div className="catalog-notice">
-            <LibraryBig size={22} />
-            <div>
-              <strong>Volumi non ancora materializzati nel catalogo.</strong>
-              <p>
-                Quando il provider restituisce il totale, l'import crea
-                automaticamente le unità. Per serie con numerazione complessa
-                useremo i dati reali dell'edizione.
-              </p>
+                            ? "Posseduto · altra edizione"
+                            : "Non posseduto"}
+                      </small>
+                    </div>
+                    <form action={toggleOwnedVolume} className="volume-toggle-form">
+                      <input type="hidden" name="workId" value={work.id} />
+                      <input type="hidden" name="editionId" value={canonicalEdition.id} />
+                      <input type="hidden" name="unitId" value={volume.id} />
+                      <button
+                        className="volume-action"
+                        type="submit"
+                        aria-label={
+                          ownedThisEdition
+                            ? `Rimuovi volume ${volume.unit_number} da questa edizione`
+                            : ownedAnywhere
+                              ? `Segna volume ${volume.unit_number} anche in questa edizione`
+                              : `Segna volume ${volume.unit_number} come posseduto`
+                        }
+                      >
+                        {ownedThisEdition ? <Check size={14} /> : <Circle size={14} />} {ownedThisEdition ? "Posseduto" : ownedAnywhere ? "Segna anche qui" : "Segna"}
+                      </button>
+                    </form>
+                  </article>
+                );
+              })}
             </div>
-          </div>
-        )}
+          ) : (
+            <div className="catalog-notice">
+              <LibraryBig size={22} />
+              <div>
+                <strong>Volumi non ancora disponibili nel catalogo.</strong>
+                <p>Puoi comunque usare l&apos;edizione personale per registrare quelli che possiedi.</p>
+              </div>
+            </div>
+          )}
         </details>
       </section>
-      <section id="capitoli" className="detail-section two-up-detail">
-        <article className="info-panel">
-          <BookOpen size={22} />
-          <div>
-            <span className="eyebrow">Capitoli</span>
-            <h2>
-              {work.total_chapters
-                ? `${work.total_chapters} censiti`
-                : "Numerazione da verificare"}
-            </h2>
-            <p>
-              Il progresso può essere salvato subito come “letto fino al
-              capitolo X”. L'elenco dettagliato viene creato solo da una fonte
-              affidabile, per non sbagliare speciali e numeri decimali.
-            </p>
+
+      {visibleEditions.length ? (
+        <section id="edizioni" className="detail-section">
+          <div className="section-heading detail-heading">
+            <div><span className="eyebrow">Edizioni</span><h2>Edizioni con dati utili</h2></div>
           </div>
-        </article>
-        <article className="info-panel">
-          <Layers3 size={22} />
-          <div>
-            <span className="eyebrow">Relazione</span>
-            <h2>Opera ≠ edizione</h2>
-            <p>
-              Leggi l'opera una volta sola; puoi però possedere volumi
-              appartenenti a edizioni diverse senza duplicare {work.title} nella
-              libreria.
-            </p>
-          </div>
-        </article>
-      </section>
-      <section id="edizioni" className="detail-section">
-        <div className="section-heading detail-heading">
-          <div>
-            <span className="eyebrow">Edizioni</span>
-            <h2>Le versioni di {work.title}</h2>
-          </div>
-        </div>
-        {editions?.length ? (
           <div className="edition-row">
-            {editions.map((edition) => (
+            {visibleEditions.map((edition) => (
               <article
                 key={edition.id}
                 className={`edition-choice ${edition.id === canonicalEdition?.id ? "selected" : ""}`}
               >
                 <strong>{edition.name}</strong>
                 <span>
-                  {[
-                    edition.publisher,
-                    edition.language,
-                    edition.publication_year,
-                  ]
+                  {[edition.publisher, edition.language, edition.publication_year, edition.format]
                     .filter(Boolean)
-                    .join(" · ") || "Dati da arricchire"}
+                    .join(" · ")}
                 </span>
               </article>
             ))}
           </div>
-        ) : (
-          <div className="catalog-notice">
-            <div>
-              <strong>Nessuna edizione ancora collegata.</strong>
-              <p>
-                Il catalogo dell'opera resta comunque valido e potrà essere
-                arricchito in seguito con edizioni italiane, ISBN e copertine
-                specifiche.
-              </p>
-            </div>
-          </div>
-        )}
-      </section>
+        </section>
+      ) : null}
     </main>
   );
 }

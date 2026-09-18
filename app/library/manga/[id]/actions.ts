@@ -5,9 +5,12 @@ import { redirect } from "next/navigation";
 import { requireProfile } from "@/lib/profile";
 import { createPersonalMangaEdition } from "@/lib/repositories/manga-editions";
 import {
+  normalizeMangaReadingMode,
+  setMangaReadingProgress,
+} from "@/lib/repositories/manga-reading";
+import {
   setLibraryPersonal,
   setLibraryStatus,
-  setMangaProgress,
   toggleOwnedUnit,
   type LibraryStatus,
 } from "@/lib/repositories/personal";
@@ -52,9 +55,14 @@ export async function updateMangaProgress(formData: FormData) {
   const workId = String(formData.get("workId") ?? "");
   const currentVolume = asNumber(formData.get("currentVolume"));
   const currentChapter = asNumber(formData.get("currentChapter"));
+  const readingMode = normalizeMangaReadingMode(formData.get("readingMode"));
   if (!workId) return;
   const { profile } = await requireProfile();
-  await setMangaProgress(profile.id, workId, currentVolume, currentChapter);
+  await setMangaReadingProgress(profile.id, workId, {
+    mode: readingMode,
+    currentVolume,
+    currentChapter,
+  });
   refreshManga(workId);
   redirect(`/library/manga/${workId}?saved=progress#personale`);
 }
