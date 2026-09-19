@@ -339,7 +339,7 @@ async function searchOpenLibrary(params: {
   url.searchParams.set("limit", String(params.limit ?? SEARCH_LIMIT));
   url.searchParams.set("fields", SEARCH_FIELDS);
 
-  const response = await fetch(url, {
+  const response = await catalogFetch(url, {
     headers: catalogHeaders(),
     signal: params.signal,
     next: { revalidate: 1800 },
@@ -407,11 +407,11 @@ export class OpenLibraryProvider implements BookCatalogProvider {
   async getById(id: string): Promise<BookCatalogResult> {
     const safeId = id.replace(/^\/works\//, "");
     const [workResponse, editionsResponse] = await Promise.all([
-      fetch(`${BASE}/works/${encodeURIComponent(safeId)}.json`, {
+      catalogFetch(`${BASE}/works/${encodeURIComponent(safeId)}.json`, {
         headers: catalogHeaders(),
         cache: "no-store",
       }),
-      fetch(
+      catalogFetch(
         `${BASE}/works/${encodeURIComponent(safeId)}/editions.json?limit=${EDITION_FETCH_LIMIT}`,
         { headers: catalogHeaders(), cache: "no-store" },
       ),
@@ -434,7 +434,7 @@ export class OpenLibraryProvider implements BookCatalogProvider {
     const authors = await Promise.all(
       authorKeys.map(async (key) => {
         try {
-          const response = await fetch(`${BASE}${key}.json`, {
+          const response = await catalogFetch(`${BASE}${key}.json`, {
             headers: catalogHeaders(),
             next: { revalidate: 86400 },
           });
@@ -508,4 +508,10 @@ export class OpenLibraryProvider implements BookCatalogProvider {
       sourceUrl: `${BASE}/works/${safeId}`,
     };
   }
+}
+
+async function catalogFetch(url: string | URL, init?: RequestInit & { next?: { revalidate: number } }) {
+  return fetch(url, { ...init, signal: init?.signal
+    ? AbortSignal.any([init.signal, AbortSignal.timeout(8000)])
+    : AbortSignal.timeout(8000) });
 }
