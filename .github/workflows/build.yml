@@ -29,5 +29,7 @@ jobs:
         run: node tests/repeat-variant-save.cjs
       - name: Test books and anime imports
         run: node tests/books-anime-performance.cjs && node tests/personal-book-form.cjs
+      - name: Test book and manga shelf covers
+        run: node tests/work-cover-route.cjs
       - name: Build Next.js application
         run: npm run build
