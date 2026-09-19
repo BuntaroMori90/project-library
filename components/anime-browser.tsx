@@ -229,13 +229,12 @@ export function AnimeBrowser({
                   </div>
                   <div className="tv-library-posters">
                     {row.items.map(({ item, selectedIndex: itemIndex }) => (
-                      <button
+                      <Link
                         key={item.id}
-                        type="button"
+                        href={`/library/anime/${item.id}`}
+                        prefetch={false}
                         className={`tv-library-poster ${itemIndex === safeIndex ? "active" : ""}`}
-                        onClick={() => setSelectedIndex(itemIndex)}
-                        aria-label={`Mostra ${item.title} nella TV`}
-                        aria-pressed={itemIndex === safeIndex}
+                        aria-label={`Apri scheda di ${item.title}`}
                       >
                         <div className="tv-library-poster-art">
                           {item.coverUrl ? (
@@ -252,7 +251,7 @@ export function AnimeBrowser({
                         </div>
                         <strong>{item.title}</strong>
                         <small>{item.progress ?? item.status ?? "Da vedere"}</small>
-                      </button>
+                      </Link>
                     ))}
                   </div>
                 </section>
