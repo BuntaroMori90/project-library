@@ -17,24 +17,55 @@ export async function GET(
   const { workId } = await params;
   if (!UUID.test(workId)) return new Response("Not found", { status: 404 });
 
-  const result = await query<{ custom_cover_url: string | null }>(
-    `select o.custom_cover_url
-       from ownership o
-       join editions e on e.id=o.edition_id
-       left join progress p
-         on p.profile_id=o.profile_id
-        and p.work_id=e.work_id
-        and p.edition_id=o.edition_id
-      where o.profile_id=$1
-        and e.work_id=$2
-        and o.custom_cover_url like 'data:image/%'
-      order by (p.edition_id is not null) desc,
-               (lower(coalesce(o.custom_format,''))='standard') desc,
-               o.updated_at desc
+  const result = await query<{ cover_url: string | null }>(
+    `select coalesce(
+       (
+         select o.custom_cover_url
+           from ownership o
+           join editions e on e.id=o.edition_id
+           left join progress p
+             on p.profile_id=o.profile_id
+            and p.work_id=e.work_id
+            and p.edition_id=o.edition_id
+          where o.profile_id=$1
+            and e.work_id=$2
+            and o.custom_cover_url like 'data:image/%'
+          order by (p.edition_id is not null) desc,
+                   (lower(coalesce(o.custom_format,''))='standard') desc,
+                   o.updated_at desc
+          limit 1
+       ),
+       (
+         select e.cover_url
+           from progress p
+           join editions e on e.id=p.edition_id
+          where p.profile_id=$1
+            and p.work_id=$2
+            and e.cover_url like 'data:image/%'
+          limit 1
+       ),
+       (
+         select e.cover_url
+           from editions e
+          where e.work_id=$2
+            and e.cover_url like 'data:image/%'
+          order by e.is_canonical desc,
+                   e.publication_year desc nulls last,
+                   e.id
+          limit 1
+       ),
+       w.cover_url
+     ) as cover_url
+       from works w
+       join library_entries le
+         on le.work_id=w.id
+        and le.profile_id=$1
+      where w.id=$2
+        and w.media_type='BOOK'
       limit 1`,
     [session.profile.id, workId],
   );
-  const value = result.rows[0]?.custom_cover_url ?? null;
+  const value = result.rows[0]?.cover_url ?? null;
   if (!value?.startsWith("data:image/")) {
     return new Response("Not found", { status: 404 });
   }
