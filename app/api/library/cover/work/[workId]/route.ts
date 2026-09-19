@@ -61,7 +61,7 @@ export async function GET(
          on le.work_id=w.id
         and le.profile_id=$1
       where w.id=$2
-        and w.media_type='BOOK'
+        and w.media_type in ('BOOK','MANGA')
       limit 1`,
     [session.profile.id, workId],
   );
@@ -80,7 +80,7 @@ export async function GET(
     headers: {
       "Content-Type": mime,
       "Content-Length": String(bytes.byteLength),
-      "Cache-Control": "private, max-age=86400, stale-while-revalidate=604800",
+      "Cache-Control": "private, no-cache",
       "X-Content-Type-Options": "nosniff",
     },
   });
