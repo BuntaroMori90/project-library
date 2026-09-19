@@ -13,9 +13,9 @@ import { demoBooks } from "@/lib/demo-data";
 import { DemoCover } from "@/components/demo-cover";
 import { WishlistToggle } from "@/components/wishlist-toggle";
 import { BookDeleteForm } from "@/components/book-delete-form";
+import { PersonalBookEditionForm } from "@/components/personal-book-edition-form";
 import { BookCoverField } from "@/components/book-cover-field";
 import {
-  addPersonalBookEdition,
   chooseBookEdition,
   refreshBookCatalogEditions,
   updateBookEditionDetails,
@@ -156,7 +156,7 @@ export default async function BookDetailPage({
   searchParams,
 }: {
   params: Promise<{ id: string }>;
-  searchParams: Promise<{ saved?: string; chooseEdition?: string; editionQ?: string }>;
+  searchParams: Promise<{ saved?: string; chooseEdition?: string; editionQ?: string; editionPage?: string }>;
 }) {
   const { id } = await params;
   const queryParams = await searchParams;
@@ -238,6 +238,10 @@ export default async function BookDetailPage({
       })
     : sortedEditions;
 
+  const editionPages = Math.max(1, Math.ceil(visibleEditions.length / 24));
+  const editionPage = Math.min(editionPages, Math.max(1, Number.parseInt(queryParams.editionPage ?? "1", 10) || 1));
+  const pagedEditions = visibleEditions.slice((editionPage - 1) * 24, editionPage * 24);
+  const pageHref = (page: number) => `/library/books/${work.id}?${new URLSearchParams({ editionQ: queryParams.editionQ ?? "", editionPage: String(page) })}#edizioni`;
   return (
     <main className="page book-detail-page work-detail-v2">
       <div className="book-detail-topbar">
@@ -350,43 +354,22 @@ export default async function BookDetailPage({
           </form>
           <form method="get" className="edition-search-form">
             <Search size={17} />
-            <input name="editionQ" defaultValue={queryParams.editionQ ?? ""} placeholder="Editore, ISBN, anno…" />
-            <button type="submit" className="soft-action">Cerca</button>
+            <input name="editionQ" defaultValue={queryParams.editionQ ?? ""} placeholder="Filtra edizioni caricate: editore, ISBN, anno…" />
+            <button type="submit" className="soft-action">Filtra</button>
             {editionQuery ? <Link href={`/library/books/${work.id}#edizioni`} className="edition-clear-link">Azzera</Link> : null}
           </form>
         </div>
 
         <details className="manual-edition-panel">
           <summary>Non trovi la tua? Crea la tua copia</summary>
-          <form action={addPersonalBookEdition} className="edition-personal-form manual-edition-form">
-            <input type="hidden" name="workId" value={work.id} />
-            <div className="manual-edition-intro">
-              <strong>Puoi salvare anche solo la copertina.</strong>
-              <p>{canEditManualAuthor ? "Autore, editore, pagine, ISBN e gli altri dettagli sono facoltativi e potrai aggiungerli in seguito." : "Editore, pagine, ISBN e gli altri dettagli sono tutti facoltativi e potrai aggiungerli in seguito."}</p>
-            </div>
-            <BookCoverField />
-            <details className="optional-edition-fields">
-              <summary>Aggiungi dettagli <span>facoltativo</span></summary>
-              <div className="edition-personal-grid">
-                <label>Nome / tipo edizione<input name="customName" placeholder="Es. Oscar, illustrata, prima edizione…" /></label>
-                {canEditManualAuthor ? <label>Autore<input name="customAuthor" defaultValue={authorValue} placeholder="Es. Mark Z. Danielewski" /></label> : null}
-                <label>Editore<input name="customPublisher" placeholder="Es. Einaudi" /></label>
-                <label>Lingua<input name="customLanguage" placeholder="Es. Italiano" /></label>
-                <label>Formato<input name="customFormat" placeholder="Brossura, rilegato, eBook…" /></label>
-                <label>Pagine<input name="customPageCount" type="number" min="1" placeholder="Es. 320" /></label>
-                <label>ISBN<input name="customIsbn" placeholder="Facoltativo" /></label>
-                <label>Anno<input name="customPublicationYear" type="number" min="1000" max="9999" placeholder="Es. 2021" /></label>
-              </div>
-            </details>
-            <button type="submit" className="primary-btn edition-save-button">Salva la mia copia</button>
-          </form>
+          <PersonalBookEditionForm workId={work.id} title={work.title} author={authorValue} canEditAuthor={canEditManualAuthor} />
         </details>
 
         <p className="subtitle detail-explainer">Il catalogo è solo il punto di partenza: la tua copia può avere copertina e dati personali senza modificare quelli degli altri utenti.</p>
 
         {visibleEditions.length ? (
           <div className="book-edition-grid">
-            {visibleEditions.map((edition) => {
+            {pagedEditions.map((edition) => {
               const owned = ownedEditionIds.has(edition.id);
               const selected = edition.id === selectedEdition?.id;
               const personal = ownershipByEdition.get(edition.id);
@@ -394,7 +377,7 @@ export default async function BookDetailPage({
               return (
                 <article key={edition.id} className={`book-edition-card ${owned ? "owned" : ""} ${selected ? "selected" : ""}`}>
                   <div className="edition-book-mini">
-                    {view.coverUrl ? <img src={view.coverUrl} alt={`Copertina ${view.name}`} /> : <span>{view.name || work.title}</span>}
+                    {view.coverUrl ? <img loading="lazy" decoding="async" src={view.coverUrl} alt={`Copertina ${view.name}`} /> : <span>{view.name || work.title}</span>}
                   </div>
                   <div className="book-edition-copy">
                     <div className="edition-badge-row">
@@ -433,6 +416,11 @@ export default async function BookDetailPage({
         ) : (
           <div className="catalog-notice"><div><strong>Nessuna edizione corrisponde alla ricerca.</strong><p>Prova un editore, l'ISBN oppure usa “Aggiorna catalogo”. Se manca ancora, puoi creare la tua copia e partire anche dalla sola copertina.</p></div></div>
         )}
+        {editionPages > 1 ? <nav className="edition-catalog-tools" aria-label="Pagine delle edizioni">
+          {editionPage > 1 ? <Link className="soft-action" href={pageHref(editionPage - 1)}>Precedenti</Link> : null}
+          <span>Pagina {editionPage} di {editionPages}</span>
+          {editionPage < editionPages ? <Link className="soft-action" href={pageHref(editionPage + 1)}>Altre edizioni</Link> : null}
+        </nav> : null}
       </section>
 
       {libraryEntry ? (

@@ -28,39 +28,35 @@ export async function importAnimeToCatalog(anime: AnimeCatalogResult) {
       );
     }
 
-    const seasonIdByNumber = new Map<number, string>();
-    for (const season of anime.seasons ?? []) {
-      const seasonRow = await client.query<{ id: string }>(
-        `insert into content_units (
-          work_id,edition_id,parent_unit_id,unit_type,unit_number,title,release_date,cover_url,sort_order,source_provider,source_external_id
-        ) values ($1,null,null,'SEASON',$2,$3,$4,$5,$2,'TVMAZE',$6)
-        on conflict (work_id,unit_type,unit_number) where edition_id is null and parent_unit_id is null and unit_number is not null
-        do update set title=excluded.title, release_date=excluded.release_date, cover_url=excluded.cover_url,
-          source_provider=excluded.source_provider, source_external_id=excluded.source_external_id
-        returning id`,
-        [workId, season.number, season.title ?? (season.number === 0 ? "Speciali" : `Stagione ${season.number}`), season.premiereDate ?? null, season.coverUrl ?? null, season.providerId],
-      );
-      seasonIdByNumber.set(season.number, seasonRow.rows[0].id);
-    }
-
-    for (const episode of anime.episodes ?? []) {
-      let parentId = seasonIdByNumber.get(episode.seasonNumber);
-      if (!parentId) {
-        const existingSeason = await client.query<{ id: string }>(
-          "select id from content_units where work_id=$1 and unit_type='SEASON' and parent_unit_id is null and unit_number=$2 limit 1",
-          [workId, episode.seasonNumber],
-        );
-        parentId = existingSeason.rows[0]?.id;
-      }
-      if (!parentId) continue;
+    const seasons = [...new Map((anime.seasons ?? []).map((season) => [season.number, season])).values()];
+    if (seasons.length) {
       await client.query(
-        `insert into content_units (
-          work_id,edition_id,parent_unit_id,unit_type,unit_number,title,release_date,sort_order,source_provider,source_external_id
-        ) values ($1,null,$2,'EPISODE',$3,$4,$5,$3,'TVMAZE',$6)
-        on conflict (parent_unit_id,unit_type,unit_number) where parent_unit_id is not null and unit_number is not null
-        do update set title=excluded.title, release_date=excluded.release_date,
-          source_provider=excluded.source_provider, source_external_id=excluded.source_external_id`,
-        [workId, parentId, episode.episodeNumber, episode.title ?? null, episode.airDate ?? null, episode.providerId],
+        `insert into content_units
+          (work_id,edition_id,parent_unit_id,unit_type,unit_number,title,release_date,cover_url,sort_order,source_provider,source_external_id)
+         select $1,null,null,'SEASON',s.number,s.title,s.premiere_date,s.cover_url,s.number,'TVMAZE',s.provider_id
+         from jsonb_to_recordset($2::jsonb) as s(number integer,title text,premiere_date date,cover_url text,provider_id text)
+         on conflict (work_id,unit_type,unit_number) where edition_id is null and parent_unit_id is null and unit_number is not null
+         do update set title=excluded.title,release_date=excluded.release_date,cover_url=excluded.cover_url,
+           source_provider=excluded.source_provider,source_external_id=excluded.source_external_id`,
+        [workId, JSON.stringify(seasons.map((season) => ({ number: season.number,
+          title: season.title ?? (season.number === 0 ? "Speciali" : `Stagione ${season.number}`),
+          premiere_date: season.premiereDate ?? null,cover_url: season.coverUrl ?? null,provider_id: season.providerId })))],
+      );
+    }
+    const episodes = [...new Map((anime.episodes ?? []).map((episode) => [`${episode.seasonNumber}:${episode.episodeNumber}`, episode])).values()];
+    if (episodes.length) {
+      await client.query(
+        `insert into content_units
+          (work_id,edition_id,parent_unit_id,unit_type,unit_number,title,release_date,sort_order,source_provider,source_external_id)
+         select $1,null,parent.id,'EPISODE',ep.number,ep.title,ep.air_date,ep.number,'TVMAZE',ep.provider_id
+         from jsonb_to_recordset($2::jsonb) as ep(season integer,number integer,title text,air_date date,provider_id text)
+         join content_units parent on parent.work_id=$1 and parent.unit_type='SEASON'
+           and parent.edition_id is null and parent.parent_unit_id is null and parent.unit_number=ep.season
+         on conflict (parent_unit_id,unit_type,unit_number) where parent_unit_id is not null and unit_number is not null
+         do update set title=excluded.title,release_date=excluded.release_date,
+           source_provider=excluded.source_provider,source_external_id=excluded.source_external_id`,
+        [workId, JSON.stringify(episodes.map((episode) => ({ season: episode.seasonNumber, number: episode.episodeNumber,
+          title: episode.title ?? null,air_date: episode.airDate ?? null,provider_id: episode.providerId })))],
       );
     }
 

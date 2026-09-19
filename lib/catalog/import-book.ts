@@ -1,4 +1,5 @@
 import "server-only";
+import { randomUUID } from "node:crypto";
 import type { PoolClient } from "pg";
 import { withTransaction } from "@/lib/db";
 import type {
@@ -20,9 +21,11 @@ function editionIdentity(edition: BookEditionCatalogResult) {
 
 function dedupeEditions(editions: BookEditionCatalogResult[]) {
   const seen = new Set<string>();
+  const sources = new Set<string>();
   return editions.filter((edition) => {
     const key = editionIdentity(edition);
-    if (seen.has(key)) return false;
+    if (seen.has(key) || sources.has(edition.providerId)) return false;
+    sources.add(edition.providerId);
     seen.add(key);
     return true;
   });
@@ -74,96 +77,40 @@ async function findWorkByEditionIdentity(
   return result.rows[0]?.work_id ?? null;
 }
 
-async function saveEdition(
-  client: PoolClient,
-  workId: string,
-  edition: BookEditionCatalogResult,
-  isCanonical: boolean,
-) {
-  const isbn13 = normalizeIsbn(edition.isbn13);
-  const isbn10 = normalizeIsbn(edition.isbn10);
-
-  const existing = await client.query<{
-    id: string;
-    work_id: string;
-    source_external_id: string | null;
-  }>(
-    `select id, work_id, source_external_id
-       from editions
-      where (source_provider='OPEN_LIBRARY' and source_external_id=$1)
-         or ($2::text is not null and isbn13=$2)
-         or ($3::text is not null and isbn10=$3)
-      order by
-        case when source_provider='OPEN_LIBRARY' and source_external_id=$1 then 0
-             when $2::text is not null and isbn13=$2 then 1
-             else 2 end
-      limit 1`,
-    [edition.providerId, isbn13, isbn10],
+async function saveEditions(client: PoolClient, workId: string, editions: BookEditionCatalogResult[]) {
+  if (!editions.length) return null;
+  const existing = await client.query<{ id: string; work_id: string; source_provider: string | null; source_external_id: string | null; isbn13: string | null; isbn10: string | null }>(
+    `select id,work_id,source_provider,source_external_id,isbn13,isbn10 from editions
+     where (source_provider='OPEN_LIBRARY' and source_external_id=any($1::text[]))
+       or isbn13=any($2::text[]) or isbn10=any($3::text[])`,
+    [editions.map((edition) => edition.providerId), editions.map((edition) => normalizeIsbn(edition.isbn13)).filter(Boolean), editions.map((edition) => normalizeIsbn(edition.isbn10)).filter(Boolean)],
   );
-
-  const found = existing.rows[0];
-  if (found) {
-    if (found.work_id !== workId) {
-      return { id: found.id, belongsToAnotherWork: true };
-    }
-
-    await client.query(
-      `update editions
-          set name=$2,
-              publisher=$3,
-              language=$4,
-              country=$5,
-              isbn10=coalesce($6,isbn10),
-              isbn13=coalesce($7,isbn13),
-              publication_year=$8,
-              format=$9,
-              cover_url=coalesce($10,cover_url),
-              page_count=$11,
-              is_canonical=$12,
-              updated_at=now()
-        where id=$1`,
-      [
-        found.id,
-        edition.title || "Edizione",
-        edition.publisher ?? null,
-        edition.language ?? null,
-        edition.country ?? null,
-        isbn10,
-        isbn13,
-        edition.publicationYear ?? null,
-        edition.format ?? null,
-        edition.coverUrl ?? null,
-        edition.pageCount ?? null,
-        isCanonical,
-      ],
-    );
-    return { id: found.id, belongsToAnotherWork: false };
-  }
-
-  const result = await client.query<{ id: string }>(
-    `insert into editions
-      (work_id,name,publisher,language,country,isbn10,isbn13,publication_year,format,cover_url,page_count,is_canonical,source_provider,source_external_id,updated_at)
-     values ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,'OPEN_LIBRARY',$13,now())
-     returning id`,
-    [
-      workId,
-      edition.title || "Edizione",
-      edition.publisher ?? null,
-      edition.language ?? null,
-      edition.country ?? null,
-      isbn10,
-      isbn13,
-      edition.publicationYear ?? null,
-      edition.format ?? null,
-      edition.coverUrl ?? null,
-      edition.pageCount ?? null,
-      isCanonical,
-      edition.providerId,
-    ],
+  const seenIds = new Set<string>();
+  const rows = editions.flatMap((edition, index) => {
+    const isbn13 = normalizeIsbn(edition.isbn13), isbn10 = normalizeIsbn(edition.isbn10);
+    const found = existing.rows.find((row) => row.source_provider === 'OPEN_LIBRARY' && row.source_external_id === edition.providerId)
+      ?? existing.rows.find((row) => isbn13 && row.isbn13 === isbn13)
+      ?? existing.rows.find((row) => isbn10 && row.isbn10 === isbn10);
+    if (found && found.work_id !== workId) return [];
+    const id = found?.id ?? randomUUID();
+    if (seenIds.has(id)) return [];
+    seenIds.add(id);
+    return [{ id,name: edition.title || 'Edizione',publisher: edition.publisher ?? null,language: edition.language ?? null,
+      country: edition.country ?? null,isbn10,isbn13,publication_year: edition.publicationYear ?? null,
+      format: edition.format ?? null,cover_url: edition.coverUrl ?? null,page_count: edition.pageCount ?? null,
+      is_canonical: index === 0,source_external_id: edition.providerId }];
+  });
+  if (rows.length) await client.query(
+    `insert into editions (id,work_id,name,publisher,language,country,isbn10,isbn13,publication_year,format,cover_url,page_count,is_canonical,source_provider,source_external_id,updated_at)
+     select e.id,$1,e.name,e.publisher,e.language,e.country,e.isbn10,e.isbn13,e.publication_year,e.format,e.cover_url,e.page_count,e.is_canonical,'OPEN_LIBRARY',e.source_external_id,now()
+     from jsonb_to_recordset($2::jsonb) as e(id uuid,name text,publisher text,language text,country text,isbn10 text,isbn13 text,publication_year integer,format text,cover_url text,page_count integer,is_canonical boolean,source_external_id text)
+     on conflict (id) do update set name=excluded.name,publisher=excluded.publisher,language=excluded.language,country=excluded.country,
+       isbn10=coalesce(excluded.isbn10,editions.isbn10),isbn13=coalesce(excluded.isbn13,editions.isbn13),
+       publication_year=excluded.publication_year,format=excluded.format,cover_url=coalesce(excluded.cover_url,editions.cover_url),
+       page_count=excluded.page_count,is_canonical=excluded.is_canonical,updated_at=now()`,
+    [workId, JSON.stringify(rows)],
   );
-  const editionId = result.rows[0]?.id;
-  if (!editionId) throw new Error("Impossibile salvare l'edizione del libro.");
-  return { id: editionId, belongsToAnotherWork: false };
+  return rows.find((row) => row.is_canonical)?.id ?? null;
 }
 
 export async function importBookToCatalog(book: BookCatalogResult) {
@@ -244,17 +191,7 @@ export async function importBookToCatalog(book: BookCatalogResult) {
       );
     }
 
-    for (let index = 0; index < editions.length; index += 1) {
-      const saved = await saveEdition(
-        client,
-        resolvedWorkId,
-        editions[index],
-        index === 0,
-      );
-      if (index === 0 && !saved.belongsToAnotherWork) {
-        canonicalEditionId = saved.id;
-      }
-    }
+    canonicalEditionId = await saveEditions(client, resolvedWorkId, editions);
 
     if (!canonicalEditionId) {
       const existingCanonical = await client.query<{ id: string }>(

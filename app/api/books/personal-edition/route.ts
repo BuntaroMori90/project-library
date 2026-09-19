@@ -1,5 +1,6 @@
 import { revalidatePath } from "next/cache";
 import { NextResponse } from "next/server";
+import { saveManualBookAuthors } from "@/lib/repositories/manual-book-authors";
 import { getApiProfile } from "@/lib/profile";
 import { createPersonalBookEdition } from "@/lib/repositories/book-editions";
 import {
@@ -83,6 +84,8 @@ export async function POST(request: Request) {
         values,
       );
     }
+
+    await saveManualBookAuthors(workId, asText(formData.get("customAuthor")));
 
     stage = "refresh";
     revalidatePath(`/library/books/${workId}`);

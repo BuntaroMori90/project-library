@@ -30,7 +30,7 @@ export class TvMazeProvider implements AnimeCatalogProvider {
     return { provider:this.name, providerId:String(show.id), title:show.name, originalTitle:null, description:stripHtml(show.summary), coverUrl:show.image?.original ?? show.image?.medium ?? null, releaseYear:year(show.premiered), publicationStatus:status(show.status), genres:show.genres ?? [], network:show.webChannel?.name ?? show.network?.name ?? null, language:show.language ?? null, seasonCount:null, episodeCount:null, sourceUrl:show.url ?? `https://www.tvmaze.com/shows/${show.id}` };
   }
   async search(query:string): Promise<AnimeCatalogResult[]> {
-    const response = await fetch(`${BASE}/search/shows?q=${encodeURIComponent(query)}`, { headers:this.headers(), next:{revalidate:1800} });
+    const response = await catalogFetch(`${BASE}/search/shows?q=${encodeURIComponent(query)}`, { headers:this.headers(), next:{revalidate:1800} });
     if (!response.ok) throw new Error("TVmaze non è disponibile in questo momento.");
     const payload = await response.json() as Array<{score:number;show:TvMazeShow}>;
     return payload.map(({show})=>this.mapShow(show)).sort((a,b)=>Number(b.genres.some(g=>g.toLowerCase()==="anime"))-Number(a.genres.some(g=>g.toLowerCase()==="anime"))).slice(0,8);
@@ -38,9 +38,9 @@ export class TvMazeProvider implements AnimeCatalogProvider {
   async getById(id:string): Promise<AnimeCatalogResult> {
     const safeId=encodeURIComponent(id);
     const [showResponse,seasonsResponse,episodesResponse]=await Promise.all([
-      fetch(`${BASE}/shows/${safeId}`,{headers:this.headers(),cache:"no-store"}),
-      fetch(`${BASE}/shows/${safeId}/seasons`,{headers:this.headers(),cache:"no-store"}),
-      fetch(`${BASE}/shows/${safeId}/episodes?specials=1`,{headers:this.headers(),cache:"no-store"}),
+      catalogFetch(`${BASE}/shows/${safeId}`,{headers:this.headers(),cache:"no-store"}),
+      catalogFetch(`${BASE}/shows/${safeId}/seasons`,{headers:this.headers(),cache:"no-store"}),
+      catalogFetch(`${BASE}/shows/${safeId}/episodes?specials=1`,{headers:this.headers(),cache:"no-store"}),
     ]);
     if(!showResponse.ok) throw new Error("Anime non trovato su TVmaze.");
     const show=await showResponse.json() as TvMazeShow;
@@ -51,4 +51,10 @@ export class TvMazeProvider implements AnimeCatalogProvider {
     const base=this.mapShow(show);
     return {...base,seasonCount:seasons.filter(s=>s.number>0).length,episodeCount:episodes.filter(e=>e.seasonNumber>0).length,seasons,episodes};
   }
+}
+
+async function catalogFetch(url: string | URL, init?: RequestInit & { next?: { revalidate: number } }) {
+  return fetch(url, { ...init, signal: init?.signal
+    ? AbortSignal.any([init.signal, AbortSignal.timeout(8000)])
+    : AbortSignal.timeout(8000) });
 }
